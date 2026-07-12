@@ -937,6 +937,20 @@ class CubazeDB {
     }
   }
 
+  async deleteFromSupabase(table, key, value) {
+    if (!this.sb) return;
+    try {
+      const { error } = await this.sb.from(table).delete().eq(key, value);
+      if (error) {
+        console.error(`Supabase delete failed for table ${table}:`, error.message || error);
+      } else {
+        console.log(`📡 Deleted from Supabase table ${table}: ${key} = ${value}`);
+      }
+    } catch (err) {
+      console.error(`Supabase delete failed for table ${table}:`, err);
+    }
+  }
+
   setItemAndSync(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
 
@@ -986,7 +1000,9 @@ class CubazeDB {
           role: user.role || "student",
           registered_date: user.registeredDate || new Date().toISOString().split('T')[0],
           enrolled_courses: user.enrolledCourses || [],
-          wishlist: user.wishlist || []
+          wishlist: user.wishlist || [],
+          suspended: user.suspended === true,
+          deleted: user.deleted === true
         });
       });
     } else if (key === "cubaze_batches") {
@@ -1251,6 +1267,7 @@ class CubazeDB {
   deleteCourse(id) {
     const courses = this.getCourses().filter(c => c.id !== id);
     this.setItemAndSync("cubaze_courses", courses);
+    this.deleteFromSupabase("cubaze_courses", "id", id);
     return true;
   }
 
