@@ -478,6 +478,236 @@ const DEFAULT_COUPONS = [
   { code: "STUDENT25", discount: 25, type: "percentage", active: true }
 ];
 
+// Helper to get formatted dates relative to today
+const getRelativeDateString = (offsetDays) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().split('T')[0];
+};
+
+const DEFAULT_LIVE_CLASSES = [
+  {
+    id: "LC_000001",
+    course_id: "blender-premium",
+    module_id: 0,
+    tutor_id: "sinansir",
+    title: "Introduction to 3D Viewport & Navigation",
+    description: "In this live class, we will go over the Blender interface, viewport navigation, object manipulation, and basic scene setup. Bring your questions!",
+    meet_link: "https://meet.google.com/abc-defg-hij",
+    date: getRelativeDateString(1), // Tomorrow
+    start_time: "15:00",
+    end_time: "16:30",
+    status: "published",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "LC_000002",
+    course_id: "blender-premium",
+    module_id: 1,
+    tutor_id: "sinansir",
+    title: "Live Sculpting Workshop: Organic Shapes",
+    description: "Hands-on sculpting workshop. We will learn dyntopo, remeshing, and dynamic topology sculpting workflow.",
+    meet_link: "https://meet.google.com/xyz-pdqo-tuv",
+    date: getRelativeDateString(0), // Today!
+    start_time: "10:00",
+    end_time: "23:59", // Keep it open for today
+    status: "published",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "LC_000003",
+    course_id: "blender-premium",
+    module_id: 2,
+    tutor_id: "sinansir",
+    title: "Completed Class: Advanced Rigging Workflows",
+    description: "This class covered inverse kinematics, forward kinematics, paint weights, and custom bone shapes. Recording is available below.",
+    meet_link: "https://meet.google.com/qwe-rtyu-iop",
+    date: getRelativeDateString(-2), // 2 days ago
+    start_time: "14:00",
+    end_time: "15:30",
+    status: "published",
+    recording_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
+const DEFAULT_COMMON_MEETINGS = [
+  {
+    id: "CM-ORIENT-101",
+    title: "Academy Orientation Session 2026",
+    description: "Welcome to Cubaze Academy! Join this platform-wide orientation session to understand the curriculum, meet your instructors, and learn how to navigate the LMS.",
+    meetLink: "https://meet.google.com/abc-orient-xyz",
+    date: "2026-07-15",
+    startTime: "10:00",
+    endTime: "11:30",
+    hostName: "Director Admin",
+    status: "Upcoming",
+    access: {
+      type: "everyone",
+      courseIds: [],
+      batchIds: []
+    },
+    password: "welcome_cubaze",
+    recordingLink: "",
+    googleDriveResources: "https://drive.google.com/drive/folders/orient-resources",
+    notes: "Please arrive 5 minutes early. Keep your microphone muted unless asked."
+  }
+];
+
+const DEFAULT_BATCHES = [
+  {
+    id: "B-BLNP-001",
+    name: "Blender Premium - Batch 1",
+    courseId: "blender-premium",
+    tutorIds: ["sinanmp"],
+    maxStudents: 50,
+    currentEnrollment: 10,
+    startDate: "2026-07-01",
+    endDate: "2026-10-01",
+    classDays: ["Mon", "Wed", "Fri"],
+    classTime: "18:00 - 20:00",
+    googleMeetLink: "https://meet.google.com/abc-defg-hij",
+    googleDriveFolder: "https://drive.google.com/drive/folders/blender-premium-b1",
+    status: "Active"
+  },
+  {
+    id: "B-BLNP-002",
+    name: "Blender Premium - Batch 2",
+    courseId: "blender-premium",
+    tutorIds: ["sinanmp"],
+    maxStudents: 50,
+    currentEnrollment: 0,
+    startDate: "2026-08-01",
+    endDate: "2026-11-01",
+    classDays: ["Tue", "Thu", "Sat"],
+    classTime: "19:00 - 21:00",
+    googleMeetLink: "https://meet.google.com/xyz-pdqo-tuv",
+    googleDriveFolder: "https://drive.google.com/drive/folders/blender-premium-b2",
+    status: "Upcoming"
+  },
+  {
+    id: "B-BLNB-001",
+    name: "Blender Basics - Batch 1",
+    courseId: "blender-basics",
+    tutorIds: ["sinanmp"],
+    maxStudents: 100,
+    currentEnrollment: 5,
+    startDate: "2026-07-10",
+    endDate: "2026-08-10",
+    classDays: ["Mon", "Thu"],
+    classTime: "16:00 - 17:30",
+    googleMeetLink: "https://meet.google.com/abc-defg-hij",
+    googleDriveFolder: "https://drive.google.com/drive/folders/blender-basics-b1",
+    status: "Enrollment Open"
+  },
+  {
+    id: "B-PREM-001",
+    name: "Premiere Pro - Batch 1",
+    courseId: "premiere-pro",
+    tutorIds: ["sinanmp"],
+    maxStudents: 40,
+    currentEnrollment: 8,
+    startDate: "2026-06-15",
+    endDate: "2026-08-15",
+    classDays: ["Tue", "Fri"],
+    classTime: "17:00 - 18:30",
+    googleMeetLink: "https://meet.google.com/qwe-rtyu-iop",
+    googleDriveFolder: "https://drive.google.com/drive/folders/premiere-pro-b1",
+    status: "Active"
+  }
+];
+
+const DEFAULT_ANNOUNCEMENTS = [
+  {
+    id: "ANN_001",
+    courseId: "blender-premium",
+    batchId: "B-BLNP-001",
+    title: "Welcome to Blender Premium Batch 1!",
+    content: "Hi everyone! Welcome to the course. We will have our first live class this Monday at 6:00 PM. Please make sure you have installed Blender 4.1 before the class.",
+    createdBy: "sinanmp",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "ANN_002",
+    courseId: "blender-premium",
+    batchId: "", // Entire course
+    title: "Blender 4.2 LTS Released",
+    content: "Blender 4.2 LTS has been released! It contains many performance improvements and new features. You can download it from blender.org.",
+    createdBy: "sinanmp",
+    createdAt: new Date().toISOString()
+  }
+];
+
+const DEFAULT_ASSIGNMENTS = [
+  {
+    id: "ASM_001",
+    courseId: "blender-premium",
+    batchId: "B-BLNP-001",
+    title: "Viewport Navigation Exercise",
+    description: "Submit a screenshot of your customized workspace layout and create a simple scene with 3 primitives arranged in a step shape.",
+    dueDate: getRelativeDateString(5),
+    maxPoints: 100,
+    createdBy: "sinanmp",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "ASM_002",
+    courseId: "blender-premium",
+    batchId: "", // Entire course
+    title: "Blender Basics Quiz",
+    description: "Complete the module 1 review quiz on the platform.",
+    dueDate: getRelativeDateString(10),
+    maxPoints: 50,
+    createdBy: "sinanmp",
+    createdAt: new Date().toISOString()
+  }
+];
+
+const DEFAULT_RESOURCES = [
+  {
+    id: "RES_001",
+    courseId: "blender-premium",
+    batchId: "B-BLNP-001",
+    title: "Blender Shortcuts Cheat Sheet PDF",
+    url: "https://download.blender.org/documentation/Blender_Shortcuts_CheatSheet.pdf",
+    createdBy: "sinanmp",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "RES_002",
+    courseId: "blender-premium",
+    batchId: "", // Entire course
+    title: "Reference Cube Texture Grid",
+    url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000",
+    createdBy: "sinanmp",
+    createdAt: new Date().toISOString()
+  }
+];
+
+const DEFAULT_ATTENDANCE = [
+  {
+    id: "ATT_001",
+    batchId: "B-BLNP-001",
+    username: "riya_learns",
+    classDate: getRelativeDateString(-2),
+    status: "PRESENT",
+    joinTime: "18:02"
+  },
+  {
+    id: "ATT_002",
+    batchId: "B-BLNP-001",
+    username: "dev_3d",
+    classDate: getRelativeDateString(-2),
+    status: "LATE",
+    joinTime: "18:15"
+  }
+];
+
+
+
 // ============================================================
 // DATABASE CLASS
 // ============================================================
@@ -494,8 +724,18 @@ class CubazeDB {
 
     if (this.supabaseUrl && this.supabaseKey && window.supabase) {
       try {
-        this.sb = window.supabase.createClient(this.supabaseUrl, this.supabaseKey);
-        console.log("⚡ Supabase Client initialized successfully.");
+        const cu = this.getCurrentUser();
+        const options = {};
+        if (cu) {
+          options.global = {
+            headers: {
+              'X-Custom-Username': cu.username || '',
+              'X-Custom-Role': cu.role || 'student'
+            }
+          };
+        }
+        this.sb = window.supabase.createClient(this.supabaseUrl, this.supabaseKey, options);
+        console.log("⚡ Supabase Client initialized with headers:", options.global ? options.global.headers : 'none');
         // Try initial sync in background
         this.syncFromSupabase();
       } catch (err) {
@@ -519,11 +759,13 @@ class CubazeDB {
           role: u.role || 'student',
           registeredDate: u.registered_date || '',
           enrolledCourses: u.enrolled_courses || [],
+          enrolledBatches: u.enrolled_batches || {},
           wishlist: u.wishlist || [],
           authorBio: u.author_bio || '',
           assignedCourses: u.assigned_courses || [],
           suspended: u.suspended || false,
-          deleted: u.deleted || false
+          deleted: u.deleted || false,
+          phone: u.phone || ''
         }));
         localStorage.setItem("cubaze_users", JSON.stringify(mappedUsers));
       }
@@ -532,6 +774,88 @@ class CubazeDB {
       const { data: courses, error: cErr } = await this.sb.from('cubaze_courses').select('*');
       if (!cErr && courses && courses.length > 0) {
         localStorage.setItem("cubaze_courses", JSON.stringify(courses));
+      }
+
+      // Sync Batches
+      const { data: batches, error: bErr } = await this.sb.from('cubaze_batches').select('*');
+      if (!bErr && batches && batches.length > 0) {
+        const mappedBatches = batches.map(b => ({
+          id: b.id,
+          name: b.name,
+          courseId: b.course_id,
+          tutorIds: b.tutor_ids || [],
+          maxStudents: b.max_students || 50,
+          currentEnrollment: b.current_enrollment || 0,
+          startDate: b.start_date || '',
+          endDate: b.end_date || '',
+          classDays: b.class_days || [],
+          classTime: b.class_time || '',
+          googleMeetLink: b.google_meet_link || '',
+          googleDriveFolder: b.google_drive_folder || '',
+          status: b.status || 'Upcoming'
+        }));
+        localStorage.setItem("cubaze_batches", JSON.stringify(mappedBatches));
+      }
+
+      // Sync Announcements
+      const { data: anns, error: annErr } = await this.sb.from('cubaze_announcements').select('*');
+      if (!annErr && anns && anns.length > 0) {
+        const mappedAnns = anns.map(a => ({
+          id: a.id,
+          courseId: a.course_id,
+          batchId: a.batch_id,
+          title: a.title,
+          content: a.content,
+          createdBy: a.created_by,
+          createdAt: a.created_at
+        }));
+        localStorage.setItem("cubaze_announcements", JSON.stringify(mappedAnns));
+      }
+
+      // Sync Assignments
+      const { data: asgs, error: asgErr } = await this.sb.from('cubaze_assignments').select('*');
+      if (!asgErr && asgs && asgs.length > 0) {
+        const mappedAsgs = asgs.map(a => ({
+          id: a.id,
+          courseId: a.course_id,
+          batchId: a.batch_id,
+          title: a.title,
+          description: a.description,
+          dueDate: a.due_date,
+          maxPoints: a.max_points || 100,
+          createdBy: a.created_by,
+          createdAt: a.created_at
+        }));
+        localStorage.setItem("cubaze_assignments", JSON.stringify(mappedAsgs));
+      }
+
+      // Sync Resources
+      const { data: ress, error: resErr } = await this.sb.from('cubaze_resources').select('*');
+      if (!resErr && ress && ress.length > 0) {
+        const mappedRess = ress.map(r => ({
+          id: r.id,
+          courseId: r.course_id,
+          batchId: r.batch_id,
+          title: r.title,
+          url: r.url,
+          createdBy: r.created_by,
+          createdAt: r.created_at
+        }));
+        localStorage.setItem("cubaze_resources", JSON.stringify(mappedRess));
+      }
+
+      // Sync Attendance
+      const { data: atts, error: attErr } = await this.sb.from('cubaze_attendance').select('*');
+      if (!attErr && atts && atts.length > 0) {
+        const mappedAtts = atts.map(a => ({
+          id: a.id,
+          batchId: a.batch_id,
+          username: a.username,
+          classDate: a.class_date,
+          status: a.status,
+          joinTime: a.join_time
+        }));
+        localStorage.setItem("cubaze_attendance", JSON.stringify(mappedAtts));
       }
 
       // Sync Transactions
@@ -563,10 +887,36 @@ class CubazeDB {
         localStorage.setItem("cubaze_activity_log", JSON.stringify(acts));
       }
 
+      // Sync Posters
+      try {
+        const { data: posts, error: postErr } = await this.sb.from('cubaze_posters').select('*');
+        if (!postErr && posts) {
+          const mappedPosts = posts.map(p => ({
+            id: p.id,
+            title: p.title,
+            image: p.image || "",
+            type: p.type || "General",
+            shortDescription: p.short_description || "",
+            eventDate: p.event_date || "",
+            buttonText: p.button_text || "",
+            buttonLink: p.button_link || "",
+            publishStartDate: p.publish_start_date || "",
+            publishEndDate: p.publish_end_date || "",
+            targetAudience: p.target_audience || "Everyone",
+            status: p.status || "Draft",
+            createdAt: p.created_at || new Date().toISOString(),
+            updatedAt: p.updated_at || new Date().toISOString()
+          }));
+          localStorage.setItem("cubaze_posters", JSON.stringify(mappedPosts));
+        }
+      } catch (err) {
+        console.warn("Supabase posters sync failed:", err);
+      }
+
       console.log("✅ Supabase sync completed.");
       // Trigger a view refresh if app is loaded
-      if (window.app && typeof window.app.render === 'function') {
-        window.app.render();
+      if (window.app && typeof window.app.renderRoute === 'function') {
+        window.app.renderRoute();
       }
       return { success: true };
     } catch (e) {
@@ -635,11 +985,79 @@ class CubazeDB {
           role: user.role || "student",
           registered_date: user.registeredDate || new Date().toISOString().split('T')[0],
           enrolled_courses: user.enrolledCourses || [],
+          enrolled_batches: user.enrolledBatches || {},
           wishlist: user.wishlist || [],
           author_bio: user.authorBio || "",
           assigned_courses: user.assignedCourses || [],
           suspended: user.suspended === true,
-          deleted: user.deleted === true
+          deleted: user.deleted === true,
+          phone: user.phone || ""
+        });
+      });
+    } else if (key === "cubaze_batches") {
+      value.forEach(batch => {
+        this.pushToSupabase("cubaze_batches", {
+          id: batch.id,
+          name: batch.name,
+          course_id: batch.courseId,
+          tutor_ids: batch.tutorIds || [],
+          max_students: batch.maxStudents || 50,
+          start_date: batch.startDate || null,
+          end_date: batch.endDate || null,
+          class_days: batch.classDays || [],
+          class_time: batch.classTime || '',
+          google_meet_link: batch.googleMeetLink || '',
+          google_drive_folder: batch.googleDriveFolder || '',
+          status: batch.status || 'Upcoming'
+        });
+      });
+    } else if (key === "cubaze_announcements") {
+      value.forEach(a => {
+        this.pushToSupabase("cubaze_announcements", {
+          id: a.id,
+          course_id: a.courseId || null,
+          batch_id: a.batchId || null,
+          title: a.title,
+          content: a.content,
+          created_by: a.createdBy,
+          created_at: a.createdAt
+        });
+      });
+    } else if (key === "cubaze_assignments") {
+      value.forEach(a => {
+        this.pushToSupabase("cubaze_assignments", {
+          id: a.id,
+          course_id: a.courseId || null,
+          batch_id: a.batchId || null,
+          title: a.title,
+          description: a.description,
+          due_date: a.dueDate || null,
+          max_points: a.maxPoints || 100,
+          created_by: a.createdBy,
+          created_at: a.createdAt
+        });
+      });
+    } else if (key === "cubaze_resources") {
+      value.forEach(r => {
+        this.pushToSupabase("cubaze_resources", {
+          id: r.id,
+          course_id: r.courseId || null,
+          batch_id: r.batchId || null,
+          title: r.title,
+          url: r.url,
+          created_by: r.createdBy,
+          created_at: r.createdAt
+        });
+      });
+    } else if (key === "cubaze_attendance") {
+      value.forEach(a => {
+        this.pushToSupabase("cubaze_attendance", {
+          id: a.id,
+          batch_id: a.batchId,
+          username: a.username,
+          class_date: a.classDate,
+          status: a.status,
+          join_time: a.joinTime
         });
       });
     } else if (key === "cubaze_transactions") {
@@ -680,7 +1098,25 @@ class CubazeDB {
           resource_type: act.resourceType,
           resource_id: act.resourceId,
           details: act.details || "",
-          timestamp: act.timestamp || new Date().toISOString()
+        });
+      });
+    } else if (key === "cubaze_posters") {
+      value.forEach(p => {
+        this.pushToSupabase("cubaze_posters", {
+          id: p.id,
+          title: p.title,
+          image: p.image || "",
+          type: p.type || "General",
+          short_description: p.shortDescription || "",
+          event_date: p.eventDate || "",
+          button_text: p.buttonText || "",
+          button_link: p.buttonLink || "",
+          publish_start_date: p.publishStartDate || "",
+          publish_end_date: p.publishEndDate || "",
+          target_audience: p.targetAudience || "Everyone",
+          status: p.status || "Draft",
+          created_at: p.createdAt || new Date().toISOString(),
+          updated_at: p.updatedAt || new Date().toISOString()
         });
       });
     }
@@ -688,14 +1124,16 @@ class CubazeDB {
 
 
   init() {
-    // Force reset if course IDs have changed
+    // ── App version stamp: bump this string any time you want a forced clean reset ──
+    const APP_VERSION = "v4.3-common-meetings";
+    const storedVersion = localStorage.getItem("cubaze_app_version");
+
+    // Force reset if course IDs have changed OR version mismatch
     const storedCourses = localStorage.getItem("cubaze_courses");
-    let needsReset = false;
-    if (storedCourses) {
+    let needsReset = storedVersion !== APP_VERSION;
+    if (!needsReset && storedCourses) {
       const parsed = JSON.parse(storedCourses);
-      if (!parsed.some(c => c.id === "blender-premium")) {
-        needsReset = true;
-      }
+      if (!parsed.some(c => c.id === "blender-premium")) needsReset = true;
     }
     if (!localStorage.getItem("cubaze_users")) needsReset = true;
     if (!localStorage.getItem("cubaze_blog")) needsReset = true;
@@ -706,6 +1144,8 @@ class CubazeDB {
       localStorage.removeItem("cubaze_transactions");
       localStorage.removeItem("cubaze_progress");
       localStorage.removeItem("cubaze_submitted_courses");
+      localStorage.removeItem("cubaze_activity_log");
+      localStorage.setItem("cubaze_app_version", APP_VERSION);
     }
 
     if (!localStorage.getItem("cubaze_courses")) localStorage.setItem("cubaze_courses", JSON.stringify(DEFAULT_COURSES));
@@ -715,13 +1155,91 @@ class CubazeDB {
     if (!localStorage.getItem("cubaze_submitted_courses")) localStorage.setItem("cubaze_submitted_courses", JSON.stringify([]));
     if (!localStorage.getItem("cubaze_blog")) localStorage.setItem("cubaze_blog", JSON.stringify(DEFAULT_BLOG_POSTS));
     if (!localStorage.getItem("cubaze_coupons")) localStorage.setItem("cubaze_coupons", JSON.stringify(DEFAULT_COUPONS));
+    if (!localStorage.getItem("cubaze_live_classes")) localStorage.setItem("cubaze_live_classes", JSON.stringify(DEFAULT_LIVE_CLASSES));
     if (!localStorage.getItem("cubaze_notifications")) localStorage.setItem("cubaze_notifications", JSON.stringify([]));
     if (!localStorage.getItem("cubaze_wishlist")) localStorage.setItem("cubaze_wishlist", JSON.stringify({}));
     if (!localStorage.getItem("cubaze_dark_mode")) localStorage.setItem("cubaze_dark_mode", "false");
+
+    // Initialize Batch System tables in LocalStorage
+    if (!localStorage.getItem("cubaze_batches")) localStorage.setItem("cubaze_batches", JSON.stringify(DEFAULT_BATCHES));
+    if (!localStorage.getItem("cubaze_announcements")) localStorage.setItem("cubaze_announcements", JSON.stringify(DEFAULT_ANNOUNCEMENTS));
+    if (!localStorage.getItem("cubaze_assignments")) localStorage.setItem("cubaze_assignments", JSON.stringify(DEFAULT_ASSIGNMENTS));
+    if (!localStorage.getItem("cubaze_resources")) localStorage.setItem("cubaze_resources", JSON.stringify(DEFAULT_RESOURCES));
+    if (!localStorage.getItem("cubaze_attendance")) localStorage.setItem("cubaze_attendance", JSON.stringify(DEFAULT_ATTENDANCE));
+    if (!localStorage.getItem("cubaze_common_meetings")) localStorage.setItem("cubaze_common_meetings", JSON.stringify(DEFAULT_COMMON_MEETINGS));
+
+    // Migrate legacy users without enrolledBatches
+    const currentUsers = JSON.parse(localStorage.getItem("cubaze_users") || "[]");
+    let migrated = false;
+    const currentBatches = JSON.parse(localStorage.getItem("cubaze_batches") || "[]");
+    
+    currentUsers.forEach(u => {
+      if (u.role === 'student' && u.enrolledCourses && u.enrolledCourses.length > 0) {
+        if (!u.enrolledBatches) {
+          u.enrolledBatches = {};
+          migrated = true;
+        }
+        u.enrolledCourses.forEach(cid => {
+          if (!u.enrolledBatches[cid]) {
+            // Find first batch of this course
+            let batch = currentBatches.find(b => b.courseId === cid);
+            if (!batch) {
+              // Create default batch
+              batch = {
+                id: `B-${cid.substring(0,4).toUpperCase()}-LEGACY`,
+                name: `Legacy Batch - ${cid}`,
+                courseId: cid,
+                tutorIds: ["sinanmp"],
+                maxStudents: 100,
+                currentEnrollment: 1,
+                startDate: "2026-01-01",
+                endDate: "2026-12-31",
+                classDays: ["Mon", "Wed"],
+                classTime: "18:00 - 19:30",
+                googleMeetLink: "https://meet.google.com/abc-defg-hij",
+                googleDriveFolder: "",
+                status: "Active"
+              };
+              currentBatches.push(batch);
+              localStorage.setItem("cubaze_batches", JSON.stringify(currentBatches));
+            }
+            u.enrolledBatches[cid] = batch.id;
+            migrated = true;
+          }
+        });
+      }
+    });
+    
+    if (migrated) {
+      localStorage.setItem("cubaze_users", JSON.stringify(currentUsers));
+    }
+
+    // ── Sanitize: remove any leftover demo users (keep only admin + real registrations) ──
+    const DEMO_USERNAMES = ["student", "riya_learns", "vikas_edit", "alex_j", "demo_user"];
+    const currentUsersRaw = JSON.parse(localStorage.getItem("cubaze_users") || "[]");
+    const cleanUsers = currentUsersRaw.filter(u => !DEMO_USERNAMES.includes(u.username));
+    if (cleanUsers.length !== currentUsersRaw.length) {
+      localStorage.setItem("cubaze_users", JSON.stringify(cleanUsers));
+    }
   }
 
   // --- COURSES ---
-  getCourses() { return JSON.parse(localStorage.getItem("cubaze_courses")) || []; }
+  getCourses() {
+    const courses = JSON.parse(localStorage.getItem("cubaze_courses")) || [];
+    const users = JSON.parse(localStorage.getItem("cubaze_users")) || [];
+    const enrollmentCounts = {};
+    users.forEach(u => {
+      if (u.enrolledCourses && Array.isArray(u.enrolledCourses)) {
+        u.enrolledCourses.forEach(cid => {
+          enrollmentCounts[cid] = (enrollmentCounts[cid] || 0) + 1;
+        });
+      }
+    });
+    return courses.map(c => ({
+      ...c,
+      studentsCount: enrollmentCounts[c.id] || 0
+    }));
+  }
   getCourseById(id) { return this.getCourses().find(c => c.id === id); }
 
   saveCourse(courseData) {
@@ -774,10 +1292,10 @@ class CubazeDB {
   // --- USERS ---
   getUsers() { return JSON.parse(localStorage.getItem("cubaze_users")) || []; }
 
-  registerUser(username, password, name, role = "student") {
+  registerUser(username, password, name, role = "student", phone = "") {
     const users = this.getUsers();
     if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) return { success: false, error: "Username already exists." };
-    const newUser = { username: username.trim(), password, name: name.trim(), role, registeredDate: new Date().toISOString().split('T')[0], enrolledCourses: [], wishlist: [] };
+    const newUser = { username: username.trim(), password, name: name.trim(), role, registeredDate: new Date().toISOString().split('T')[0], enrolledCourses: [], wishlist: [], phone: phone.trim() };
     users.push(newUser);
     this.setItemAndSync("cubaze_users", users);
     return { success: true, user: newUser };
@@ -788,6 +1306,7 @@ class CubazeDB {
     const user = users.find(u => u.username.toLowerCase() === username.toLowerCase().trim() && u.password === password);
     if (user) {
       localStorage.setItem("cubaze_current_user", JSON.stringify(user));
+      this.initSupabase();
       return { success: true, user };
     }
     return { success: false, error: "Invalid username or password." };
@@ -798,9 +1317,13 @@ class CubazeDB {
   setCurrentUser(user) {
     if (user) localStorage.setItem("cubaze_current_user", JSON.stringify(user));
     else localStorage.removeItem("cubaze_current_user");
+    this.initSupabase();
   }
 
-  logout() { localStorage.removeItem("cubaze_current_user"); }
+  logout() {
+    localStorage.removeItem("cubaze_current_user");
+    this.initSupabase();
+  }
 
   updateUser(username, updates) {
     const users = this.getUsers();
@@ -857,12 +1380,107 @@ class CubazeDB {
   // --- COUPONS ---
   getCoupons() { return JSON.parse(localStorage.getItem("cubaze_coupons")) || []; }
 
+  deleteCoupon(code) {
+    let coupons = this.getCoupons();
+    const initialLen = coupons.length;
+    const target = String(code).trim().toUpperCase();
+    coupons = coupons.filter(c => String(c.code).trim().toUpperCase() !== target);
+    if (coupons.length < initialLen) {
+      this.setItemAndSync("cubaze_coupons", coupons);
+      return true;
+    }
+    return false;
+  }
+
+  saveCoupon(coupon) {
+    const coupons = this.getCoupons();
+    const idx = coupons.findIndex(c => String(c.code).trim().toUpperCase() === String(coupon.code).trim().toUpperCase());
+    if (idx > -1) {
+      coupons[idx] = { ...coupons[idx], ...coupon };
+    } else {
+      coupons.push(coupon);
+    }
+    this.setItemAndSync("cubaze_coupons", coupons);
+    return true;
+  }
+
   validateCoupon(code, originalPrice) {
     const coupon = this.getCoupons().find(c => c.code === code.toUpperCase() && c.active);
     if (!coupon) return { valid: false, error: "Invalid or expired coupon code." };
     const discount = coupon.type === "percentage" ? Math.round(originalPrice * coupon.discount / 100) : coupon.discount;
     const finalPrice = Math.max(0, originalPrice - discount);
     return { valid: true, discount, finalPrice, coupon };
+  }
+
+  // --- LIVE CLASSES ---
+  getLiveClasses() { return JSON.parse(localStorage.getItem("cubaze_live_classes")) || []; }
+
+  getLiveClassById(id) {
+    return this.getLiveClasses().find(lc => lc.id === id);
+  }
+
+  saveLiveClass(liveClass) {
+    const classes = this.getLiveClasses();
+    const now = new Date().toISOString();
+    if (liveClass.id) {
+      const idx = classes.findIndex(lc => lc.id === liveClass.id);
+      if (idx > -1) {
+        classes[idx] = { ...classes[idx], ...liveClass, updated_at: now };
+      } else {
+        return false;
+      }
+    } else {
+      liveClass.id = "LC_" + Math.floor(100000 + Math.random() * 900000);
+      liveClass.created_at = now;
+      liveClass.updated_at = now;
+      classes.push(liveClass);
+    }
+    this.setItemAndSync("cubaze_live_classes", classes);
+    this.addActivity(liveClass.tutor_id || "admin", "SAVE_LIVE_CLASS", "live_class", liveClass.id, liveClass.title);
+    return liveClass;
+  }
+
+  deleteLiveClass(id) {
+    let classes = this.getLiveClasses();
+    const initialLen = classes.length;
+    classes = classes.filter(lc => lc.id !== id);
+    if (classes.length < initialLen) {
+      this.setItemAndSync("cubaze_live_classes", classes);
+      this.addActivity("admin", "DELETED_LIVE_CLASS", "live_class", id, `Class ID: ${id}`);
+      return true;
+    }
+    return false;
+  }
+
+  getAttendanceReport(classId) {
+    const liveClass = this.getLiveClassById(classId);
+    if (!liveClass) return [];
+    
+    // Find all users enrolled in the course
+    const users = this.getUsers().filter(u => u.role === 'student' && (u.enrolledCourses || []).includes(liveClass.course_id));
+    
+    // Generate deterministic mock attendance based on username
+    return users.map((u, i) => {
+      const hash = (u.username.length + i) % 10;
+      let status = "PRESENT";
+      let joinTime = liveClass.start_time;
+      if (hash === 2) {
+        status = "LATE";
+        const parts = liveClass.start_time.split(':');
+        const min = parseInt(parts[1] || '0') + 12;
+        joinTime = `${parts[0]}:${min < 10 ? '0' + min : min}`;
+      } else if (hash === 5) {
+        status = "ABSENT";
+        joinTime = "—";
+      }
+      return {
+        username: u.username,
+        name: u.name,
+        email: u.email || `${u.username}@cubaze.edu`,
+        status,
+        joinTime
+      };
+    });
   }
 
   // --- TRANSACTIONS ---
@@ -875,7 +1493,9 @@ class CubazeDB {
     const newTxn = { id: txnId, username, courseId, courseTitle: course ? course.title : "Unknown", amount, status, paymentMethod, timestamp: new Date().toISOString() };
     transactions.unshift(newTxn);
     this.setItemAndSync("cubaze_transactions", transactions);
-    if (status === "SUCCESS") this.enrollUserInCourse(username, courseId);
+    if (status === "SUCCESS") {
+      this.handleAutomaticEnrollment(username, courseId);
+    }
     return newTxn;
   }
 
@@ -989,7 +1609,7 @@ class CubazeDB {
 
   // --- CONVENIENCE ALIASES ---
   login(username, password) { return this.loginUser(username, password); }
-  register(name, username, password) { return this.registerUser(username, password, name); }
+  register(name, username, password, phone = "") { return this.registerUser(username, password, name, "student", phone); }
 
   // --- TUTORS MANAGEMENT BY ADMIN ---
   addTutor(username, password, name, bio = "", assignedCourseIds = []) {
@@ -1031,6 +1651,34 @@ class CubazeDB {
     return { success: true };
   }
 
+  // Admin updates a student's enrolled courses (assignments)
+  updateStudentCourseEnrollments(username, courseIds = []) {
+    const users = this.getUsers();
+    const student = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+    if (!student) return { success: false, error: "Student not found." };
+    
+    const currentEnrolled = student.enrolledCourses || [];
+    const currentBatches = student.enrolledBatches || {};
+
+    // Find courses to add
+    const toAdd = courseIds.filter(cid => !currentEnrolled.includes(cid));
+    // Find courses to remove
+    const toRemove = currentEnrolled.filter(cid => !courseIds.includes(cid));
+
+    // Perform removal first
+    for (const cid of toRemove) {
+      const batchId = currentBatches[cid];
+      this.unenrollUserFromBatch(username, cid, batchId);
+    }
+
+    // Perform enrollment
+    for (const cid of toAdd) {
+      this.handleAutomaticEnrollment(username, cid);
+    }
+
+    return { success: true };
+  }
+
   // --- DELETE LESSON FROM COURSE MODULE ---
   deleteLessonFromCourseModule(courseId, lessonId) {
     const courses = this.getCourses();
@@ -1046,6 +1694,26 @@ class CubazeDB {
     let totalLessons = 0;
     course.modules.forEach(m => { totalLessons += m.lessons.length; });
     course.lessonsCount = totalLessons;
+    courses[courseIndex] = course;
+    this.setItemAndSync("cubaze_courses", courses);
+    return { success: true };
+  }
+
+  // --- UPDATE LESSON IN COURSE MODULE ---
+  updateLessonInCourseModule(courseId, modIdx, lessonId, updates) {
+    const courses = this.getCourses();
+    const courseIndex = courses.findIndex(c => c.id === courseId);
+    if (courseIndex === -1) return { success: false, error: "Course not found." };
+    const course = courses[courseIndex];
+    if (!course.modules || !course.modules[modIdx]) return { success: false, error: "Module not found." };
+    const lesIdx = course.modules[modIdx].lessons.findIndex(l => l.id === lessonId);
+    if (lesIdx === -1) return { success: false, error: "Lesson not found." };
+    
+    course.modules[modIdx].lessons[lesIdx] = { 
+      ...course.modules[modIdx].lessons[lesIdx], 
+      ...updates 
+    };
+    
     courses[courseIndex] = course;
     this.setItemAndSync("cubaze_courses", courses);
     return { success: true };
@@ -1069,10 +1737,15 @@ class CubazeDB {
       const users = this.getUsers();
       const uIdx = users.findIndex(u => u.username === txn.username);
       if (uIdx > -1) {
-        if (!users[uIdx].enrolledCourses) users[uIdx].enrolledCourses = [];
-        if (!users[uIdx].enrolledCourses.includes(txn.courseId)) {
-          users[uIdx].enrolledCourses.push(txn.courseId);
-          this.setItemAndSync("cubaze_users", users);
+        if (!users[uIdx].enrolledBatches || !users[uIdx].enrolledBatches[txn.courseId]) {
+          this.handleAutomaticEnrollment(txn.username, txn.courseId);
+        } else {
+          // Fallback: make sure they are in enrolledCourses
+          if (!users[uIdx].enrolledCourses) users[uIdx].enrolledCourses = [];
+          if (!users[uIdx].enrolledCourses.includes(txn.courseId)) {
+            users[uIdx].enrolledCourses.push(txn.courseId);
+            this.setItemAndSync("cubaze_users", users);
+          }
         }
       }
       this.addActivity("admin", "APPROVED_PAYMENT", "transaction", txnId, `₹${txn.amount} for ${txn.courseTitle} — ${txn.username}`);
@@ -1211,6 +1884,17 @@ class CubazeDB {
     return { success: true };
   }
 
+  updateCourseModule(courseId, moduleIdx, newTitle) {
+    const courses = this.getCourses();
+    const idx = courses.findIndex(c => c.id === courseId);
+    if (idx === -1) return { success: false, error: "Course not found." };
+    if (!courses[idx].modules || !courses[idx].modules[moduleIdx]) return { success: false, error: "Module not found." };
+    courses[idx].modules[moduleIdx].title = newTitle;
+    courses[idx].updatedDate = new Date().toISOString().split('T')[0];
+    this.setItemAndSync("cubaze_courses", courses);
+    return { success: true };
+  }
+
   // ============================================================
   // USER MANAGEMENT (ADMIN)
   // ============================================================
@@ -1316,7 +2000,7 @@ class CubazeDB {
 
   // --- CONVENIENCE ALIASES ---
   login(username, password) { return this.loginUser(username, password); }
-  register(name, username, password) { return this.registerUser(username, password, name); }
+  register(name, username, password, phone = "") { return this.registerUser(username, password, name, "student", phone); }
 
   // --- TUTORS MANAGEMENT BY ADMIN ---
   addTutor(username, password, name, bio = "", assignedCourseIds = []) {
@@ -1376,6 +2060,1185 @@ class CubazeDB {
     courses[courseIndex] = course;
     this.setItemAndSync("cubaze_courses", courses);
     return { success: true, lesson: newLesson };
+  }
+
+  // --- UPDATE LESSON IN COURSE MODULE ---
+  updateLessonInCourseModule(courseId, lessonId, data) {
+    const courses = this.getCourses();
+    const courseIndex = courses.findIndex(c => c.id === courseId);
+    if (courseIndex === -1) return { success: false, error: "Course not found." };
+    const course = courses[courseIndex];
+    let updated = false;
+    course.modules.forEach(mod => {
+      const lesIdx = mod.lessons.findIndex(l => l.id === lessonId);
+      if (lesIdx > -1) {
+        mod.lessons[lesIdx] = {
+          ...mod.lessons[lesIdx],
+          title: data.title.trim(),
+          duration: data.duration ? data.duration.trim() : mod.lessons[lesIdx].duration,
+          videoUrl: data.videoUrl.trim(),
+          description: data.description ? data.description.trim() : ""
+        };
+        updated = true;
+      }
+    });
+    if (!updated) return { success: false, error: "Lesson not found." };
+    courses[courseIndex] = course;
+    this.setItemAndSync("cubaze_courses", courses);
+    return { success: true };
+  }
+
+  // ============================================================
+  // STUDENT SUPPORT MESSAGING SYSTEM
+  // ============================================================
+
+  async getSupportConversations() {
+    if (this.sb) {
+      try {
+        const cu = this.getCurrentUser();
+        if (!cu) return [];
+        let query = this.sb.from('cubaze_support_conversations').select('*');
+        if (cu.role !== 'admin') {
+          query = query.eq('student_username', cu.username);
+        }
+        const { data, error } = await query.order('last_reply_at', { ascending: false });
+        if (!error && data) return data;
+        console.warn("Supabase conversations fetch failed, using fallback:", error);
+      } catch (err) {
+        console.warn("Supabase conversations fetch error, using fallback:", err);
+      }
+    }
+    // Fallback
+    const cu = this.getCurrentUser();
+    if (!cu) return [];
+    const convs = JSON.parse(localStorage.getItem("cubaze_support_conversations") || "[]");
+    if (cu.role === 'admin') {
+      return convs.sort((a,b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+    } else {
+      return convs.filter(c => c.student_username === cu.username).sort((a,b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+    }
+  }
+
+  async getSupportMessages(conversationId) {
+    if (this.sb) {
+      try {
+        const cu = this.getCurrentUser();
+        if (!cu) return [];
+        let query = this.sb.from('cubaze_support_messages').select('*').eq('conversation_id', conversationId);
+        if (cu.role !== 'admin') {
+          query = query.eq('is_internal', false);
+        }
+        const { data, error } = await query.order('created_at', { ascending: true });
+        if (!error && data) return data;
+        console.warn("Supabase messages fetch failed, using fallback:", error);
+      } catch (err) {
+        console.warn("Supabase messages fetch error, using fallback:", err);
+      }
+    }
+    // Fallback
+    const cu = this.getCurrentUser();
+    if (!cu) return [];
+    const allMsgs = JSON.parse(localStorage.getItem("cubaze_support_messages") || "[]");
+    let msgs = allMsgs.filter(m => m.conversation_id === conversationId);
+    if (cu.role !== 'admin') {
+      msgs = msgs.filter(m => !m.is_internal);
+    }
+    return msgs.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+  }
+
+  async createSupportConversation(subject, category, priority, messageText, fileData = null, externalLink = '') {
+    const cu = this.getCurrentUser();
+    if (!cu) return { success: false, error: "Not logged in" };
+
+    const convId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'conv_' + Math.floor(Date.now() + Math.random() * 1000000);
+    const msgId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'msg_' + Math.floor(Date.now() + Math.random() * 1000000);
+    const nowStr = new Date().toISOString();
+
+    const conversation = {
+      id: convId,
+      student_username: cu.username,
+      subject: subject.trim(),
+      category: category,
+      priority: priority,
+      status: 'Open',
+      created_at: nowStr,
+      last_reply_at: nowStr,
+      last_reply_by: 'student',
+      unread_by_admin: true,
+      unread_by_student: false
+    };
+
+    const message = {
+      id: msgId,
+      conversation_id: convId,
+      sender: cu.username,
+      message: messageText.trim(),
+      file_url: fileData ? fileData.url : null,
+      file_name: fileData ? fileData.name : null,
+      file_type: fileData ? fileData.type : null,
+      external_link: externalLink ? externalLink.trim() : null,
+      is_internal: false,
+      created_at: nowStr,
+      seen: false
+    };
+
+    if (this.sb) {
+      try {
+        const { error: cErr } = await this.sb.from('cubaze_support_conversations').insert(conversation);
+        if (cErr) throw cErr;
+
+        const { error: mErr } = await this.sb.from('cubaze_support_messages').insert(message);
+        if (mErr) throw mErr;
+
+        return { success: true, conversationId: convId };
+      } catch (err) {
+        console.warn("Supabase conversation creation failed, falling back to LocalStorage:", err);
+      }
+    }
+
+    // Fallback
+    const conversations = JSON.parse(localStorage.getItem("cubaze_support_conversations") || "[]");
+    const messages = JSON.parse(localStorage.getItem("cubaze_support_messages") || "[]");
+
+    conversations.push(conversation);
+    messages.push(message);
+
+    localStorage.setItem("cubaze_support_conversations", JSON.stringify(conversations));
+    localStorage.setItem("cubaze_support_messages", JSON.stringify(messages));
+
+    return { success: true, conversationId: convId };
+  }
+
+  async sendSupportMessage(conversationId, messageText, fileData = null, externalLink = '', isInternal = false) {
+    const cu = this.getCurrentUser();
+    if (!cu) return { success: false, error: "Not logged in" };
+
+    const msgId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'msg_' + Math.floor(Date.now() + Math.random() * 1000000);
+    const nowStr = new Date().toISOString();
+
+    const message = {
+      id: msgId,
+      conversation_id: conversationId,
+      sender: cu.username,
+      message: messageText.trim(),
+      file_url: fileData ? fileData.url : null,
+      file_name: fileData ? fileData.name : null,
+      file_type: fileData ? fileData.type : null,
+      external_link: externalLink ? externalLink.trim() : null,
+      is_internal: isInternal,
+      created_at: nowStr,
+      seen: false
+    };
+
+    const isStudent = cu.role !== 'admin';
+    const updates = {
+      last_reply_at: nowStr
+    };
+
+    if (isStudent) {
+      updates.last_reply_by = 'student';
+      updates.unread_by_admin = true;
+      updates.status = 'Open';
+    } else {
+      if (!isInternal) {
+        updates.last_reply_by = 'admin';
+        updates.unread_by_student = true;
+        updates.unread_by_admin = false;
+      }
+    }
+
+    if (this.sb) {
+      try {
+        const { error: mErr } = await this.sb.from('cubaze_support_messages').insert(message);
+        if (mErr) throw mErr;
+
+        const { error: cErr } = await this.sb.from('cubaze_support_conversations').update(updates).eq('id', conversationId);
+        if (cErr) throw cErr;
+
+        return { success: true };
+      } catch (err) {
+        console.warn("Supabase message sending failed, falling back to LocalStorage:", err);
+      }
+    }
+
+    // Fallback
+    const conversations = JSON.parse(localStorage.getItem("cubaze_support_conversations") || "[]");
+    const messages = JSON.parse(localStorage.getItem("cubaze_support_messages") || "[]");
+
+    messages.push(message);
+
+    const convIdx = conversations.findIndex(c => c.id === conversationId);
+    if (convIdx > -1) {
+      conversations[convIdx] = {
+        ...conversations[convIdx],
+        ...updates
+      };
+    }
+
+    localStorage.setItem("cubaze_support_conversations", JSON.stringify(conversations));
+    localStorage.setItem("cubaze_support_messages", JSON.stringify(messages));
+
+    return { success: true };
+  }
+
+  async markConversationStatus(conversationId, status) {
+    const updates = { status: status, last_reply_at: new Date().toISOString() };
+    
+    if (this.sb) {
+      try {
+        const { error } = await this.sb.from('cubaze_support_conversations').update(updates).eq('id', conversationId);
+        if (!error) return { success: true };
+        console.warn("Supabase status update failed, using fallback:", error);
+      } catch (err) {
+        console.warn("Supabase status update error, using fallback:", err);
+      }
+    }
+
+    // Fallback
+    const conversations = JSON.parse(localStorage.getItem("cubaze_support_conversations") || "[]");
+    const convIdx = conversations.findIndex(c => c.id === conversationId);
+    if (convIdx > -1) {
+      conversations[convIdx] = {
+        ...conversations[convIdx],
+        ...updates
+      };
+      localStorage.setItem("cubaze_support_conversations", JSON.stringify(conversations));
+      return { success: true };
+    }
+    return { success: false, error: "Conversation not found" };
+  }
+
+  async rateSupportConversation(conversationId, rating, feedback = '') {
+    const updates = { rating: parseInt(rating), feedback: feedback.trim() };
+
+    if (this.sb) {
+      try {
+        const { error } = await this.sb.from('cubaze_support_conversations').update(updates).eq('id', conversationId);
+        if (!error) return { success: true };
+        console.warn("Supabase rating failed, using fallback:", error);
+      } catch (err) {
+        console.warn("Supabase rating error, using fallback:", err);
+      }
+    }
+
+    // Fallback
+    const conversations = JSON.parse(localStorage.getItem("cubaze_support_conversations") || "[]");
+    const convIdx = conversations.findIndex(c => c.id === conversationId);
+    if (convIdx > -1) {
+      conversations[convIdx] = {
+        ...conversations[convIdx],
+        ...updates
+      };
+      localStorage.setItem("cubaze_support_conversations", JSON.stringify(conversations));
+      return { success: true };
+    }
+    return { success: false, error: "Conversation not found" };
+  }
+
+  async markMessagesAsSeen(conversationId, role) {
+    const cu = this.getCurrentUser();
+    if (!cu) return;
+
+    if (this.sb) {
+      try {
+        if (role === 'admin') {
+          await this.sb.from('cubaze_support_messages')
+            .update({ seen: true })
+            .eq('conversation_id', conversationId)
+            .neq('sender', cu.username);
+
+          await this.sb.from('cubaze_support_conversations')
+            .update({ unread_by_admin: false })
+            .eq('id', conversationId);
+        } else {
+          await this.sb.from('cubaze_support_messages')
+            .update({ seen: true })
+            .eq('conversation_id', conversationId)
+            .neq('sender', cu.username);
+
+          await this.sb.from('cubaze_support_conversations')
+            .update({ unread_by_student: false })
+            .eq('id', conversationId);
+        }
+        return;
+      } catch (err) {
+        console.warn("Supabase seen update failed, using fallback:", err);
+      }
+    }
+
+    // Fallback
+    const conversations = JSON.parse(localStorage.getItem("cubaze_support_conversations") || "[]");
+    const messages = JSON.parse(localStorage.getItem("cubaze_support_messages") || "[]");
+
+    let updatedMsgs = false;
+    messages.forEach(m => {
+      if (m.conversation_id === conversationId && m.sender !== cu.username && !m.seen) {
+         m.seen = true;
+         updatedMsgs = true;
+      }
+    });
+
+    let updatedConvs = false;
+    const convIdx = conversations.findIndex(c => c.id === conversationId);
+    if (convIdx > -1) {
+      if (role === 'admin' && conversations[convIdx].unread_by_admin) {
+        conversations[convIdx].unread_by_admin = false;
+        updatedConvs = true;
+      } else if (role !== 'admin' && conversations[convIdx].unread_by_student) {
+        conversations[convIdx].unread_by_student = false;
+        updatedConvs = true;
+      }
+    }
+
+    if (updatedMsgs) localStorage.setItem("cubaze_support_messages", JSON.stringify(messages));
+    if (updatedConvs) localStorage.setItem("cubaze_support_conversations", JSON.stringify(conversations));
+  }
+
+  async uploadSupportAttachment(file) {
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new Error("File size exceeds 10MB limit.");
+    }
+
+    const allowedExtensions = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf', 'zip', 'rar', 'mp4', 'webm', 'mov', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'];
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    if (!allowedExtensions.includes(fileExt)) {
+      throw new Error("Unsupported file type.");
+    }
+
+    if (this.sb) {
+      try {
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const filePath = `support-attachments/${fileName}`;
+
+        const { data, error } = await this.sb.storage
+          .from('cubaze-attachments')
+          .upload(filePath, file);
+
+        if (error) throw error;
+
+        const { data: publicUrlData } = this.sb.storage
+          .from('cubaze-attachments')
+          .getPublicUrl(filePath);
+
+        return {
+          url: publicUrlData.publicUrl,
+          name: file.name,
+          type: file.type
+        };
+      } catch (err) {
+        console.warn("Supabase storage upload failed, falling back to data URL:", err);
+      }
+    }
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve({
+          url: reader.result,
+          name: file.name,
+          type: file.type
+        });
+      };
+      reader.onerror = err => reject(new Error("Failed to read file local fallback."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  subscribeToSupportRealtime(callback) {
+    if (!this.sb) return null;
+    
+    const channel = this.sb.channel('realtime:support')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cubaze_support_messages' }, payload => {
+        callback({ type: 'message', payload });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cubaze_support_conversations' }, payload => {
+        callback({ type: 'conversation', payload });
+      })
+      .subscribe();
+
+    return channel;
+  }
+
+  // ============================================================
+  // STUDENT-TUTOR MESSAGING
+  // ============================================================
+  getTutorsForStudent(studentUsername) {
+    const student = this.getUsers().find(u => u.username === studentUsername);
+    if (!student || !student.enrolledCourses || student.enrolledCourses.length === 0) return [];
+
+    const allTutors = this.getUsers().filter(u => u.role === 'instructor');
+    const result = [];
+
+    const mockStatuses = [
+      { online: true, active: 'Active now' },
+      { online: false, active: 'Last active 15m ago' },
+      { online: false, active: 'Last active 2h ago' },
+      { online: true, active: 'Active now' }
+    ];
+
+    for (const courseId of student.enrolledCourses) {
+      const course = this.getCourseById(courseId);
+      if (!course) continue;
+
+      const assignedTutors = allTutors.filter(t => t.assignedCourses && t.assignedCourses.includes(courseId));
+      for (const tutor of assignedTutors) {
+        const existing = result.find(r => r.username === tutor.username);
+        if (existing) {
+          if (!existing.courses.includes(course.title)) {
+            existing.courses.push(course.title);
+          }
+        } else {
+          const hash = tutor.username.charCodeAt(0) % mockStatuses.length;
+          const status = mockStatuses[hash];
+
+          result.push({
+            username: tutor.username,
+            name: tutor.name,
+            bio: tutor.authorBio || 'Expert Instructor',
+            photo: null,
+            online: status.online,
+            lastActive: status.active,
+            courses: [course.title],
+            courseId: courseId
+          });
+        }
+      }
+    }
+    return result;
+  }
+
+  async getTutorConversations() {
+    const cu = this.getCurrentUser();
+    if (!cu) return [];
+
+    if (this.sb) {
+      try {
+        let query = this.sb.from('cubaze_tutor_conversations').select('*');
+        if (cu.role === 'student') {
+          query = query.eq('student_username', cu.username);
+        } else if (cu.role === 'instructor') {
+          query = query.eq('tutor_username', cu.username);
+        }
+        const { data, error } = await query.order('last_reply_at', { ascending: false });
+        if (!error && data) return data;
+      } catch (err) {
+        console.warn("Supabase tutor conversations query error, using fallback:", err);
+      }
+    }
+
+    const list = JSON.parse(localStorage.getItem("cubaze_tutor_conversations") || "[]");
+    if (cu.role === 'student') {
+      return list.filter(c => c.student_username === cu.username).sort((a,b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+    } else if (cu.role === 'instructor') {
+      return list.filter(c => c.tutor_username === cu.username).sort((a,b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+    } else {
+      return list.sort((a,b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+    }
+  }
+
+  async getTutorMessages(convId) {
+    const cu = this.getCurrentUser();
+    if (!cu) return [];
+
+    if (this.sb) {
+      try {
+        const { data, error } = await this.sb.from('cubaze_tutor_messages')
+          .select('*')
+          .eq('conversation_id', convId)
+          .order('created_at', { ascending: true });
+        if (!error && data) {
+          if (cu.role === 'student') {
+            return data.filter(m => !m.is_internal);
+          }
+          return data;
+        }
+      } catch (err) {
+        console.warn("Supabase tutor messages query error, using fallback:", err);
+      }
+    }
+
+    const list = JSON.parse(localStorage.getItem("cubaze_tutor_messages") || "[]");
+    const msgs = list.filter(m => m.conversation_id === convId);
+    if (cu.role === 'student') {
+      return msgs.filter(m => !m.is_internal);
+    }
+    return msgs;
+  }
+
+  async createTutorConversation(tutorUsername, courseId, subject, category) {
+    const cu = this.getCurrentUser();
+    if (!cu) return { success: false, error: "Not logged in" };
+
+    const convId = 'tconv_' + Math.random().toString(36).substring(2, 11);
+    const newConv = {
+      id: convId,
+      student_username: cu.username,
+      tutor_username: tutorUsername,
+      course_id: courseId,
+      subject: subject,
+      category: category,
+      status: 'Open',
+      unread_by_student: false,
+      unread_by_tutor: true,
+      last_reply_at: new Date().toISOString(),
+      last_reply_by: 'student',
+      created_at: new Date().toISOString()
+    };
+
+    if (this.sb) {
+      try {
+        const { error } = await this.sb.from('cubaze_tutor_conversations').insert(newConv);
+        if (error) throw error;
+        return { success: true, conversation: newConv };
+      } catch (err) {
+        console.warn("Supabase create tutor conversation failed, using fallback:", err);
+      }
+    }
+
+    const list = JSON.parse(localStorage.getItem("cubaze_tutor_conversations") || "[]");
+    list.push(newConv);
+    localStorage.setItem("cubaze_tutor_conversations", JSON.stringify(list));
+    return { success: true, conversation: newConv };
+  }
+
+  async sendTutorMessage(convId, messageText, fileData = null, externalLink = '', isInternal = false) {
+    const cu = this.getCurrentUser();
+    if (!cu) return { success: false, error: "Not logged in" };
+
+    const msgId = 'tmsg_' + Math.random().toString(36).substring(2, 11);
+    const newMsg = {
+      id: msgId,
+      conversation_id: convId,
+      sender: cu.username,
+      message: messageText,
+      file_url: fileData ? fileData.url : null,
+      file_name: fileData ? fileData.name : null,
+      external_link: externalLink || null,
+      is_internal: isInternal,
+      seen: false,
+      created_at: new Date().toISOString()
+    };
+
+    const nowStr = new Date().toISOString();
+    const isStudent = cu.role === 'student';
+    
+    const convUpdates = {
+      last_reply_at: nowStr,
+      last_reply_by: isStudent ? 'student' : 'tutor',
+      unread_by_student: !isStudent && !isInternal,
+      unread_by_tutor: isStudent
+    };
+
+    if (this.sb) {
+      try {
+        const { error: msgErr } = await this.sb.from('cubaze_tutor_messages').insert(newMsg);
+        if (msgErr) throw msgErr;
+
+        await this.sb.from('cubaze_tutor_conversations')
+          .update(convUpdates)
+          .eq('id', convId);
+
+        return { success: true, message: newMsg };
+      } catch (err) {
+        console.warn("Supabase send tutor message failed, using fallback:", err);
+      }
+    }
+
+    const list = JSON.parse(localStorage.getItem("cubaze_tutor_messages") || "[]");
+    list.push(newMsg);
+    localStorage.setItem("cubaze_tutor_messages", JSON.stringify(list));
+
+    const conversations = JSON.parse(localStorage.getItem("cubaze_tutor_conversations") || "[]");
+    const convIdx = conversations.findIndex(c => c.id === convId);
+    if (convIdx > -1) {
+      conversations[convIdx] = {
+        ...conversations[convIdx],
+        ...convUpdates
+      };
+      localStorage.setItem("cubaze_tutor_conversations", JSON.stringify(conversations));
+    }
+
+    return { success: true, message: newMsg };
+  }
+
+  async markTutorConversationResolved(convId, isResolved) {
+    const status = isResolved ? 'Resolved' : 'Open';
+    const updates = { status };
+
+    if (this.sb) {
+      try {
+        const { error } = await this.sb.from('cubaze_tutor_conversations')
+          .update(updates)
+          .eq('id', convId);
+        if (error) throw error;
+        return { success: true };
+      } catch (err) {
+        console.warn("Supabase mark resolved error, using fallback:", err);
+      }
+    }
+
+    const conversations = JSON.parse(localStorage.getItem("cubaze_tutor_conversations") || "[]");
+    const convIdx = conversations.findIndex(c => c.id === convId);
+    if (convIdx > -1) {
+      conversations[convIdx] = {
+        ...conversations[convIdx],
+        ...updates
+      };
+      localStorage.setItem("cubaze_tutor_conversations", JSON.stringify(conversations));
+      return { success: true };
+    }
+    return { success: false, error: "Conversation not found" };
+  }
+
+  async markTutorMessagesAsSeen(convId, role) {
+    const cu = this.getCurrentUser();
+    if (!cu) return;
+
+    if (this.sb) {
+      try {
+        if (role === 'tutor') {
+          await this.sb.from('cubaze_tutor_messages')
+            .update({ seen: true })
+            .eq('conversation_id', convId)
+            .neq('sender', cu.username);
+
+          await this.sb.from('cubaze_tutor_conversations')
+            .update({ unread_by_tutor: false })
+            .eq('id', convId);
+        } else {
+          await this.sb.from('cubaze_tutor_messages')
+            .update({ seen: true })
+            .eq('conversation_id', convId)
+            .neq('sender', cu.username);
+
+          await this.sb.from('cubaze_tutor_conversations')
+            .update({ unread_by_student: false })
+            .eq('id', convId);
+        }
+        return;
+      } catch (err) {
+        console.warn("Supabase seen update failed, using fallback:", err);
+      }
+    }
+
+    const conversations = JSON.parse(localStorage.getItem("cubaze_tutor_conversations") || "[]");
+    const messages = JSON.parse(localStorage.getItem("cubaze_tutor_messages") || "[]");
+
+    let updatedMsgs = false;
+    messages.forEach(m => {
+      if (m.conversation_id === convId && m.sender !== cu.username && !m.seen) {
+         m.seen = true;
+         updatedMsgs = true;
+      }
+    });
+
+    let updatedConvs = false;
+    const convIdx = conversations.findIndex(c => c.id === convId);
+    if (convIdx > -1) {
+      if (role === 'tutor' && conversations[convIdx].unread_by_tutor) {
+        conversations[convIdx].unread_by_tutor = false;
+        updatedConvs = true;
+      } else if (role !== 'tutor' && conversations[convIdx].unread_by_student) {
+        conversations[convIdx].unread_by_student = false;
+        updatedConvs = true;
+      }
+    }
+
+    if (updatedMsgs) localStorage.setItem("cubaze_tutor_messages", JSON.stringify(messages));
+    if (updatedConvs) localStorage.setItem("cubaze_tutor_conversations", JSON.stringify(conversations));
+  }
+
+  async uploadTutorAttachment(file) {
+    return this.uploadSupportAttachment(file);
+  }
+
+  subscribeToTutorRealtime(callback) {
+    if (!this.sb) return null;
+    
+    const channel = this.sb.channel('realtime:tutor_chat')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cubaze_tutor_messages' }, payload => {
+        callback({ type: 'message', payload });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cubaze_tutor_conversations' }, payload => {
+        callback({ type: 'conversation', payload });
+      })
+      .subscribe();
+
+    return channel;
+  }
+
+  // --- BATCH MANAGEMENT SYSTEM APIs ---
+
+  getBatches() {
+    return JSON.parse(localStorage.getItem("cubaze_batches")) || [];
+  }
+
+  getBatchById(id) {
+    return this.getBatches().find(b => b.id === id);
+  }
+
+  handleAutomaticEnrollment(username, courseId) {
+    const batches = this.getBatches();
+    // Find the first "Enrollment Open" batch for this course
+    let openBatch = batches.find(b => b.courseId === courseId && b.status === "Enrollment Open");
+    
+    if (!openBatch) {
+      // Create a new batch
+      const courseBatches = batches.filter(b => b.courseId === courseId);
+      const nextNumber = courseBatches.length + 1;
+      const course = this.getCourseById(courseId);
+      const courseTitle = course ? course.title : courseId;
+      
+      openBatch = {
+        id: `B-${courseId.substring(0,4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        name: `${courseTitle} - Batch ${nextNumber}`,
+        courseId: courseId,
+        tutorIds: [],
+        maxStudents: 50,
+        currentEnrollment: 0,
+        startDate: "",
+        endDate: "",
+        classDays: [],
+        classTime: "",
+        googleMeetLink: "",
+        googleDriveFolder: "",
+        whatsappLink: "",
+        status: "Enrollment Open"
+      };
+      batches.push(openBatch);
+      this.setItemAndSync("cubaze_batches", batches);
+    }
+    
+    // Enroll the student
+    this.enrollUserInBatch(username, courseId, openBatch.id);
+    
+    // Check if the batch is now full
+    const updatedBatches = this.getBatches();
+    const updatedBatch = updatedBatches.find(b => b.id === openBatch.id);
+    if (updatedBatch && updatedBatch.currentEnrollment >= updatedBatch.maxStudents) {
+      updatedBatch.status = "Full";
+      this.setItemAndSync("cubaze_batches", updatedBatches);
+    }
+  }
+
+  saveBatch(batchData) {
+    const batches = this.getBatches();
+    const index = batches.findIndex(b => b.id === batchData.id);
+    
+    // Count actual enrollment
+    const users = this.getUsers();
+    const enrollmentCount = users.filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[batchData.courseId] === batchData.id).length;
+    batchData.currentEnrollment = enrollmentCount;
+
+    // 1. Validation for Active batch status
+    if (batchData.status === 'Active') {
+      if (!batchData.tutorIds || batchData.tutorIds.length === 0) {
+        return { success: false, error: "Assign Tutor/Mentor is required before activating the batch." };
+      }
+      if (!batchData.startDate || batchData.startDate.trim() === '') {
+        return { success: false, error: "Start Date is required before activating the batch." };
+      }
+      if (!batchData.endDate || batchData.endDate.trim() === '') {
+        return { success: false, error: "End Date is required before activating the batch." };
+      }
+    }
+
+    // 2. Capacity checks
+    if (batchData.maxStudents < enrollmentCount) {
+      return { success: false, error: `Cannot reduce capacity below current enrollment of ${enrollmentCount} students.` };
+    }
+
+    // 3. Validate WhatsApp invite link
+    if (batchData.whatsappLink && batchData.whatsappLink.trim() !== '') {
+      const waRegex = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/;
+      if (!waRegex.test(batchData.whatsappLink.trim())) {
+        return { success: false, error: "Invalid WhatsApp Group invite link. Must start with https://chat.whatsapp.com/" };
+      }
+    }
+
+    // 4. Validate that only ONE Enrollment Open batch exists for this course
+    if (batchData.status === 'Enrollment Open') {
+      const hasOtherOpen = batches.some(b => b.courseId === batchData.courseId && b.status === 'Enrollment Open' && b.id !== batchData.id);
+      if (hasOtherOpen) {
+        return { success: false, error: "Every course can have only ONE batch with the status 'Enrollment Open' at a time." };
+      }
+    }
+
+    // 5. Automatic reopening of Full batches
+    if (index > -1) {
+      const oldBatch = batches[index];
+      if (oldBatch.status === 'Full' && batchData.maxStudents > enrollmentCount) {
+        const hasOtherOpen = batches.some(b => b.courseId === batchData.courseId && b.status === 'Enrollment Open' && b.id !== batchData.id);
+        if (!hasOtherOpen) {
+          batchData.status = 'Enrollment Open';
+        }
+      }
+      batches[index] = { ...batches[index], ...batchData };
+    } else {
+      batches.push(batchData);
+    }
+    
+    this.setItemAndSync("cubaze_batches", batches);
+    return { success: true, batch: batchData };
+  }
+
+  deleteBatch(id) {
+    let batches = this.getBatches();
+    const len = batches.length;
+    batches = batches.filter(b => b.id !== id);
+    if (batches.length < len) {
+      this.setItemAndSync("cubaze_batches", batches);
+      return { success: true };
+    }
+    return { success: false, error: "Batch not found." };
+  }
+
+  duplicateBatch(id) {
+    const batch = this.getBatchById(id);
+    if (!batch) return { success: false, error: "Batch not found." };
+    const newBatch = {
+      ...batch,
+      id: `B-${batch.courseId.substring(0,4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      name: `${batch.name} (Copy)`,
+      currentEnrollment: 0,
+      status: "Upcoming"
+    };
+    return this.saveBatch(newBatch);
+  }
+
+  archiveBatch(id) {
+    const batch = this.getBatchById(id);
+    if (!batch) return { success: false, error: "Batch not found." };
+    batch.status = "Archived";
+    return this.saveBatch(batch);
+  }
+
+  // --- ANNOUNCEMENTS ---
+  getAnnouncements() {
+    return JSON.parse(localStorage.getItem("cubaze_announcements")) || [];
+  }
+
+  getAnnouncementsByBatchOrCourse(courseId, batchId) {
+    const anns = this.getAnnouncements();
+    return anns.filter(a => {
+      // announcements for this batch, or announcements for this course with no batch (entire course)
+      return (a.batchId === batchId) || (a.courseId === courseId && !a.batchId);
+    });
+  }
+
+  saveAnnouncement(ann) {
+    const anns = this.getAnnouncements();
+    const index = anns.findIndex(a => a.id === ann.id);
+    if (index > -1) {
+      anns[index] = ann;
+    } else {
+      anns.push(ann);
+    }
+    this.setItemAndSync("cubaze_announcements", anns);
+    return { success: true };
+  }
+
+  deleteAnnouncement(id) {
+    let anns = this.getAnnouncements();
+    const len = anns.length;
+    anns = anns.filter(a => a.id !== id);
+    if (anns.length < len) {
+      this.setItemAndSync("cubaze_announcements", anns);
+      return { success: true };
+    }
+    return { success: false };
+  }
+
+  // --- ASSIGNMENTS ---
+  getAssignments() {
+    return JSON.parse(localStorage.getItem("cubaze_assignments")) || [];
+  }
+
+  getAssignmentsByBatchOrCourse(courseId, batchId) {
+    const asgs = this.getAssignments();
+    return asgs.filter(a => {
+      return (a.batchId === batchId) || (a.courseId === courseId && !a.batchId);
+    });
+  }
+
+  saveAssignment(asg) {
+    const asgs = this.getAssignments();
+    const index = asgs.findIndex(a => a.id === asg.id);
+    if (index > -1) {
+      asgs[index] = asg;
+    } else {
+      asgs.push(asg);
+    }
+    this.setItemAndSync("cubaze_assignments", asgs);
+    return { success: true };
+  }
+
+  deleteAssignment(id) {
+    let asgs = this.getAssignments();
+    const len = asgs.length;
+    asgs = asgs.filter(a => a.id !== id);
+    if (asgs.length < len) {
+      this.setItemAndSync("cubaze_assignments", asgs);
+      return { success: true };
+    }
+    return { success: false };
+  }
+
+  // --- RESOURCES ---
+  getResources() {
+    return JSON.parse(localStorage.getItem("cubaze_resources")) || [];
+  }
+
+  getResourcesByBatchOrCourse(courseId, batchId) {
+    const ress = this.getResources();
+    return ress.filter(r => {
+      return (r.batchId === batchId) || (r.courseId === courseId && !r.batchId);
+    });
+  }
+
+  saveResource(res) {
+    const ress = this.getResources();
+    const index = ress.findIndex(r => r.id === res.id);
+    if (index > -1) {
+      ress[index] = res;
+    } else {
+      ress.push(res);
+    }
+    this.setItemAndSync("cubaze_resources", ress);
+    return { success: true };
+  }
+
+  deleteResource(id) {
+    let ress = this.getResources();
+    const len = ress.length;
+    ress = ress.filter(r => r.id !== id);
+    if (ress.length < len) {
+      this.setItemAndSync("cubaze_resources", ress);
+      return { success: true };
+    }
+    return { success: false };
+  }
+
+  // --- ATTENDANCE ---
+  getAttendance(batchId) {
+    const atts = JSON.parse(localStorage.getItem("cubaze_attendance")) || [];
+    return atts.filter(a => a.batchId === batchId);
+  }
+
+  markAttendance(batchId, classDate, username, status, joinTime = '') {
+    const atts = JSON.parse(localStorage.getItem("cubaze_attendance")) || [];
+    const existingIndex = atts.findIndex(a => a.batchId === batchId && a.classDate === classDate && a.username === username);
+    const attObj = {
+      id: existingIndex > -1 ? atts[existingIndex].id : `ATT-${batchId}-${username}-${Date.now().toString().slice(-4)}`,
+      batchId,
+      classDate,
+      username,
+      status,
+      joinTime
+    };
+
+    if (existingIndex > -1) {
+      atts[existingIndex] = attObj;
+    } else {
+      atts.push(attObj);
+    }
+    
+    this.setItemAndSync("cubaze_attendance", atts);
+    return { success: true };
+  }
+
+  // --- STUDENT BATCH ENROLLMENT ---
+  enrollUserInBatch(username, courseId, batchId) {
+    const users = this.getUsers();
+    const index = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+    if (index > -1) {
+      // Enroll in course if not already
+      if (!users[index].enrolledCourses) users[index].enrolledCourses = [];
+      if (!users[index].enrolledCourses.includes(courseId)) {
+        users[index].enrolledCourses.push(courseId);
+      }
+      
+      // Link to batch
+      if (!users[index].enrolledBatches) users[index].enrolledBatches = {};
+      users[index].enrolledBatches[courseId] = batchId;
+
+      this.setItemAndSync("cubaze_users", users);
+      
+      // Sync currentUser in local storage
+      const cu = this.getCurrentUser();
+      if (cu && cu.username.toLowerCase() === username.toLowerCase()) {
+        cu.enrolledCourses = users[index].enrolledCourses;
+        cu.enrolledBatches = users[index].enrolledBatches;
+        this.setCurrentUser(cu);
+      }
+      
+      // Update batch enrollment count
+      const batches = this.getBatches();
+      const bIdx = batches.findIndex(b => b.id === batchId);
+      if (bIdx > -1) {
+        batches[bIdx].currentEnrollment = users.filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[courseId] === batchId).length;
+        this.setItemAndSync("cubaze_batches", batches);
+      }
+      
+      return { success: true };
+    }
+    return { success: false, error: "User not found." };
+  }
+
+  unenrollUserFromBatch(username, courseId, batchId) {
+    const users = this.getUsers();
+    const index = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+    if (index > -1) {
+      if (users[index].enrolledCourses) {
+        users[index].enrolledCourses = users[index].enrolledCourses.filter(cid => cid !== courseId);
+      }
+      if (users[index].enrolledBatches) {
+        delete users[index].enrolledBatches[courseId];
+      }
+      this.setItemAndSync("cubaze_users", users);
+      
+      const cu = this.getCurrentUser();
+      if (cu && cu.username.toLowerCase() === username.toLowerCase()) {
+        cu.enrolledCourses = users[index].enrolledCourses;
+        cu.enrolledBatches = users[index].enrolledBatches;
+        this.setCurrentUser(cu);
+      }
+
+      // Update batch enrollment count
+      const batches = this.getBatches();
+      const bIdx = batches.findIndex(b => b.id === batchId);
+      if (bIdx > -1) {
+        batches[bIdx].currentEnrollment = users.filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[courseId] === batchId).length;
+        this.setItemAndSync("cubaze_batches", batches);
+      }
+
+      return { success: true };
+    }
+    return { success: false, error: "User not found." };
+  }
+
+  // --- COMMON MEETINGS SYSTEM APIs ---
+
+  getCommonMeetings() {
+    return JSON.parse(localStorage.getItem("cubaze_common_meetings")) || [];
+  }
+
+  getCommonMeetingById(id) {
+    return this.getCommonMeetings().find(m => m.id === id);
+  }
+
+  saveCommonMeeting(meetingData) {
+    const meetings = this.getCommonMeetings();
+    const index = meetings.findIndex(m => m.id === meetingData.id);
+    if (index > -1) {
+      meetings[index] = { ...meetings[index], ...meetingData };
+    } else {
+      meetings.push(meetingData);
+    }
+    this.setItemAndSync("cubaze_common_meetings", meetings);
+    return { success: true, meeting: meetingData };
+  }
+
+  deleteCommonMeeting(id) {
+    let meetings = this.getCommonMeetings();
+    const len = meetings.length;
+    meetings = meetings.filter(m => m.id !== id);
+    if (meetings.length < len) {
+      this.setItemAndSync("cubaze_common_meetings", meetings);
+      return { success: true };
+    }
+    return { success: false, error: "Meeting not found." };
+  }
+
+  duplicateCommonMeeting(id) {
+    const meeting = this.getCommonMeetingById(id);
+    if (!meeting) return { success: false, error: "Meeting not found." };
+    const newMeeting = {
+      ...meeting,
+      id: `CM-${Math.floor(100000 + Math.random() * 900000)}`,
+      title: `${meeting.title} (Copy)`,
+      status: "Upcoming"
+    };
+    return this.saveCommonMeeting(newMeeting);
+  }
+
+  getCommonMeetingsForUser(username) {
+    const user = this.getUsers().find(u => u.username.toLowerCase() === username.toLowerCase());
+    const meetings = this.getCommonMeetings();
+    if (!user) return [];
+    
+    // Admin has full control and sees all
+    if (user.role === 'admin') return meetings;
+    
+    return meetings.filter(m => {
+      const type = m.access.type;
+      if (type === 'everyone') return true;
+      
+      if (user.role === 'student') {
+        if (type === 'all_students' || type === 'all_students_tutors') return true;
+        if (type === 'selected_courses') {
+          return (m.access.courseIds || []).some(cid => (user.enrolledCourses || []).includes(cid));
+        }
+        if (type === 'selected_batches') {
+          return (m.access.batchIds || []).some(bid => Object.values(user.enrolledBatches || {}).includes(bid));
+        }
+      }
+      
+      if (user.role === 'instructor') {
+        if (type === 'all_tutors' || type === 'all_students_tutors') return true;
+        if (type === 'selected_courses') {
+          return (m.access.courseIds || []).some(cid => (user.assignedCourses || []).includes(cid));
+        }
+        if (type === 'selected_batches') {
+          const tutorBatches = this.getBatches().filter(b => (b.tutorIds || []).includes(username)).map(b => b.id);
+          return (m.access.batchIds || []).some(bid => tutorBatches.includes(bid));
+        }
+      }
+      
+      if (user.role === 'admission_counselor') {
+        if (type === 'admission_counselors') return true;
+      }
+      
+      return false;
+    });
+  }
+
+  // --- POSTERS CRUD ---
+  getPosters() {
+    return JSON.parse(localStorage.getItem("cubaze_posters")) || [];
+  }
+
+  savePoster(posterData) {
+    const posters = this.getPosters();
+    const index = posters.findIndex(p => p.id === posterData.id);
+    posterData.updatedAt = new Date().toISOString();
+    if (index > -1) {
+      posters[index] = { ...posters[index], ...posterData };
+    } else {
+      posterData.createdAt = posterData.createdAt || new Date().toISOString();
+      posters.push(posterData);
+    }
+    this.setItemAndSync("cubaze_posters", posters);
+    return { success: true, poster: posterData };
+  }
+
+  async deletePoster(id) {
+    let posters = this.getPosters();
+    const len = posters.length;
+    posters = posters.filter(p => p.id !== id);
+    if (posters.length < len) {
+      this.setItemAndSync("cubaze_posters", posters);
+      if (this.sb) {
+        try {
+          await this.sb.from('cubaze_posters').delete().eq('id', id);
+        } catch (err) {
+          console.warn("Failed to delete poster from Supabase:", err);
+        }
+      }
+      return { success: true };
+    }
+    return { success: false, error: "Poster not found." };
   }
 }
 

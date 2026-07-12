@@ -17,6 +17,11 @@ const CertificateComponent = {
       </div>
     `;
 
+    const enrolledBatches = cu.enrolledBatches || {};
+    const batchId = enrolledBatches[courseId];
+    const batch = batchId ? window.db.getBatchById(batchId) : null;
+    const batchName = batch ? batch.name : '';
+
     const certNum = `CUBAZE-${courseId.toUpperCase().slice(0,4)}-${cu.username.toUpperCase().slice(0,4)}-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
     const completionDate = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -48,6 +53,7 @@ const CertificateComponent = {
             <!-- Course -->
             <div class="cert-for">has successfully completed the course</div>
             <div class="cert-course-name">${course.title}</div>
+            ${batchName ? `<div class="cert-batch-name" style="font-size:1.15rem;font-weight:700;color:var(--brand-blue);margin-top:6px;font-family:'Inter',sans-serif;">Batch: ${batchName}</div>` : ''}
 
             <!-- Stars -->
             <div style="margin-bottom:24px;">

@@ -11,6 +11,7 @@ class CubazeApp {
     this.initMobileNav();
     this.updateNavbarAuth();
     this.renderRoute();
+    this.initCommonMeetingScheduler();
   }
 
   // ============================================================
@@ -189,9 +190,15 @@ class CubazeApp {
         this.updateNavbarAuth();
         this.showToast(`Welcome back, ${result.user.name}! 🎉`, 'success');
         // Redirect based on role
-        if (result.user.role === 'admin') window.location.hash = '#/admin';
-        else if (result.user.role === 'instructor') window.location.hash = '#/tutor';
-        else window.location.hash = '#/dashboard';
+        let targetHash = '#/dashboard';
+        if (result.user.role === 'admin') targetHash = '#/admin';
+        else if (result.user.role === 'instructor') targetHash = '#/tutor';
+        
+        if (window.location.hash === targetHash) {
+          this.renderRoute();
+        } else {
+          window.location.hash = targetHash;
+        }
       } else {
         this.showToast(result.error || 'Invalid credentials', 'danger');
       }
@@ -203,15 +210,21 @@ class CubazeApp {
       const name = document.getElementById('reg-name').value.trim();
       const username = document.getElementById('reg-username').value.trim().toLowerCase();
       const password = document.getElementById('reg-password').value;
-      if (!name || !username || !password) { this.showToast('All fields are required.', 'danger'); return; }
+      const phone = document.getElementById('reg-phone')?.value.trim() || '';
+      if (!name || !username || !password || !phone) { this.showToast('All fields are required.', 'danger'); return; }
       if (password.length < 6) { this.showToast('Password must be at least 6 characters.', 'danger'); return; }
       if (!/^[a-z0-9_]+$/.test(username)) { this.showToast('Username can only contain letters, numbers, and underscores.', 'danger'); return; }
-      const result = window.db.register(name, username, password);
+      const result = window.db.register(name, username, password, phone);
       if (result.success) {
+        window.db.setCurrentUser(result.user);
         this.hideAuthModal();
         this.updateNavbarAuth();
         this.showToast(`Welcome to Cubaze Academy, ${name}! 🎓`, 'success');
-        window.location.hash = '#/dashboard';
+        if (window.location.hash === '#/dashboard') {
+          this.renderRoute();
+        } else {
+          window.location.hash = '#/dashboard';
+        }
       } else {
         this.showToast(result.error || 'Registration failed', 'danger');
       }
@@ -260,7 +273,7 @@ class CubazeApp {
         </button>
         <div class="profile-dropdown-container" id="profile-dropdown-wrap">
           <div class="profile-trigger" id="profile-trigger">
-            <div class="profile-avatar">${cu.name.charAt(0).toUpperCase()}</div>
+            <div class="profile-avatar" style="${cu.profilePhoto ? `background-image:url(${cu.profilePhoto});` : ''}">${cu.profilePhoto ? '' : cu.name.charAt(0).toUpperCase()}</div>
             <span>${cu.name.split(' ')[0]}</span>
             <i class="fa-solid fa-chevron-down" style="font-size:0.7rem;color:var(--text-muted);"></i>
           </div>
@@ -379,7 +392,113 @@ class CubazeApp {
     container.appendChild(toast);
     setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(20px)'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 3500);
   }
+
+  initCommonMeetingScheduler() {
+    setInterval(() => {
+      this.checkCommonMeetingNotifications();
+    }, 60000);
+    setTimeout(() => {
+      this.checkCommonMeetingNotifications();
+    }, 3000);
+  }
+
+  checkCommonMeetingNotifications() {
+    const cu = window.db.getCurrentUser();
+    if (!cu) return;
+
+    try {
+      const meetings = window.db.getCommonMeetingsForUser(cu.username);
+      const now = new Date();
+
+      meetings.forEach(m => {
+        const meetingStart = new Date(`${m.date}T${m.startTime}`);
+        const diffMs = meetingStart - now;
+        const diffMins = diffMs / (1000 * 60);
+
+        // 1. New Meeting Created
+        const seenKey = `cm_seen_${m.id}`;
+        if (!localStorage.getItem(seenKey)) {
+          localStorage.setItem(seenKey, 'true');
+          if (m.status !== 'Completed' && m.status !== 'Cancelled') {
+            this.showToast(`New Meeting: "${m.title}" has been scheduled! 🗓️`, 'info');
+            window.db.addActivity(cu.username, "NEW_MEETING_CREATED", "meeting", m.id, `New Meeting: "${m.title}" scheduled`);
+          }
+        }
+
+        // Only check upcoming warnings if meeting is upcoming
+        if (m.status === 'Upcoming') {
+          // 2. Starts in 1 Hour (between 45 and 60 minutes)
+          if (diffMins > 45 && diffMins <= 60) {
+            const notifKey = `cm_notif_1h_${m.id}`;
+            if (!localStorage.getItem(notifKey)) {
+              localStorage.setItem(notifKey, 'true');
+              this.showToast(`Upcoming Meeting: "${m.title}" starts in 1 hour! ⏳`, 'warning');
+            }
+          }
+
+          // 3. Starts in 15 Minutes (between 0 and 15 minutes)
+          if (diffMins > 0 && diffMins <= 15) {
+            const notifKey = `cm_notif_15m_${m.id}`;
+            if (!localStorage.getItem(notifKey)) {
+              localStorage.setItem(notifKey, 'true');
+              this.showToast(`Upcoming Meeting: "${m.title}" starts in 15 minutes! ⏳`, 'warning');
+            }
+          }
+        }
+
+        // 4. Meeting is Live Now
+        if (m.status === 'Live Now') {
+          const notifKey = `cm_notif_live_${m.id}`;
+          if (!localStorage.getItem(notifKey)) {
+            localStorage.setItem(notifKey, 'true');
+            this.showToast(`Meeting Live: "${m.title}" is Live Now! 🚨`, 'success');
+          }
+        }
+
+        // 5. Meeting Cancelled
+        if (m.status === 'Cancelled') {
+          const notifKey = `cm_notif_cancelled_${m.id}`;
+          if (!localStorage.getItem(notifKey)) {
+            localStorage.setItem(notifKey, 'true');
+            this.showToast(`Meeting Cancelled: "${m.title}" has been cancelled. ❌`, 'danger');
+          }
+        }
+      });
+    } catch (e) {
+      console.error("Error checking common meeting notifications:", e);
+    }
+  }
 }
 
 // Initialize the app
 window.app = new CubazeApp();
+
+window.resizeAndCropTo3x4 = function (file, callback) {
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      const canvas = document.createElement('canvas');
+      canvas.width = 300;
+      canvas.height = 400;
+      const ctx = canvas.getContext('2d');
+
+      const targetRatio = 3 / 4;
+      const currentRatio = img.width / img.height;
+      let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
+
+      if (currentRatio > targetRatio) {
+        sourceWidth = img.height * targetRatio;
+        sourceX = (img.width - sourceWidth) / 2;
+      } else {
+        sourceHeight = img.width / targetRatio;
+        sourceY = (img.height - sourceHeight) / 2;
+      }
+
+      ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, 300, 400);
+      callback(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};

@@ -19,7 +19,18 @@ const DashboardComponent = {
     const wishlist = (cu.wishlist || []).map(id => courses.find(c => c.id === id)).filter(Boolean);
     const txns = window.db.getTransactions().filter(t => t.username === cu.username);
 
-    const navItems = [['overview','fa-gauge','Overview'],['mycourses','fa-book-open','My Courses'],['wishlist','fa-heart','Wishlist'],['certificates','fa-certificate','Certificates'],['orders','fa-receipt','Orders'],['profile','fa-user','Profile']];
+    const navItems = [
+      ['overview','fa-gauge','Overview'],
+      ['mycourses','fa-book-open','My Courses'],
+      ['liveclasses','fa-video','Live Classes'],
+      ['common_meeting','fa-calendar-days','Common Meeting'],
+      ['wishlist','fa-heart','Wishlist'],
+      ['certificates','fa-certificate','Certificates'],
+      ['orders','fa-receipt','Orders'],
+      ['support','fa-comments','Talk with Admin'],
+      ['tutor_chat','fa-chalkboard-user','Talk with Tutor'],
+      ['profile','fa-user','Profile']
+    ];
     const totalProgress = enrolledCourses.length > 0
       ? Math.round(enrolledCourses.reduce((sum, c) => {
           const p = window.db.getUserProgress(cu.username, c.id);
@@ -35,7 +46,7 @@ const DashboardComponent = {
           <!-- Sidebar -->
           <div class="dashboard-sidebar">
             <div class="sidebar-profile">
-              <div class="sidebar-avatar">${cu.name.charAt(0).toUpperCase()}</div>
+              <div class="sidebar-avatar" style="${cu.profilePhoto ? `background-image:url(${cu.profilePhoto});` : ''}">${cu.profilePhoto ? '' : cu.name.charAt(0).toUpperCase()}</div>
               <div class="sidebar-name">${cu.name}</div>
               <div class="sidebar-role">@${cu.username} · Student</div>
             </div>
@@ -45,6 +56,8 @@ const DashboardComponent = {
                   <i class="fa-solid ${icon}"></i>${label}
                   ${tab === 'wishlist' && wishlist.length > 0 ? `<span class="nav-badge">${wishlist.length}</span>` : ''}
                   ${tab === 'certificates' ? `<span class="nav-badge" style="background:var(--success);">${enrolledCourses.filter(c => { const p = window.db.getUserProgress(cu.username, c.id); return p.certificateEarned; }).length}</span>` : ''}
+                  ${tab === 'support' ? `<span class="support-badge" id="support-unread-badge" style="display:none;"></span>` : ''}
+                  ${tab === 'tutor_chat' ? `<span class="support-badge" id="tutor-chat-unread-badge" style="display:none;"></span>` : ''}
                 </div>
               `).join('')}
             </div>
@@ -68,9 +81,13 @@ const DashboardComponent = {
     switch (tab) {
       case 'overview': return DashboardComponent._renderOverview(cu, enrolledCourses, totalProgress);
       case 'mycourses': return DashboardComponent._renderMyCourses(cu, enrolledCourses);
+      case 'liveclasses': return DashboardComponent._renderLiveClasses(cu, enrolledCourses);
+      case 'common_meeting': return DashboardComponent._renderCommonMeetings(cu);
       case 'wishlist': return DashboardComponent._renderWishlist(cu, wishlist);
       case 'certificates': return DashboardComponent._renderCertificates(cu, enrolledCourses);
       case 'orders': return DashboardComponent._renderOrders(txns);
+      case 'support': return `<div id="support-portal-loading"><div class="spinner"></div></div>`;
+      case 'tutor_chat': return `<div id="tutor-chat-portal-loading"><div class="spinner"></div></div>`;
       case 'profile': return DashboardComponent._renderProfile(cu);
       default: return DashboardComponent._renderOverview(cu, enrolledCourses, totalProgress);
     }
@@ -86,34 +103,74 @@ const DashboardComponent = {
     }, 0);
 
     return `
-      <div style="display:flex;flex-direction:column;gap:24px;">
-        <div class="dashboard-welcome">
-          <h2>Welcome back, ${cu.name.split(' ')[0]}! 👋</h2>
-          <p>${enrolledCourses.length > 0 ? `You have ${enrolledCourses.length} course${enrolledCourses.length > 1 ? 's' : ''} in progress. Keep it up!` : 'Start your learning journey today! Browse our courses below.'}</p>
-        </div>
-
-        <div class="dashboard-widgets">
-          <div class="widget-card"><div class="widget-icon blue"><i class="fa-solid fa-book-open"></i></div><div class="widget-number">${enrolledCourses.length}</div><div class="widget-label">Enrolled Courses</div></div>
-          <div class="widget-card"><div class="widget-icon green"><i class="fa-solid fa-chart-simple"></i></div><div class="widget-number">${totalProgress}%</div><div class="widget-label">Avg. Progress</div></div>
-          <div class="widget-card"><div class="widget-icon gold"><i class="fa-solid fa-clock"></i></div><div class="widget-number">${Math.round(totalHoursLearned)}h</div><div class="widget-label">Hours Learned</div></div>
-          <div class="widget-card"><div class="widget-icon purple"><i class="fa-solid fa-certificate"></i></div><div class="widget-number">${certsEarned}</div><div class="widget-label">Certificates</div></div>
-        </div>
-
-        ${enrolledCourses.length === 0 ? `
-          <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-xl);padding:48px;text-align:center;">
-            <div style="font-size:3rem;margin-bottom:16px;">📚</div>
-            <h3>No Courses Yet</h3>
-            <p style="margin:12px 0 24px;color:var(--text-secondary);">Browse our premium courses and start your creative journey today!</p>
-            <a href="#/courses" class="btn btn-primary btn-lg">Explore Courses</a>
+      <div class="dashboard-overview-container">
+        <div class="dashboard-main-col">
+          <div class="dashboard-welcome">
+            <h2>Welcome back, ${cu.name.split(' ')[0]}! 👋</h2>
+            <p>${enrolledCourses.length > 0 ? `You have ${enrolledCourses.length} course${enrolledCourses.length > 1 ? 's' : ''} in progress. Keep it up!` : 'Start your learning journey today! Browse our courses below.'}</p>
           </div>
-        ` : `
-          <div>
-            <h3 style="margin-bottom:16px;"><i class="fa-solid fa-book-open" style="color:var(--brand-blue);margin-right:8px;"></i>Continue Learning</h3>
-            <div style="display:flex;flex-direction:column;gap:16px;">
-              ${enrolledCourses.slice(0, 3).map(c => DashboardComponent._renderEnrolledCard(cu, c)).join('')}
+
+          <div class="dashboard-widgets">
+            <div class="widget-card"><div class="widget-icon blue"><i class="fa-solid fa-book-open"></i></div><div class="widget-number">${enrolledCourses.length}</div><div class="widget-label">Enrolled Courses</div></div>
+            <div class="widget-card"><div class="widget-icon green"><i class="fa-solid fa-chart-simple"></i></div><div class="widget-number">${totalProgress}%</div><div class="widget-label">Avg. Progress</div></div>
+            <div class="widget-card"><div class="widget-icon gold"><i class="fa-solid fa-clock"></i></div><div class="widget-number">${Math.round(totalHoursLearned)}h</div><div class="widget-label">Hours Learned</div></div>
+            <div class="widget-card"><div class="widget-icon purple"><i class="fa-solid fa-certificate"></i></div><div class="widget-number">${certsEarned}</div><div class="widget-label">Certificates</div></div>
+          </div>
+
+          ${(() => {
+            const nextMeeting = window.db.getCommonMeetingsForUser(cu.username)
+              .filter(m => m.status === 'Live Now' || m.status === 'Upcoming')
+              .sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`))[0];
+
+            if (nextMeeting) {
+              const isLive = nextMeeting.status === 'Live Now';
+              
+              setTimeout(() => {
+                DashboardComponent._startCommonMeetingTimers();
+              }, 100);
+
+              return `
+                <div class="glass-panel" style="padding:20px; border:1px solid ${isLive ? '#10B981' : 'var(--border-color)'}; background:${isLive ? 'var(--bg-secondary)' : 'var(--bg-card)'}; border-radius:var(--radius-xl); text-align:left; position:relative; overflow:hidden;">
+                  ${isLive ? `<span style="position:absolute; right:16px; top:16px; background:#ef4444; color:#fff; font-size:0.7rem; font-weight:800; padding:4px 10px; border-radius:20px; text-transform:uppercase; animation: pulse 1.5s infinite;"><i class="fa-solid fa-signal" style="margin-right:4px;"></i> LIVE NOW</span>` : ''}
+                  <div style="font-size:0.75rem; font-weight:700; color:${isLive ? '#10B981' : 'var(--brand-blue)'}; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Next Common Meeting</div>
+                  <h3 style="margin:0 0 6px 0; font-size:1.15rem; font-weight:800; color:var(--text-primary);">${nextMeeting.title}</h3>
+                  <p style="font-size:0.83rem; color:var(--text-secondary); margin:0 0 16px 0; line-height:1.4;">${nextMeeting.description || 'Academy-wide session.'}</p>
+                  
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; border-top:1px solid var(--border-color); padding-top:12px; margin-top:12px;">
+                    <div style="font-size:0.8rem; color:var(--text-secondary); display:flex; gap:16px;">
+                      <span><i class="fa-regular fa-calendar" style="margin-right:4px;"></i> ${nextMeeting.date}</span>
+                      <span><i class="fa-regular fa-clock" style="margin-right:4px;"></i> ${nextMeeting.startTime} - ${nextMeeting.endTime}</span>
+                      <span><i class="fa-regular fa-user" style="margin-right:4px;"></i> Host: ${nextMeeting.hostName}</span>
+                    </div>
+                    
+                    ${isLive 
+                      ? `<a href="${nextMeeting.meetLink}" target="_blank" class="btn btn-success btn-sm" style="margin:0; background:#10B981; border-color:#10B981; color:#fff; font-weight:700;"><i class="fa-solid fa-video"></i> Join Meeting</a>`
+                      : `<div class="cm-countdown-box" data-date="${nextMeeting.date}T${nextMeeting.startTime}" style="font-size:0.85rem; font-weight:700; color:var(--brand-blue);"><i class="fa-solid fa-hourglass-start" style="margin-right:4px;"></i>Starts in: <span class="cm-timer">Calculating...</span></div>`
+                    }
+                  </div>
+                </div>
+              `;
+            }
+            return '';
+          })()}
+
+          ${enrolledCourses.length === 0 ? `
+            <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-xl);padding:48px;text-align:center;">
+              <div style="font-size:3rem;margin-bottom:16px;">📚</div>
+              <h3>No Courses Yet</h3>
+              <p style="margin:12px 0 24px;color:var(--text-secondary);">Browse our premium courses and start your creative journey today!</p>
+              <a href="#/courses" class="btn btn-primary btn-lg">Explore Courses</a>
             </div>
-          </div>
-        `}
+          ` : `
+            <div>
+              <h3 style="margin-bottom:16px;"><i class="fa-solid fa-book-open" style="color:var(--brand-blue);margin-right:8px;"></i>Continue Learning</h3>
+              <div style="display:flex;flex-direction:column;gap:16px;">
+                ${enrolledCourses.slice(0, 3).map(c => DashboardComponent._renderEnrolledCard(cu, c)).join('')}
+              </div>
+            </div>
+          `}
+        </div>
+        ${window.DashboardRightPanel ? window.DashboardRightPanel.render(cu) : ''}
       </div>
     `;
   },
@@ -124,6 +181,80 @@ const DashboardComponent = {
     const done = (p.completedLessons || []).length;
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
     const firstLesson = c.modules[0].lessons[0];
+    
+    // Batch details
+    const enrolledBatches = cu.enrolledBatches || {};
+    const batchId = enrolledBatches[c.id];
+    const batch = batchId ? window.db.getBatchById(batchId) : null;
+    
+    let batchHtml = '';
+    if (batch) {
+      const tutors = window.db.getUsers().filter(u => u.role==='instructor');
+      const tutorNames = batch.tutorIds.map(tid => {
+        const t = tutors.find(x => x.username === tid);
+        return t ? t.name : tid;
+      }).join(', ');
+
+      const isBatchActive = batch.status === 'Active' || batch.status === 'Completed';
+
+      if (isBatchActive) {
+        // Find next live class for this batch
+        const nextClass = window.db.getLiveClasses()
+          .filter(lc => lc.status === 'published' && lc.batch_id === batch.id && new Date(`${lc.date}T${lc.start_time}`) > new Date())
+          .sort((a,b) => new Date(`${a.date}T${a.start_time}`) - new Date(`${b.date}T${b.start_time}`))[0];
+        
+        const nextClassText = nextClass 
+          ? `${nextClass.date} at ${nextClass.start_time} (${nextClass.title})`
+          : 'None scheduled';
+
+        // Calculate attendance
+        const studentAtt = window.db.getAttendance(batch.id).filter(a => a.username === cu.username);
+        const presentCount = studentAtt.filter(a => a.status === 'Present' || a.status === 'PRESENT' || a.status === 'LATE').length;
+        const totalAtt = studentAtt.length;
+        const attPct = totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 100;
+
+        const whatsappButton = batch.whatsappLink 
+          ? `<a href="${batch.whatsappLink}" target="_blank" class="btn btn-success btn-xs" style="margin-top:8px; display:inline-flex; align-items:center; gap:6px; background:#25D366; border-color:#25D366; color:#fff;"><i class="fa-brands fa-whatsapp" style="font-size:0.9rem;"></i> Join WhatsApp Group</a>`
+          : '';
+
+        batchHtml = `
+          <div class="enrolled-batch-details" style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin: 12px 0; font-size:0.83rem; text-align: left;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
+              <span>My Batch: <strong style="color:#0F172A;">${batch.name}</strong></span>
+              <span class="status-badge success" style="padding:2px 8px; font-size:0.7rem;">Active</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+              <div><span style="color:#64748B;">Tutor:</span> <strong style="color:#0F172A;">${tutorNames || '—'}</strong></div>
+              <div><span style="color:#64748B;">Schedule:</span> <strong style="color:#0F172A;">${batch.classTime || '—'} (${(batch.classDays || []).join(', ') || '—'})</strong></div>
+              <div><span style="color:#64748B;">Start Date:</span> <strong style="color:#0F172A;">${batch.startDate}</strong></div>
+              <div><span style="color:#64748B;">End Date:</span> <strong style="color:#0F172A;">${batch.endDate}</strong></div>
+            </div>
+            <div style="margin-bottom:8px;"><span style="color:#64748B;">Attendance:</span> <strong style="color:#0F172A;">${totalAtt > 0 ? `${presentCount}/${totalAtt} (${attPct}%)` : 'No classes recorded yet'}</strong></div>
+            <div style="margin-bottom:8px;"><span style="color:#64748B;">Next Live Class:</span> <strong style="color:#3D46D8;"><i class="fa-solid fa-video"></i> ${nextClassText}</strong></div>
+            ${whatsappButton}
+          </div>
+        `;
+      } else {
+        const availableSeats = batch.maxStudents - (batch.currentEnrollment || 0);
+        batchHtml = `
+          <div class="enrolled-batch-details" style="background:#FDFEFE; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin: 12px 0; font-size:0.83rem; text-align: left; box-shadow:inset 0 1px 3px rgba(0,0,0,0.01);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
+              <span>My Batch: <strong style="color:#0F172A;">${batch.name}</strong></span>
+              <span class="status-badge warning" style="padding:2px 8px; font-size:0.7rem;">${batch.status}</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+              <div><span style="color:#64748B;">Enrolled:</span> <strong style="color:#0F172A;">${batch.currentEnrollment || 0} / ${batch.maxStudents}</strong></div>
+              <div><span style="color:#64748B;">Available Seats:</span> <strong style="color:#10B981;">${availableSeats} available</strong></div>
+            </div>
+            <div style="font-size:0.76rem; color:#64748B; background:#FFFBEB; border:1px solid #FDE68A; padding:8px 12px; border-radius:8px; display:flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-lock" style="color:#D97706;"></i>
+              <span>Tutor, schedule, Meet, and WhatsApp group will be available once the batch becomes Active.</span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
     return `
       <div class="enrolled-course-card">
         <div class="enrolled-course-thumb"><img src="${c.image}" alt="${c.title}" loading="lazy"></div>
@@ -131,7 +262,8 @@ const DashboardComponent = {
           <div class="enrolled-course-title">${c.title}</div>
           <div class="enrolled-course-meta">${done} of ${total} lessons completed · ${c.duration}</div>
           <div class="progress-bar-wrapper"><div class="progress-bar" style="width:${pct}%;"></div></div>
-          <div style="font-size:0.78rem;color:var(--brand-blue);font-weight:600;margin-top:4px;">${pct}% Complete</div>
+          <div style="font-size:0.78rem;color:var(--brand-blue);font-weight:600;margin-top:4px;margin-bottom:8px;">${pct}% Complete</div>
+          ${batchHtml}
           <div class="enrolled-course-actions">
             <a href="#/lesson/${c.id}/${firstLesson.id}" class="btn btn-primary btn-sm"><i class="fa-solid fa-play"></i> Continue</a>
             <a href="#/quiz/${c.id}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-trophy"></i> Take Quiz</a>
@@ -255,7 +387,7 @@ const DashboardComponent = {
         <h2>My Profile</h2>
         <div class="glass-panel">
           <div style="display:flex;align-items:center;gap:20px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--border-color);">
-            <div class="sidebar-avatar" style="width:80px;height:80px;font-size:2rem;">${cu.name.charAt(0).toUpperCase()}</div>
+            <div class="sidebar-avatar" style="width:80px;height:80px;font-size:2rem;${cu.profilePhoto ? `background-image:url(${cu.profilePhoto});` : ''}">${cu.profilePhoto ? '' : cu.name.charAt(0).toUpperCase()}</div>
             <div>
               <div style="font-weight:800;font-size:1.2rem;color:var(--text-primary);">${cu.name}</div>
               <div style="color:var(--text-muted);font-size:0.85rem;">@${cu.username}</div>
@@ -264,11 +396,52 @@ const DashboardComponent = {
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div class="form-group"><label>Full Name</label><input type="text" id="profile-name" value="${cu.name}"></div>
+            <div class="form-group"><label>Phone Number</label><input type="text" id="profile-phone" value="${cu.phone || ''}" placeholder="e.g. +91 98765 43210"></div>
+            
+            <div class="form-group"><label>WhatsApp Number (Optional)</label><input type="text" id="profile-whatsapp" value="${cu.whatsapp || ''}" placeholder="e.g. +91 98765 43210"></div>
+            <div class="form-group"><label>Date of Birth (Optional)</label><input type="date" id="profile-dob" value="${cu.dob || ''}"></div>
+            
+            <div class="form-group">
+              <label>Qualification (Optional)</label>
+              <select id="profile-qualification" onchange="document.getElementById('qualification-other-wrap').style.display = this.value === 'other' ? 'block' : 'none';" style="width:100%;padding:10px 14px;border:1.5px solid var(--border-color);border-radius:10px;font-size:0.85rem;font-family:inherit;outline:none;box-sizing:border-box;background:var(--bg-card);color:var(--text-primary);">
+                <option value="">Select Qualification</option>
+                <option value="sslc" ${cu.qualification === 'sslc' ? 'selected' : ''}>SSLC</option>
+                <option value="plus two" ${cu.qualification === 'plus two' ? 'selected' : ''}>Plus Two</option>
+                <option value="degree" ${cu.qualification === 'degree' ? 'selected' : ''}>Degree</option>
+                <option value="pg" ${cu.qualification === 'pg' ? 'selected' : ''}>PG</option>
+                <option value="other" ${cu.qualification === 'other' ? 'selected' : ''}>Other</option>
+              </select>
+            </div>
+            
+            <div class="form-group" id="qualification-other-wrap" style="display: ${cu.qualification === 'other' ? 'block' : 'none'};">
+              <label>Specify Other Qualification</label>
+              <input type="text" id="profile-qualification-other" value="${cu.qualificationOther || ''}" placeholder="Enter your qualification">
+            </div>
+
             <div class="form-group"><label>Username</label><input type="text" value="${cu.username}" disabled style="opacity:0.6;"></div>
             <div class="form-group"><label>Role</label><input type="text" value="${cu.role}" disabled style="opacity:0.6;text-transform:capitalize;"></div>
             <div class="form-group"><label>Member Since</label><input type="text" value="${cu.registeredDate || new Date().toLocaleDateString('en-IN')}" disabled style="opacity:0.6;"></div>
+            
+            <!-- Hidden input to store profile photo Base64 data -->
+            <input type="hidden" id="profile-photo-data" value="${cu.profilePhoto || ''}">
+            
+            <div class="form-group" style="grid-column: span 2;">
+              <label>Profile Photo (Aspect Ratio 3:4 - Height 4, Width 3)</label>
+              <div style="display:flex;align-items:center;gap:16px;margin-top:8px;">
+                <div id="profile-photo-preview" style="width:90px;height:120px;border-radius:8px;border:2px dashed var(--border-color);display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center;background-repeat:no-repeat;background-image:${cu.profilePhoto ? `url(${cu.profilePhoto})` : 'none'};">
+                  ${cu.profilePhoto ? '' : '<span style="font-size:0.75rem;color:var(--text-muted);text-align:center;">3:4 Photo</span>'}
+                </div>
+                <div>
+                  <input type="file" id="profile-photo-input" accept="image/*" style="display:none;" onchange="if(this.files[0]){window.resizeAndCropTo3x4(this.files[0], function(base64){document.getElementById('profile-photo-preview').style.backgroundImage = 'url('+base64+')'; document.getElementById('profile-photo-preview').innerHTML = ''; document.getElementById('profile-photo-data').value = base64;})}">
+                  <button type="button" onclick="document.getElementById('profile-photo-input').click()" class="btn btn-secondary" style="padding:8px 16px;font-size:0.8rem;">Upload Photo</button>
+                  <button type="button" onclick="document.getElementById('profile-photo-preview').style.backgroundImage = 'none'; document.getElementById('profile-photo-preview').innerHTML = '<span style=\'font-size:0.75rem;color:var(--text-muted);text-align:center;\'>3:4 Photo</span>'; document.getElementById('profile-photo-data').value = ''; document.getElementById('profile-photo-input').value = '';" class="btn btn-danger" style="padding:8px 16px;font-size:0.8rem;margin-left:8px;background:none;border:1px solid var(--danger);color:var(--danger);">Remove</button>
+                  <div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px;">Upload a portrait image. It will be resized and cropped to 3:4 aspect ratio.</div>
+                </div>
+              </div>
+            </div>
+
           </div>
-          <div class="form-group"><label>New Password</label><input type="password" id="profile-password" placeholder="Leave blank to keep current password"></div>
+          <div class="form-group" style="margin-top:16px;"><label>New Password</label><input type="password" id="profile-password" placeholder="Leave blank to keep current password"></div>
           <button onclick="DashboardComponent._saveProfile()" class="btn btn-primary"><i class="fa-solid fa-save"></i> Save Changes</button>
         </div>
 
@@ -287,11 +460,30 @@ const DashboardComponent = {
     if (!cu) return;
     const newName = document.getElementById('profile-name')?.value;
     const newPwd = document.getElementById('profile-password')?.value;
+    const newPhone = document.getElementById('profile-phone')?.value || '';
+    
+    const newWhatsapp = document.getElementById('profile-whatsapp')?.value || '';
+    const newDob = document.getElementById('profile-dob')?.value || '';
+    const newQual = document.getElementById('profile-qualification')?.value || '';
+    const newQualOther = document.getElementById('profile-qualification-other')?.value || '';
+    const newPhoto = document.getElementById('profile-photo-data')?.value || '';
+
     if (newName) cu.name = newName;
     if (newPwd && newPwd.length >= 6) cu.password = newPwd;
+    cu.phone = newPhone;
+    cu.whatsapp = newWhatsapp;
+    cu.dob = newDob;
+    cu.qualification = newQual;
+    cu.qualificationOther = newQualOther;
+    cu.profilePhoto = newPhoto;
+
     const users = window.db.getUsers();
     const idx = users.findIndex(u => u.username === cu.username);
-    if (idx !== -1) { users[idx] = cu; localStorage.setItem('cubaze_users', JSON.stringify(users)); localStorage.setItem('cubaze_current_user', JSON.stringify(cu)); }
+    if (idx !== -1) { 
+      users[idx] = cu; 
+      window.db.setItemAndSync('cubaze_users', users); 
+      localStorage.setItem('cubaze_current_user', JSON.stringify(cu)); 
+    }
     window.app.showToast('Profile updated successfully!', 'success');
     window.app.updateNavbarAuth();
     window.app.renderRoute();
@@ -300,29 +492,1718 @@ const DashboardComponent = {
   init: function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     DashboardComponent._activeTab = 'overview';
+    DashboardComponent._activeConvId = null;
+    DashboardComponent._activeTutorConvId = null;
+    DashboardComponent._showNewForm = false;
+    DashboardComponent._showNewTutorForm = false;
+    DashboardComponent.updateSupportBadge();
+    DashboardComponent.updateTutorChatBadge();
 
     document.querySelectorAll('.sidebar-nav-item[data-tab]').forEach(item => {
       item.addEventListener('click', () => {
+        if (DashboardComponent._countdownInterval) {
+          clearInterval(DashboardComponent._countdownInterval);
+        }
         DashboardComponent._activeTab = item.getAttribute('data-tab');
         document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('active'));
         item.classList.add('active');
-        const cu = window.db.getCurrentUser();
-        if (!cu) return;
-        const courses = window.db.getCourses();
-        const enrolledCourses = courses.filter(c => (cu.enrolledCourses || []).includes(c.id));
-        const wishlist = (cu.wishlist || []).map(id => courses.find(c => c.id === id)).filter(Boolean);
-        const txns = window.db.getTransactions().filter(t => t.username === cu.username);
-        const totalProgress = enrolledCourses.length > 0
-          ? Math.round(enrolledCourses.reduce((sum, c) => {
-              const p = window.db.getUserProgress(cu.username, c.id);
-              const total = c.modules.reduce((a, m) => a + m.lessons.length, 0);
-              const done = (p.completedLessons || []).length;
-              return sum + (total > 0 ? (done / total) * 100 : 0);
-            }, 0) / enrolledCourses.length)
-          : 0;
-        document.getElementById('student-tab-content').innerHTML = DashboardComponent._renderTab(DashboardComponent._activeTab, cu, enrolledCourses, wishlist, txns, totalProgress);
+        
+        if (DashboardComponent._activeTab === 'support') {
+          DashboardComponent._loadAndRenderSupport();
+        } else if (DashboardComponent._activeTab === 'tutor_chat') {
+          DashboardComponent._loadAndRenderTutorChat();
+        } else {
+          DashboardComponent._activeConvId = null;
+          DashboardComponent._activeTutorConvId = null;
+          DashboardComponent._showNewForm = false;
+          DashboardComponent._showNewTutorForm = false;
+          const cu = window.db.getCurrentUser();
+          if (!cu) return;
+          const courses = window.db.getCourses();
+          const enrolledCourses = courses.filter(c => (cu.enrolledCourses || []).includes(c.id));
+          const wishlist = (cu.wishlist || []).map(id => courses.find(c => c.id === id)).filter(Boolean);
+          const txns = window.db.getTransactions().filter(t => t.username === cu.username);
+          const totalProgress = enrolledCourses.length > 0
+            ? Math.round(enrolledCourses.reduce((sum, c) => {
+                const p = window.db.getUserProgress(cu.username, c.id);
+                const total = c.modules.reduce((a, m) => a + m.lessons.length, 0);
+                const done = (p.completedLessons || []).length;
+                return sum + (total > 0 ? (done / total) * 100 : 0);
+              }, 0) / enrolledCourses.length)
+            : 0;
+          document.getElementById('student-tab-content').innerHTML = DashboardComponent._renderTab(DashboardComponent._activeTab, cu, enrolledCourses, wishlist, txns, totalProgress);
+          if (DashboardComponent._activeTab === 'overview') {
+            setTimeout(() => {
+              if (window.DashboardRightPanel) window.DashboardRightPanel.bindEvents(cu);
+            }, 50);
+          }
+        }
       });
     });
+
+    // Initial binding on load
+    const cu = window.db.getCurrentUser();
+    if (cu && DashboardComponent._activeTab === 'overview') {
+      setTimeout(() => {
+        if (window.DashboardRightPanel) window.DashboardRightPanel.bindEvents(cu);
+      }, 100);
+    }
+  },
+
+  // =====================================================
+  // LIVE CLASSES METHODS
+  // =====================================================
+  _renderLiveClasses: function (cu, enrolledCourses) {
+    const enrolledBatches = cu.enrolledBatches || {};
+    // Check if student has at least one active batch
+    const activeBatchCount = Object.keys(enrolledBatches).filter(cid => {
+      const bid = enrolledBatches[cid];
+      const b = window.db.getBatchById(bid);
+      return b && (b.status === 'Active' || b.status === 'Completed');
+    }).length;
+
+    if (activeBatchCount === 0) {
+      return `
+        <div class="glass-panel" style="text-align:center; padding:48px; border-radius:20px; max-width:600px; margin: 40px auto; border: 1px solid var(--border-color); background:var(--bg-secondary);">
+          <div style="font-size:3.5rem; margin-bottom:20px;">🔒</div>
+          <h3 style="font-size:1.25rem; font-weight:800; color:var(--text-primary); margin-bottom:8px;">Live Classes Locked</h3>
+          <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.6; margin-bottom:24px;">
+            Your assigned batch is currently in the <strong>Enrollment Open</strong> state. Live Classes, Calendar, and schedule details will unlock automatically as soon as your batch status becomes <strong>Active</strong>.
+          </p>
+          <div style="font-size:0.8rem; color:var(--text-muted);">Thank you for your patience!</div>
+        </div>
+      `;
+    }
+
+    const courses = window.db.getCourses();
+    const enrolledCourseIds = enrolledCourses.map(c => c.id);
+    const enrolledBatchIds = Object.values(enrolledBatches);
+    const liveClasses = window.db.getLiveClasses().filter(lc => 
+      lc.status === 'published' && 
+      (lc.batch_id ? enrolledBatchIds.includes(lc.batch_id) : enrolledCourseIds.includes(lc.course_id))
+    );
+
+    const upcoming = [];
+    const past = [];
+
+    const now = new Date();
+    liveClasses.forEach(lc => {
+      const [year, month, day] = lc.date.split('-');
+      const [endH, endM] = lc.end_time.split(':');
+      const classEnd = new Date(year, month - 1, day, endH, endM);
+      
+      if (classEnd > now) {
+        upcoming.push(lc);
+      } else {
+        past.push(lc);
+      }
+    });
+
+    upcoming.sort((a,b) => new Date(`${a.date}T${a.start_time}`) - new Date(`${b.date}T${b.start_time}`));
+    past.sort((a,b) => new Date(`${b.date}T${b.start_time}`) - new Date(`${a.date}T${a.start_time}`));
+
+    setTimeout(() => {
+      DashboardComponent._startCountdowns();
+    }, 100);
+
+    return `
+      <div>
+        <h2 style="margin-bottom:24px;">Live Classes</h2>
+        
+        <div style="margin-bottom:32px;">
+          <h3 style="margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--brand-blue); box-shadow:0 0 8px var(--brand-blue);"></span>
+            Upcoming Live Classes
+          </h3>
+          ${upcoming.length === 0 ? `
+            <div style="text-align:center;padding:48px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-xl);color:var(--text-muted);">
+              <div style="font-size:2.5rem;margin-bottom:12px;">📅</div>
+              <p>No upcoming live classes scheduled for your courses.</p>
+            </div>
+          ` : `
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
+              ${upcoming.map(lc => {
+                const course = courses.find(c => c.id === lc.course_id);
+                return `
+                  <div class="meet-card widget-card" data-class-date="${lc.date}T${lc.start_time}" data-meet-link="${lc.meet_link}">
+                    <div style="font-size:0.75rem; font-weight:700; color:var(--brand-blue); text-transform:uppercase; margin-bottom:8px;">${course ? course.title : lc.course_id}</div>
+                    <h4 style="font-size:1.05rem; font-weight:700; margin-bottom:8px; color:var(--text-primary);">${lc.title}</h4>
+                    <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:16px; min-height:40px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${lc.description || 'No description provided.'}</p>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:14px; margin-bottom:14px;">
+                      <div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Date & Time</div>
+                        <div style="font-size:0.83rem; font-weight:700; color:var(--text-primary);">${lc.date} · ${lc.start_time}</div>
+                      </div>
+                      <div style="text-align:right;">
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Tutor</div>
+                        <div style="font-size:0.83rem; font-weight:700; color:var(--text-primary);">${lc.tutor_id}</div>
+                      </div>
+                    </div>
+
+                    <div class="countdown-widget" id="cd-${lc.id}" style="margin-bottom:16px;">
+                      <div class="cd-unit">
+                        <span class="cd-num" id="cd-${lc.id}-d">00</span>
+                        <span class="cd-label">Days</span>
+                      </div>
+                      <div class="cd-unit">
+                        <span class="cd-num" id="cd-${lc.id}-h">00</span>
+                        <span class="cd-label">Hrs</span>
+                      </div>
+                      <div class="cd-unit">
+                        <span class="cd-num" id="cd-${lc.id}-m">00</span>
+                        <span class="cd-label">Min</span>
+                      </div>
+                      <div class="cd-unit">
+                        <span class="cd-num" id="cd-${lc.id}-s">00</span>
+                        <span class="cd-label">Sec</span>
+                      </div>
+                    </div>
+
+                    <div id="btn-container-${lc.id}">
+                      <button class="btn btn-sm btn-block btn-secondary" style="height: 40px; font-weight:700;" disabled><i class="fa-solid fa-lock" style="margin-right:6px;"></i>Class Starts Soon</button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+
+        <div>
+          <h3 style="margin-bottom:16px; color:var(--text-secondary); display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            Past Classes & Recordings
+          </h3>
+          ${past.length === 0 ? `
+            <div style="text-align:center;padding:32px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-xl);color:var(--text-muted);">
+              <p>No past live classes recorded.</p>
+            </div>
+          ` : `
+            <div class="glass-panel" style="padding:0;">
+              <table class="data-table" style="margin-bottom:0;">
+                <thead>
+                  <tr>
+                    <th>Course / Class</th>
+                    <th>Date & Time</th>
+                    <th>Recording</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${past.map(lc => {
+                    const course = courses.find(c => c.id === lc.course_id);
+                    return `
+                      <tr>
+                        <td>
+                          <div style="font-weight:700; color:var(--text-primary); font-size:0.85rem;">${course ? course.title : lc.course_id}</div>
+                          <div style="font-size:0.8rem; color:var(--text-muted);">${lc.title}</div>
+                        </td>
+                        <td>
+                          <div style="font-size:0.83rem; color:var(--text-primary); font-weight:600;">${lc.date}</div>
+                          <div style="font-size:0.75rem; color:var(--text-muted);">${lc.start_time} - ${lc.end_time}</div>
+                        </td>
+                        <td>
+                          ${lc.recording_url ? `
+                            <button class="btn btn-outline-white btn-sm" onclick="DashboardComponent._showRecording('${lc.title}', '${lc.recording_url}')" style="font-size:0.75rem;"><i class="fa-solid fa-play" style="color:var(--brand-blue); margin-right:6px;"></i>Watch Recording</button>
+                          ` : `
+                            <span style="color:var(--text-muted); font-size:0.75rem; font-style:italic;">Processing...</span>
+                          `}
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  },
+
+  _startCountdowns: function () {
+    if (DashboardComponent._countdownInterval) {
+      clearInterval(DashboardComponent._countdownInterval);
+    }
+
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      let activeTimers = 0;
+
+      document.querySelectorAll('.meet-card[data-class-date]').forEach(card => {
+        const idAttr = card.querySelector('.countdown-widget').id;
+        const classId = idAttr.replace('cd-', '');
+        const targetDateStr = card.getAttribute('data-class-date');
+        const meetLink = card.getAttribute('data-meet-link');
+        
+        const [datePart, timePart] = targetDateStr.split('T');
+        const [y, m, d] = datePart.split('-');
+        const [hr, min] = timePart.split(':');
+        const targetDate = new Date(y, m - 1, d, hr, min).getTime();
+
+        const diff = targetDate - now;
+
+        const dEl = document.getElementById(`cd-${classId}-d`);
+        const hEl = document.getElementById(`cd-${classId}-h`);
+        const mEl = document.getElementById(`cd-${classId}-m`);
+        const sEl = document.getElementById(`cd-${classId}-s`);
+        const btnContainer = document.getElementById(`btn-container-${classId}`);
+
+        if (diff > 0) {
+          activeTimers++;
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+          if (dEl) dEl.textContent = days < 10 ? '0' + days : days;
+          if (hEl) hEl.textContent = hours < 10 ? '0' + hours : hours;
+          if (mEl) mEl.textContent = minutes < 10 ? '0' + minutes : minutes;
+          if (sEl) sEl.textContent = seconds < 10 ? '0' + seconds : seconds;
+
+          if (diff <= 10 * 60 * 1000) {
+            if (btnContainer && !btnContainer.querySelector('.btn-primary')) {
+              btnContainer.innerHTML = `
+                <a href="${meetLink}" target="_blank" class="btn btn-sm btn-block btn-primary live-badge-glow" style="height: 40px; font-weight:700; line-height: 24px;"><i class="fa-solid fa-video" style="margin-right:6px;"></i>Join Live Class</a>
+              `;
+            }
+          } else {
+            if (btnContainer && !btnContainer.querySelector('.btn-secondary')) {
+              btnContainer.innerHTML = `
+                <button class="btn btn-sm btn-block btn-secondary" style="height: 40px; font-weight:700;" disabled><i class="fa-solid fa-lock" style="margin-right:6px;"></i>Class Starts Soon</button>
+              `;
+            }
+          }
+        } else {
+          const classDuration = 2 * 60 * 60 * 1000;
+          if (Math.abs(diff) < classDuration) {
+            if (dEl) dEl.textContent = '00';
+            if (hEl) hEl.textContent = '00';
+            if (mEl) mEl.textContent = '00';
+            if (sEl) sEl.textContent = '00';
+
+            if (btnContainer && !btnContainer.querySelector('.btn-success')) {
+              btnContainer.innerHTML = `
+                <a href="${meetLink}" target="_blank" class="btn btn-sm btn-block btn-primary live-badge-glow" style="height: 40px; font-weight:700; background: #059669; border:none; line-height: 24px;"><i class="fa-solid fa-video" style="margin-right:6px;"></i>Class is Live (Join Now)</a>
+              `;
+            }
+          } else {
+            if (DashboardComponent._activeTab === 'liveclasses') {
+              clearInterval(DashboardComponent._countdownInterval);
+              window.app.renderRoute();
+            }
+          }
+        }
+      });
+
+      if (activeTimers === 0) {
+        clearInterval(DashboardComponent._countdownInterval);
+      }
+    };
+
+    updateTimer();
+    DashboardComponent._countdownInterval = setInterval(updateTimer, 1000);
+  },
+
+  _showRecording: function(title, url) {
+    const overlay = document.createElement('div');
+    overlay.className = 'tutor-modal-overlay';
+    overlay.style.zIndex = '1100';
+    overlay.innerHTML = `
+      <div class="tutor-modal" style="max-width: 720px; padding:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3 style="margin:0;"><i class="fa-solid fa-play" style="color:var(--brand-blue); margin-right:8px;"></i>${title}</h3>
+          <button class="btn btn-outline-white btn-sm btn-modal-close" style="width:32px; height:32px; padding:0; border-radius:50%;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div style="position:relative; padding-bottom:56.25%; height:0; border-radius:12px; overflow:hidden; background:#000;">
+          <iframe src="${url}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allowfullscreen></iframe>
+        </div>
+      </div>
+    `;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    overlay.querySelector('.btn-modal-close').addEventListener('click', () => overlay.remove());
+    document.body.appendChild(overlay);
+  },
+
+  // =====================================================
+  // SUPPORT MESSAGING PORTAL METHODS
+  // =====================================================
+  updateSupportBadge: async function() {
+    try {
+      const cu = window.db.getCurrentUser();
+      if (!cu) return;
+      const convs = await window.db.getSupportConversations();
+      const unreadCount = convs.filter(c => c.unread_by_student && c.student_username === cu.username).length;
+      const el = document.getElementById('support-unread-badge');
+      if (el) {
+        if (unreadCount > 0) {
+          el.textContent = unreadCount;
+          el.style.display = 'inline-block';
+        } else {
+          el.style.display = 'none';
+        }
+      }
+    } catch (err) {
+      console.error("Error updating support badge:", err);
+    }
+  },
+
+  _loadAndRenderSupport: async function() {
+    const container = document.getElementById('student-tab-content');
+    if (!container) return;
+    container.innerHTML = `<div style="text-align:center;padding:48px;"><div class="spinner"></div><p style="margin-top:12px;color:var(--text-muted);">Loading conversations...</p></div>`;
+    
+    DashboardComponent._initRealtime();
+
+    try {
+      const convs = await window.db.getSupportConversations();
+      if (DashboardComponent._activeConvId) {
+        container.innerHTML = await DashboardComponent._renderChatView(DashboardComponent._activeConvId);
+        DashboardComponent._bindChatViewEvents(DashboardComponent._activeConvId);
+        await window.db.markMessagesAsSeen(DashboardComponent._activeConvId, 'student');
+        DashboardComponent.updateSupportBadge();
+      } else if (DashboardComponent._showNewForm) {
+        container.innerHTML = DashboardComponent._renderNewFormView();
+        DashboardComponent._bindNewFormEvents();
+      } else {
+        container.innerHTML = DashboardComponent._renderSupportList(convs);
+        DashboardComponent._bindSupportListEvents();
+      }
+    } catch (err) {
+      container.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+    }
+  },
+
+  _initRealtime: function() {
+    if (DashboardComponent._realtimeChannel) return;
+    DashboardComponent._realtimeChannel = window.db.subscribeToSupportRealtime((e) => {
+      if (DashboardComponent._activeTab === 'support') {
+        const cu = window.db.getCurrentUser();
+        if (e.type === 'message' && e.payload.new && e.payload.new.sender !== cu.username) {
+          if (DashboardComponent._activeConvId === e.payload.new.conversation_id) {
+            DashboardComponent._refreshChatMessagesOnly(DashboardComponent._activeConvId);
+            window.db.markMessagesAsSeen(DashboardComponent._activeConvId, 'student');
+          } else {
+            window.app.showToast(`New message from Admin: "${e.payload.new.message.substring(0, 30)}..."`, 'info');
+            DashboardComponent._loadAndRenderSupport();
+          }
+        } else if (e.type === 'conversation') {
+          DashboardComponent._loadAndRenderSupport();
+        }
+      } else {
+        DashboardComponent.updateSupportBadge();
+      }
+    });
+  },
+
+  _renderSupportList: function(convs) {
+    const activeFilter = DashboardComponent._supportFilter || 'all';
+    let filtered = convs;
+    if (activeFilter !== 'all') {
+      filtered = convs.filter(c => c.status.toLowerCase() === activeFilter);
+    }
+
+    return `
+      <div style="display:flex; flex-direction:column; gap:24px;">
+        <div class="dashboard-welcome">
+          <h2>Talk with Admin</h2>
+          <p>Need help? Contact the Cubaze Academy Admin directly.</p>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+          <div class="support-filter-tabs">
+            <button class="support-filter-tab ${activeFilter === 'all' ? 'active' : ''}" data-filter="all">All</button>
+            <button class="support-filter-tab ${activeFilter === 'open' ? 'active' : ''}" data-filter="open">Open</button>
+            <button class="support-filter-tab ${activeFilter === 'pending' ? 'active' : ''}" data-filter="pending">Pending</button>
+            <button class="support-filter-tab ${activeFilter === 'resolved' ? 'active' : ''}" data-filter="resolved">Resolved</button>
+          </div>
+          <button class="btn btn-primary" id="btn-start-new-conv"><i class="fa-solid fa-plus" style="margin-right:6px;"></i>Start New Conversation</button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:16px;" id="conversations-list-container">
+          ${filtered.length === 0 ? `
+            <div style="text-align:center; padding:48px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-xl); color:var(--text-muted);">
+              <i class="fa-solid fa-comments" style="font-size:2.5rem; margin-bottom:12px; color:var(--text-muted);"></i>
+              <p>No conversations found under this filter.</p>
+            </div>
+          ` : filtered.map(c => {
+            const relativeTime = DashboardComponent._getRelativeTime(c.last_reply_at);
+            return `
+              <div class="glass-panel support-conv-card" data-conv-id="${c.id}" style="padding:20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; gap:16px; transition:border-color 0.2s; border: 1.5px solid ${c.unread_by_student ? 'var(--brand-blue)' : 'var(--border-color)'};">
+                <div style="display:flex; flex-direction:column; gap:8px; flex:1;">
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <h4 style="margin:0; font-weight:700; color:var(--text-primary); font-size:0.95rem;">${c.subject}</h4>
+                    <span class="support-cat-badge">${c.category}</span>
+                    <span class="support-prio-badge ${c.priority.toLowerCase()}">${c.priority}</span>
+                    ${c.unread_by_student ? `<span class="badge" style="background:#ef4444; color:#fff; font-size:0.65rem; padding:2px 6px;">New Reply</span>` : ''}
+                  </div>
+                  <div style="font-size:0.78rem; color:var(--text-muted);">
+                    Last reply ${relativeTime} · Created ${new Date(c.created_at).toLocaleDateString('en-IN')}
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:16px;">
+                  <span class="status-badge ${c.status === 'Resolved' ? 'success' : c.status === 'Pending' ? 'pending' : 'danger'}" style="text-transform: capitalize;">${c.status}</span>
+                  <button class="btn btn-outline-white btn-sm">Open Chat <i class="fa-solid fa-chevron-right" style="margin-left:6px; font-size:0.7rem;"></i></button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  _renderNewFormView: function() {
+    return `
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button class="btn btn-outline-white btn-sm" id="btn-back-to-list" style="width:36px; height:36px; padding:0; border-radius:50%;"><i class="fa-solid fa-arrow-left"></i></button>
+          <h2 style="margin:0; font-weight:800; font-size:1.4rem;">New Support Conversation</h2>
+        </div>
+
+        <div class="support-form-card">
+          <form id="form-new-support">
+            <div class="form-group" style="margin-bottom:18px;">
+              <label style="font-weight:600; margin-bottom:6px; display:block;">Subject *</label>
+              <input type="text" id="new-support-subject" required placeholder="Brief summary of your request" class="form-control" style="width:100%; box-sizing:border-box;">
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:18px;">
+              <div class="form-group">
+                <label style="font-weight:600; margin-bottom:6px; display:block;">Category *</label>
+                <select id="new-support-category" required style="width:100%; box-sizing:border-box; height:46px; padding: 0 12px; border:1px solid var(--border-color); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--text-primary);">
+                  <option value="Technical Issue">Technical Issue</option>
+                  <option value="Course Access">Course Access</option>
+                  <option value="Payment">Payment</option>
+                  <option value="Live Class">Live Class</option>
+                  <option value="Certificate">Certificate</option>
+                  <option value="General Inquiry">General Inquiry</option>
+                  <option value="Feature Request">Feature Request</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label style="font-weight:600; margin-bottom:6px; display:block;">Priority *</label>
+                <select id="new-support-priority" required style="width:100%; box-sizing:border-box; height:46px; padding: 0 12px; border:1px solid var(--border-color); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--text-primary);">
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:18px;">
+              <label style="font-weight:600; margin-bottom:6px; display:block;">Message *</label>
+              <textarea id="new-support-message" required placeholder="Describe your issue in detail..." style="width:100%; min-height:120px; box-sizing:border-box; resize:vertical; padding:12px;" class="form-control"></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom:18px;">
+              <label style="font-weight:600; margin-bottom:6px; display:block;">File Attachment (Optional)</label>
+              <input type="file" id="new-support-file" style="display:block; font-size:0.85rem;" accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.zip,.rar,.mp4,.webm,.mov,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt">
+              <span style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; display:block;">Supported types: Images, PDF, ZIP, Videos, Docs (Max 10MB)</span>
+            </div>
+
+            <div class="form-group" style="margin-bottom:24px;">
+              <label style="font-weight:600; margin-bottom:6px; display:block;">External Cloud Storage Link (Optional)</label>
+              <div class="support-link-input-wrapper" style="max-width:100%;">
+                <i class="fa-solid fa-link"></i>
+                <input type="url" id="new-support-link" placeholder="Google Drive, OneDrive, Dropbox, WeTransfer etc.">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="new-support-submit-btn" style="padding:12px 24px;"><i class="fa-solid fa-paper-plane" style="margin-right:8px;"></i>Submit Request</button>
+          </form>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderChatView: async function(convId) {
+    const convs = await window.db.getSupportConversations();
+    const conv = convs.find(c => c.id === convId);
+    if (!conv) return `<div class="alert alert-danger">Conversation not found.</div>`;
+
+    const messages = await window.db.getSupportMessages(convId);
+    const cu = window.db.getCurrentUser();
+    const hasBeenRated = conv.rating !== null && conv.rating !== undefined;
+
+    return `
+      <div style="display:flex; flex-direction:column; gap:20px; height:100%;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <button class="btn btn-outline-white btn-sm" id="btn-back-to-list-chat" style="width:36px; height:36px; padding:0; border-radius:50%;"><i class="fa-solid fa-arrow-left"></i></button>
+            <div>
+              <h3 style="margin:0; font-weight:800; font-size:1.15rem; color:var(--text-primary);">${conv.subject}</h3>
+              <div style="display:flex; gap:6px; align-items:center; margin-top:4px; flex-wrap:wrap;">
+                <span class="support-cat-badge">${conv.category}</span>
+                <span class="support-prio-badge ${conv.priority.toLowerCase()}">${conv.priority}</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="status-badge ${conv.status === 'Resolved' ? 'success' : conv.status === 'Pending' ? 'pending' : 'danger'}">${conv.status}</span>
+          </div>
+        </div>
+
+        <div class="support-chat-container">
+          <div class="support-chat-messages" id="support-chat-thread">
+            ${messages.map(m => {
+              const isOwn = m.sender === cu.username;
+              const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+              
+              let attachmentHtml = '';
+              if (m.file_url) {
+                const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+                if (isImg) {
+                  attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+                } else {
+                  attachmentHtml = `
+                    <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
+                      <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
+                      <div class="support-chat-attachment-info">
+                        <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
+                        <span class="support-chat-attachment-size">Download Attachment</span>
+                      </div>
+                    </a>
+                  `;
+                }
+              }
+
+              let linkHtml = '';
+              if (m.external_link) {
+                linkHtml = `
+                  <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
+                    <i class="fa-solid fa-cloud"></i>
+                    <span>Shared File Link</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
+                  </a>
+                `;
+              }
+
+              return `
+                <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
+                  <div class="support-msg-bubble">
+                    <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px;">${isOwn ? 'You' : 'Cubaze Admin'}</div>
+                    <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
+                    ${attachmentHtml}
+                    ${linkHtml}
+                  </div>
+                  <div class="support-msg-meta">
+                    <span>${dateStr}</span>
+                    ${isOwn ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          ${conv.status === 'Resolved' ? `
+            <div style="padding:24px; background:var(--bg-card); border-top:1px solid var(--border-color); text-align:center;">
+              <h4 style="margin:0 0 8px 0; font-weight:700;"><i class="fa-solid fa-circle-check" style="color:var(--success); margin-right:6px;"></i>This ticket has been marked as Resolved</h4>
+              
+              ${hasBeenRated ? `
+                <p style="color:var(--text-muted); font-size:0.83rem; margin:8px 0;">You rated this support session <strong>${conv.rating} Stars</strong></p>
+                ${conv.feedback ? `<p style="font-size:0.83rem; color:var(--text-secondary); background:var(--bg-primary); padding:10px; border-radius:6px; display:inline-block; max-width:400px; margin:0; border:1px solid var(--border-color); font-style:italic;">"${conv.feedback}"</p>` : ''}
+              ` : `
+                <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:12px;">How would you rate the support you received?</p>
+                <div class="support-star-rating" id="support-rating-stars">
+                  <i class="fa-regular fa-star" data-val="1"></i>
+                  <i class="fa-regular fa-star" data-val="2"></i>
+                  <i class="fa-regular fa-star" data-val="3"></i>
+                  <i class="fa-regular fa-star" data-val="4"></i>
+                  <i class="fa-regular fa-star" data-val="5"></i>
+                </div>
+                <div style="margin-top:12px; display:none;" id="rating-feedback-area">
+                  <textarea id="rating-feedback-text" placeholder="Share your experience (Optional)..." style="width:100%; max-width:450px; min-height:60px; border-radius:8px; padding:10px; font-size:0.8rem; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); resize:vertical; box-sizing:border-box; margin-bottom:12px; font-family:inherit;"></textarea>
+                  <div>
+                    <button class="btn btn-primary btn-sm" id="btn-submit-rating" style="padding:8px 18px;">Submit Feedback</button>
+                  </div>
+                </div>
+              `}
+            </div>
+          ` : `
+            <div class="support-chat-input-wrapper">
+              <div class="support-chat-attachments-row">
+                <div class="support-chat-attach-btn" title="Attach file">
+                  <i class="fa-solid fa-paperclip"></i>
+                  <input type="file" id="chat-upload-file">
+                </div>
+                <div id="chat-file-selected-chip" style="display:none;"></div>
+
+                <div class="support-link-input-wrapper">
+                  <i class="fa-solid fa-link"></i>
+                  <input type="url" id="chat-external-link" placeholder="Cloud Storage File Link">
+                </div>
+              </div>
+
+              <div class="support-chat-input-row">
+                <textarea class="support-chat-input-textarea" id="chat-message-text" placeholder="Type a message..."></textarea>
+                <button class="btn btn-primary" id="btn-send-message" style="height:48px; width:48px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-lg); flex-shrink:0;"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
+              </div>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  },
+
+  _refreshChatMessagesOnly: async function(convId) {
+    const thread = document.getElementById('support-chat-thread');
+    if (!thread) return;
+
+    try {
+      const messages = await window.db.getSupportMessages(convId);
+      const cu = window.db.getCurrentUser();
+
+      thread.innerHTML = messages.map(m => {
+        const isOwn = m.sender === cu.username;
+        const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        
+        let attachmentHtml = '';
+        if (m.file_url) {
+          const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+          if (isImg) {
+            attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+          } else {
+            attachmentHtml = `
+              <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
+                <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
+                <div class="support-chat-attachment-info">
+                  <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
+                  <span class="support-chat-attachment-size">Download Attachment</span>
+                </div>
+              </a>
+            `;
+          }
+        }
+
+        let linkHtml = '';
+        if (m.external_link) {
+          linkHtml = `
+            <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
+              <i class="fa-solid fa-cloud"></i>
+              <span>Shared File Link</span>
+              <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
+            </a>
+          `;
+        }
+
+        return `
+          <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
+            <div class="support-msg-bubble">
+              <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px;">${isOwn ? 'You' : 'Cubaze Admin'}</div>
+              <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
+              ${attachmentHtml}
+              ${linkHtml}
+            </div>
+            <div class="support-msg-meta">
+              <span>${dateStr}</span>
+              ${isOwn ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      thread.scrollTop = thread.scrollHeight;
+    } catch (err) {
+      console.error("Error refreshing chat messages:", err);
+    }
+  },
+
+  _bindSupportListEvents: function() {
+    document.querySelectorAll('.support-filter-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        DashboardComponent._supportFilter = btn.getAttribute('data-filter');
+        DashboardComponent._loadAndRenderSupport();
+      });
+    });
+
+    document.getElementById('btn-start-new-conv')?.addEventListener('click', () => {
+      DashboardComponent._showNewForm = true;
+      DashboardComponent._loadAndRenderSupport();
+    });
+
+    document.querySelectorAll('.support-conv-card').forEach(card => {
+      card.addEventListener('click', () => {
+        DashboardComponent._activeConvId = card.getAttribute('data-conv-id');
+        DashboardComponent._loadAndRenderSupport();
+      });
+    });
+  },
+
+  _bindNewFormEvents: function() {
+    document.getElementById('btn-back-to-list')?.addEventListener('click', () => {
+      DashboardComponent._showNewForm = false;
+      DashboardComponent._loadAndRenderSupport();
+    });
+
+    const fileInput = document.getElementById('new-support-file');
+    let selectedFile = null;
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        selectedFile = e.target.files[0] || null;
+      });
+    }
+
+    document.getElementById('form-new-support')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('new-support-submit-btn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i>Submitting...`;
+      }
+
+      const subject = document.getElementById('new-support-subject').value;
+      const category = document.getElementById('new-support-category').value;
+      const priority = document.getElementById('new-support-priority').value;
+      const message = document.getElementById('new-support-message').value;
+      const externalLink = document.getElementById('new-support-link').value;
+
+      try {
+        let fileData = null;
+        if (selectedFile) {
+          fileData = await window.db.uploadSupportAttachment(selectedFile);
+        }
+
+        const res = await window.db.createSupportConversation(subject, category, priority, message, fileData, externalLink);
+        if (res.success) {
+          window.app.showToast("Support ticket created successfully!", "success");
+          DashboardComponent._showNewForm = false;
+          DashboardComponent._activeConvId = res.conversationId;
+          DashboardComponent._loadAndRenderSupport();
+        } else {
+          window.app.showToast(res.error || "Failed to submit request", "danger");
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane" style="margin-right:8px;"></i>Submit Request`;
+          }
+        }
+      } catch (err) {
+        window.app.showToast(err.message || "An error occurred", "danger");
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane" style="margin-right:8px;"></i>Submit Request`;
+        }
+      }
+    });
+  },
+
+  _bindChatViewEvents: function(convId) {
+    document.getElementById('btn-back-to-list-chat')?.addEventListener('click', () => {
+      DashboardComponent._activeConvId = null;
+      DashboardComponent._loadAndRenderSupport();
+    });
+
+    const thread = document.getElementById('support-chat-thread');
+    if (thread) {
+      thread.scrollTop = thread.scrollHeight;
+    }
+
+    let chatSelectedFile = null;
+    const fileInput = document.getElementById('chat-upload-file');
+    const chip = document.getElementById('chat-file-selected-chip');
+
+    if (fileInput && chip) {
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          chatSelectedFile = file;
+          chip.innerHTML = `
+            <i class="fa-solid fa-file-lines"></i>
+            <span>${file.name.substring(0, 15)}...</span>
+            <i class="fa-solid fa-circle-xmark remove-file" style="margin-left:6px; cursor:pointer;" id="chat-remove-attached-file"></i>
+          `;
+          chip.className = 'support-file-selected-chip';
+          chip.style.display = 'flex';
+          
+          document.getElementById('chat-remove-attached-file')?.addEventListener('click', () => {
+            chatSelectedFile = null;
+            fileInput.value = '';
+            chip.style.display = 'none';
+          });
+        }
+      });
+    }
+
+    const sendBtn = document.getElementById('btn-send-message');
+    const msgTextarea = document.getElementById('chat-message-text');
+    const extLinkInput = document.getElementById('chat-external-link');
+
+    const handleSend = async () => {
+      const text = msgTextarea ? msgTextarea.value.trim() : '';
+      const extLink = extLinkInput ? extLinkInput.value.trim() : '';
+
+      if (!text && !chatSelectedFile && !extLink) {
+        return;
+      }
+
+      if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+      }
+
+      try {
+        let fileData = null;
+        if (chatSelectedFile) {
+          fileData = await window.db.uploadSupportAttachment(chatSelectedFile);
+        }
+
+        const res = await window.db.sendSupportMessage(convId, text, fileData, extLink, false);
+        if (res.success) {
+          if (msgTextarea) msgTextarea.value = '';
+          if (extLinkInput) extLinkInput.value = '';
+          chatSelectedFile = null;
+          if (fileInput) fileInput.value = '';
+          if (chip) chip.style.display = 'none';
+          
+          DashboardComponent._loadAndRenderSupport();
+        } else {
+          window.app.showToast(res.error || "Failed to send message", "danger");
+        }
+      } catch (err) {
+        window.app.showToast(err.message || "An error occurred", "danger");
+      } finally {
+        if (sendBtn) {
+          sendBtn.disabled = false;
+          sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i>`;
+        }
+      }
+    };
+
+    sendBtn?.addEventListener('click', handleSend);
+    msgTextarea?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    });
+
+    const stars = document.querySelectorAll('#support-rating-stars i');
+    const feedbackArea = document.getElementById('rating-feedback-area');
+    let ratingValue = 0;
+
+    stars.forEach(star => {
+      star.addEventListener('mouseover', () => {
+        const val = parseInt(star.getAttribute('data-val'));
+        stars.forEach(s => {
+          const sVal = parseInt(s.getAttribute('data-val'));
+          s.classList.toggle('hovered', sVal <= val);
+        });
+      });
+
+      star.addEventListener('mouseout', () => {
+        stars.forEach(s => s.classList.remove('hovered'));
+      });
+
+      star.addEventListener('click', () => {
+        ratingValue = parseInt(star.getAttribute('data-val'));
+        stars.forEach(s => {
+          const sVal = parseInt(s.getAttribute('data-val'));
+          s.classList.toggle('selected', sVal <= ratingValue);
+          if (sVal <= ratingValue) {
+            s.classList.remove('fa-regular');
+            s.classList.add('fa-solid');
+          } else {
+            s.classList.remove('fa-solid');
+            s.classList.add('fa-regular');
+          }
+        });
+        if (feedbackArea) {
+          feedbackArea.style.display = 'block';
+        }
+      });
+    });
+
+    document.getElementById('btn-submit-rating')?.addEventListener('click', async () => {
+      const comment = document.getElementById('rating-feedback-text').value;
+      const res = await window.db.rateSupportConversation(convId, ratingValue, comment);
+      if (res.success) {
+        window.app.showToast("Thank you for your rating and feedback!", "success");
+        DashboardComponent._loadAndRenderSupport();
+      } else {
+        window.app.showToast(res.error || "Failed to submit rating", "danger");
+      }
+    });
+  },
+
+  _getRelativeTime: function(isoString) {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHr / 24);
+
+    if (diffSec < 60) return 'just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHr < 24) return `${diffHr}h ago`;
+    if (diffDays === 1) return 'yesterday';
+    return `${diffDays} days ago`;
+  },
+
+  // ============================================================
+  // STUDENT-TUTOR MESSAGING
+  // ============================================================
+  updateTutorChatBadge: async function() {
+    try {
+      const convs = await window.db.getTutorConversations();
+      const unreadCount = convs.filter(c => c.unread_by_student).length;
+      const el = document.getElementById('tutor-chat-unread-badge');
+      if (el) {
+        if (unreadCount > 0) {
+          el.textContent = unreadCount;
+          el.style.display = 'inline-block';
+        } else {
+          el.style.display = 'none';
+        }
+      }
+    } catch (err) {
+      console.error("Error updating tutor chat badge:", err);
+    }
+  },
+
+  _loadAndRenderTutorChat: async function() {
+    const content = document.getElementById('student-tab-content');
+    if (!content) return;
+
+    DashboardComponent._initTutorRealtime();
+
+    const cu = window.db.getCurrentUser();
+    if (!cu) return;
+
+    if (DashboardComponent._activeTutorConvId) {
+      content.innerHTML = await DashboardComponent._renderTutorConversationView(DashboardComponent._activeTutorConvId);
+      DashboardComponent._bindTutorConversationEvents(DashboardComponent._activeTutorConvId);
+      await window.db.markTutorMessagesAsSeen(DashboardComponent._activeTutorConvId, 'student');
+      DashboardComponent.updateTutorChatBadge();
+      return;
+    }
+
+    if (DashboardComponent._showNewTutorForm) {
+      content.innerHTML = DashboardComponent._renderNewTutorConvForm();
+      DashboardComponent._bindNewTutorFormEvents();
+      return;
+    }
+
+    content.innerHTML = `<div style="text-align:center;padding:48px;"><div class="spinner"></div><p style="margin-top:12px;color:var(--text-muted);">Loading tutors and chats...</p></div>`;
+
+    try {
+      const enrolledBatches = cu.enrolledBatches || {};
+      const activeBatchCount = Object.keys(enrolledBatches).filter(cid => {
+        const bid = enrolledBatches[cid];
+        const b = window.db.getBatchById(bid);
+        return b && (b.status === 'Active' || b.status === 'Completed');
+      }).length;
+
+      if (activeBatchCount === 0) {
+        content.innerHTML = `
+          <div class="glass-panel" style="text-align:center; padding:48px; border-radius:20px; max-width:600px; margin: 40px auto; border: 1px solid var(--border-color); background:var(--bg-secondary);">
+            <div style="font-size:3.5rem; margin-bottom:20px;">🔒</div>
+            <h3 style="font-size:1.25rem; font-weight:800; color:var(--text-primary); margin-bottom:8px;">Tutor Chat Locked</h3>
+            <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.6; margin-bottom:24px;">
+              Direct messaging and QA support with your instructors will unlock automatically as soon as your batch status becomes <strong>Active</strong>.
+            </p>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Thank you for your patience!</div>
+          </div>
+        `;
+        return;
+      }
+
+      const tutors = window.db.getTutorsForStudent(cu.username);
+      let convs = await window.db.getTutorConversations();
+      convs = convs.filter(c => {
+        const bid = enrolledBatches[c.course_id];
+        const b = bid ? window.db.getBatchById(bid) : null;
+        return b && (b.status === 'Active' || b.status === 'Completed');
+      });
+      content.innerHTML = DashboardComponent._renderTutorChatPortal(tutors, convs);
+      DashboardComponent._bindTutorChatPortalEvents(tutors, convs);
+      DashboardComponent.updateTutorChatBadge();
+    } catch(err) {
+      content.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+    }
+  },
+
+  _initTutorRealtime: function() {
+    if (DashboardComponent._tutorRealtimeChannel) return;
+    DashboardComponent._tutorRealtimeChannel = window.db.subscribeToTutorRealtime((e) => {
+      if (DashboardComponent._activeTab === 'tutor_chat') {
+        if (e.type === 'message' && e.payload.new) {
+          const cu = window.db.getCurrentUser();
+          if (e.payload.new.sender !== cu.username) {
+            if (DashboardComponent._activeTutorConvId === e.payload.new.conversation_id) {
+              DashboardComponent._refreshTutorChatMessagesOnly(DashboardComponent._activeTutorConvId);
+              window.db.markTutorMessagesAsSeen(DashboardComponent._activeTutorConvId, 'student');
+            } else {
+              window.app.showToast(`New reply from @${e.payload.new.sender}!`, 'info');
+              DashboardComponent._loadAndRenderTutorChat();
+            }
+          }
+        } else if (e.type === 'conversation') {
+          DashboardComponent._loadAndRenderTutorChat();
+        }
+      } else {
+        DashboardComponent.updateTutorChatBadge();
+      }
+    });
+  },
+
+  _refreshTutorChatMessagesOnly: async function(convId) {
+    const thread = document.getElementById('tutor-chat-thread');
+    if (!thread) return;
+
+    try {
+      const messages = await window.db.getTutorMessages(convId);
+      const cu = window.db.getCurrentUser();
+
+      thread.innerHTML = messages.map(m => {
+        const isOwn = m.sender === cu.username;
+        const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        
+        let attachmentHtml = '';
+        if (m.file_url) {
+          const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+          if (isImg) {
+            attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+          } else {
+            attachmentHtml = `
+              <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
+                <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
+                <div class="support-chat-attachment-info">
+                  <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
+                  <span class="support-chat-attachment-size">Download Attachment</span>
+                </div>
+              </a>
+            `;
+          }
+        }
+
+        let linkHtml = '';
+        if (m.external_link) {
+          linkHtml = `
+            <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
+              <i class="fa-solid fa-cloud"></i>
+              <span>Shared File Link</span>
+              <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
+            </a>
+          `;
+        }
+
+        return `
+          <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
+            <div class="support-msg-bubble">
+              <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
+              ${attachmentHtml}
+              ${linkHtml}
+            </div>
+            <div class="support-msg-meta">
+              <span>${dateStr}</span>
+              ${isOwn ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      thread.scrollTop = thread.scrollHeight;
+    } catch (err) {
+      console.error("Error refreshing tutor chat:", err);
+    }
+  },
+
+  _renderTutorChatPortal: function(tutors, convs) {
+    const activeSubTab = DashboardComponent._tutorSubTab || 'tutors';
+
+    return `
+      <div class="dashboard-welcome">
+        <h2>Talk with Tutor</h2>
+        <p>Communicate directly with your course instructors.</p>
+      </div>
+
+      <div class="support-filter-tabs" style="margin-top: 24px; margin-bottom: 24px;">
+        <button class="support-filter-tab ${activeSubTab === 'tutors' ? 'active' : ''}" id="tab-tutor-list">
+          <i class="fa-solid fa-chalkboard-user"></i>
+          <span>My Tutors (${tutors.length})</span>
+        </button>
+        <button class="support-filter-tab ${activeSubTab === 'chats' ? 'active' : ''}" id="tab-tutor-chats">
+          <i class="fa-solid fa-comments"></i>
+          <span>Active Chats (${convs.length})</span>
+          ${convs.filter(c => c.unread_by_student).length > 0 ? `<span style="background:#ef4444; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>` : ''}
+        </button>
+      </div>
+
+      ${activeSubTab === 'tutors' ? `
+        ${tutors.length === 0 ? `
+          <div class="glass-panel" style="text-align:center; padding:48px;">
+            <div style="font-size:3rem; margin-bottom:16px;">🎓</div>
+            <h3>No Tutors Available</h3>
+            <p style="color:var(--text-secondary); margin-top:8px;">You will be able to message tutors once you enroll in courses that have assigned instructors.</p>
+          </div>
+        ` : `
+          <div class="tutors-grid">
+            ${tutors.map(t => {
+              const coursesStr = t.courses.join(', ');
+              return `
+                <div class="tutor-card-chat">
+                  <div class="tutor-avatar-wrapper">
+                    <div class="tutor-card-chat-avatar">${t.name.charAt(0).toUpperCase()}</div>
+                    <span class="tutor-status-indicator ${t.online ? 'online' : 'offline'}"></span>
+                  </div>
+                  <div style="text-align:center;">
+                    <h4 style="margin:0; font-weight:800; font-size:1.05rem; color:var(--text-primary);">${t.name}</h4>
+                    <p style="margin:4px 0 0 0; font-size:0.75rem; color:var(--brand-blue); font-weight:700;">${coursesStr}</p>
+                    <p style="margin:8px 0 0 0; font-size:0.72rem; color:var(--text-muted);"><i class="fa-regular fa-clock" style="margin-right:4px;"></i>${t.lastActive}</p>
+                  </div>
+                  <button class="btn btn-primary btn-sm btn-start-tutor-chat" data-tutor-username="${t.username}" data-course-id="${t.courseId}" style="width:100%; margin-top:8px;">
+                    <i class="fa-solid fa-paper-plane" style="margin-right:6px;"></i>Start Chat
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      ` : `
+        <div class="glass-panel" style="padding:0; overflow:hidden;">
+          ${convs.length === 0 ? `
+            <div style="text-align:center; padding:48px; color:var(--text-muted);">No active chats with tutors yet. Go to "My Tutors" to start a conversation.</div>
+          ` : `
+            <table class="data-table" style="margin-bottom:0;">
+              <thead>
+                <tr>
+                  <th>Tutor</th>
+                  <th>Subject</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Last Reply</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${convs.map(c => {
+                  const lastActiveStr = DashboardComponent._getRelativeTime(c.last_reply_at);
+                  const isUnread = c.unread_by_student;
+                  return `
+                    <tr style="${isUnread ? 'background: rgba(61, 70, 216, 0.04); font-weight: 600;' : ''}">
+                      <td>
+                        <div style="font-weight:700; color:var(--text-primary);">@${c.tutor_username}</div>
+                      </td>
+                      <td>${c.subject}</td>
+                      <td><span class="support-cat-badge">${c.category}</span></td>
+                      <td>
+                        <span class="status-badge ${c.status === 'Resolved' ? 'success' : 'danger'}">${c.status}</span>
+                      </td>
+                      <td style="font-size:0.8rem; color:var(--text-muted);">${lastActiveStr}</td>
+                      <td>
+                        <button class="btn btn-outline-white btn-sm btn-view-tutor-chat" data-conv-id="${c.id}">
+                          View Chat
+                          ${isUnread ? `<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#ef4444; margin-left:6px;"></span>` : ''}
+                        </button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          `}
+        </div>
+      `}
+    `;
+  },
+
+  _bindTutorChatPortalEvents: function(tutors, convs) {
+    document.getElementById('tab-tutor-list')?.addEventListener('click', () => {
+      DashboardComponent._tutorSubTab = 'tutors';
+      DashboardComponent._loadAndRenderTutorChat();
+    });
+
+    document.getElementById('tab-tutor-chats')?.addEventListener('click', () => {
+      DashboardComponent._tutorSubTab = 'chats';
+      DashboardComponent._loadAndRenderTutorChat();
+    });
+
+    document.querySelectorAll('.btn-start-tutor-chat').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tutorUsername = btn.getAttribute('data-tutor-username');
+        const courseId = btn.getAttribute('data-course-id');
+        
+        const existing = convs.find(c => c.tutor_username === tutorUsername);
+        if (existing) {
+          DashboardComponent._activeTutorConvId = existing.id;
+          DashboardComponent._loadAndRenderTutorChat();
+        } else {
+          DashboardComponent._newTutorChatData = { tutorUsername, courseId };
+          DashboardComponent._showNewTutorForm = true;
+          DashboardComponent._loadAndRenderTutorChat();
+        }
+      });
+    });
+
+    document.querySelectorAll('.btn-view-tutor-chat').forEach(btn => {
+      btn.addEventListener('click', () => {
+        DashboardComponent._activeTutorConvId = btn.getAttribute('data-conv-id');
+        DashboardComponent._loadAndRenderTutorChat();
+      });
+    });
+  },
+
+  _renderNewTutorConvForm: function() {
+    const data = DashboardComponent._newTutorChatData;
+    return `
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+        <button class="btn btn-outline-white btn-sm" id="btn-new-tutor-cancel" style="width:36px; height:36px; padding:0; border-radius:50%;"><i class="fa-solid fa-arrow-left"></i></button>
+        <div>
+          <h2 style="margin:0; font-weight:800; font-size:1.3rem;">Start Tutor Conversation</h2>
+          <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">Instructor: <strong>@${data.tutorUsername}</strong></p>
+        </div>
+      </div>
+
+      <div class="glass-panel" style="max-width:600px; padding:24px;">
+        <form id="form-create-tutor-chat">
+          <div class="form-group">
+            <label>Subject / Topic *</label>
+            <input type="text" id="new-tutor-subject" required placeholder="Briefly describe what you need help with...">
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr; gap:16px;">
+            <div class="form-group">
+              <label>Select Category *</label>
+              <select id="new-tutor-category" required style="width:100%; height:46px; border:1px solid var(--border-color); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--text-primary); padding:0 12px; cursor:pointer;">
+                <option value="Assignment Help">Assignment Help</option>
+                <option value="Course Doubt">Course Doubt</option>
+                <option value="Project Review">Project Review</option>
+                <option value="Live Class Question">Live Class Question</option>
+                <option value="Technical Help">Technical Help</option>
+                <option value="General Discussion">General Discussion</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Initial Message *</label>
+            <textarea id="new-tutor-message" required rows="4" placeholder="Detail your query for the instructor..."></textarea>
+          </div>
+
+          <div style="display:flex; gap:12px; margin-top:24px;">
+            <button type="submit" class="btn btn-primary" id="btn-submit-tutor-chat">Create Conversation</button>
+            <button type="button" class="btn btn-outline-white" id="btn-cancel-tutor-chat">Cancel</button>
+          </div>
+        </form>
+      </div>
+    `;
+  },
+
+  _bindNewTutorFormEvents: function() {
+    const handleCancel = () => {
+      DashboardComponent._showNewTutorForm = false;
+      DashboardComponent._newTutorChatData = null;
+      DashboardComponent._loadAndRenderTutorChat();
+    };
+
+    document.getElementById('btn-new-tutor-cancel')?.addEventListener('click', handleCancel);
+    document.getElementById('btn-cancel-tutor-chat')?.addEventListener('click', handleCancel);
+
+    document.getElementById('form-create-tutor-chat')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const subject = document.getElementById('new-tutor-subject').value.trim();
+      const category = document.getElementById('new-tutor-category').value;
+      const text = document.getElementById('new-tutor-message').value.trim();
+      const data = DashboardComponent._newTutorChatData;
+
+      if (!subject || !text || !data) return;
+
+      const submitBtn = document.getElementById('btn-submit-tutor-chat');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i>Creating...`;
+      }
+
+      try {
+        const res = await window.db.createTutorConversation(data.tutorUsername, data.courseId, subject, category);
+        if (res.success) {
+          await window.db.sendTutorMessage(res.conversation.id, text);
+          
+          DashboardComponent._showNewTutorForm = false;
+          DashboardComponent._newTutorChatData = null;
+          DashboardComponent._activeTutorConvId = res.conversation.id;
+          window.app.showToast("Conversation started! Send messages now.", "success");
+          DashboardComponent._loadAndRenderTutorChat();
+        } else {
+          window.app.showToast(res.error || "Failed to create conversation", "danger");
+        }
+      } catch (err) {
+        window.app.showToast(err.message, "danger");
+      }
+    });
+  },
+
+  _renderTutorConversationView: async function(convId) {
+    const convs = await window.db.getTutorConversations();
+    const conv = convs.find(c => c.id === convId);
+    if (!conv) return `<div class="alert alert-danger">Conversation not found.</div>`;
+
+    const messages = await window.db.getTutorMessages(convId);
+    const cu = window.db.getCurrentUser();
+
+    return `
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+        <button class="btn btn-outline-white btn-sm" id="btn-tutor-chat-back" style="width:36px; height:36px; padding:0; border-radius:50%;"><i class="fa-solid fa-arrow-left"></i></button>
+        <div>
+          <h2 style="margin:0; font-weight:800; font-size:1.3rem;">Instructor Conversation</h2>
+          <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">Talking with tutor: <strong>@${conv.tutor_username}</strong></p>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px; align-items: start;">
+        <div class="support-chat-container">
+          <div class="support-chat-header">
+            <div class="support-chat-header-info">
+              <h3 class="support-chat-title">${conv.subject}</h3>
+              <div class="support-chat-meta">
+                <span class="support-cat-badge">${conv.category}</span>
+                <span class="status-badge ${conv.status === 'Resolved' ? 'success' : 'danger'}">${conv.status}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="support-chat-messages" id="tutor-chat-thread">
+            ${messages.map(m => {
+              const isOwn = m.sender === cu.username;
+              const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+              
+              let attachmentHtml = '';
+              if (m.file_url) {
+                const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+                if (isImg) {
+                  attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+                } else {
+                  attachmentHtml = `
+                    <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
+                      <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
+                      <div class="support-chat-attachment-info">
+                        <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
+                        <span class="support-chat-attachment-size">Download Attachment</span>
+                      </div>
+                    </a>
+                  `;
+                }
+              }
+
+              let linkHtml = '';
+              if (m.external_link) {
+                linkHtml = `
+                  <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
+                    <i class="fa-solid fa-cloud"></i>
+                    <span>Shared File Link</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
+                  </a>
+                `;
+              }
+
+              return `
+                <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
+                  <div class="support-msg-bubble">
+                    <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
+                    ${attachmentHtml}
+                    ${linkHtml}
+                  </div>
+                  <div class="support-msg-meta">
+                    <span>${dateStr}</span>
+                    ${isOwn ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          ${conv.status === 'Resolved' ? `
+            <div style="padding: 16px; text-align: center; background: var(--bg-primary); border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.86rem; font-style: italic;">
+              This conversation has been marked as Resolved by the Tutor.
+            </div>
+          ` : `
+            <div class="support-chat-input-wrapper">
+              <div class="support-chat-attachments-row">
+                <div class="support-chat-attach-btn" title="Attach file">
+                  <i class="fa-solid fa-paperclip"></i>
+                  <input type="file" id="tutor-chat-upload-file">
+                </div>
+                <div id="tutor-chat-file-selected-chip" style="display:none;"></div>
+
+                <div class="support-link-input-wrapper">
+                  <i class="fa-solid fa-link"></i>
+                  <input type="url" id="tutor-chat-external-link" placeholder="Cloud Storage File Link">
+                </div>
+              </div>
+
+              <div class="support-chat-input-row">
+                <textarea class="support-chat-input-textarea" id="tutor-chat-message-text" placeholder="Type response to instructor..."></textarea>
+                <button class="btn btn-primary" id="btn-tutor-send-message" style="height:48px; width:48px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-lg); flex-shrink:0;"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
+              </div>
+            </div>
+          `}
+        </div>
+
+        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px;">
+          <h3 style="margin:0 0 8px 0; font-weight:700; font-size:1rem; border-bottom:1px solid var(--border-color); padding-bottom:8px;">Conversation Info</h3>
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Instructor</div>
+            <div style="font-weight:700; font-size:0.86rem; color:var(--text-primary);">@${conv.tutor_username}</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Subject</div>
+            <div style="font-weight:600; font-size:0.86rem; color:var(--text-primary);">${conv.subject}</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Category</div>
+            <div style="display:inline-block;"><span class="support-cat-badge">${conv.category}</span></div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Status</div>
+            <div style="display:inline-block;"><span class="status-badge ${conv.status === 'Resolved' ? 'success' : 'danger'}">${conv.status}</span></div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _bindTutorConversationEvents: function(convId) {
+    document.getElementById('btn-tutor-chat-back')?.addEventListener('click', () => {
+      DashboardComponent._activeTutorConvId = null;
+      DashboardComponent._loadAndRenderTutorChat();
+    });
+
+    const thread = document.getElementById('tutor-chat-thread');
+    if (thread) {
+      thread.scrollTop = thread.scrollHeight;
+    }
+
+    let tutorSelectedFile = null;
+    const fileInput = document.getElementById('tutor-chat-upload-file');
+    const chip = document.getElementById('tutor-chat-file-selected-chip');
+
+    if (fileInput && chip) {
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          tutorSelectedFile = file;
+          chip.innerHTML = `
+            <i class="fa-solid fa-file-lines"></i>
+            <span>${file.name.substring(0, 15)}...</span>
+            <i class="fa-solid fa-circle-xmark remove-file" style="margin-left:6px; cursor:pointer;" id="tutor-remove-attached-file"></i>
+          `;
+          chip.className = 'support-file-selected-chip';
+          chip.style.display = 'flex';
+          
+          document.getElementById('tutor-remove-attached-file')?.addEventListener('click', () => {
+            tutorSelectedFile = null;
+            fileInput.value = '';
+            chip.style.display = 'none';
+          });
+        }
+      });
+    }
+
+    const sendBtn = document.getElementById('btn-tutor-send-message');
+    const msgTextarea = document.getElementById('tutor-chat-message-text');
+    const extLinkInput = document.getElementById('tutor-chat-external-link');
+
+    const handleSend = async () => {
+      const text = msgTextarea ? msgTextarea.value.trim() : '';
+      const extLink = extLinkInput ? extLinkInput.value.trim() : '';
+
+      if (!text && !tutorSelectedFile && !extLink) {
+        return;
+      }
+
+      if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+      }
+
+      try {
+        let fileData = null;
+        if (tutorSelectedFile) {
+          fileData = await window.db.uploadTutorAttachment(tutorSelectedFile);
+        }
+
+        const res = await window.db.sendTutorMessage(convId, text, fileData, extLink);
+        if (res.success) {
+          if (msgTextarea) msgTextarea.value = '';
+          if (extLinkInput) extLinkInput.value = '';
+          tutorSelectedFile = null;
+          if (fileInput) fileInput.value = '';
+          if (chip) chip.style.display = 'none';
+          
+          DashboardComponent._loadAndRenderTutorChat();
+        } else {
+          window.app.showToast(res.error || "Failed to send message", "danger");
+        }
+      } catch (err) {
+        window.app.showToast(err.message || "An error occurred", "danger");
+      } finally {
+        if (sendBtn) {
+          sendBtn.disabled = false;
+          sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i>`;
+        }
+      }
+    };
+
+    sendBtn?.addEventListener('click', handleSend);
+    msgTextarea?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    });
+  },
+
+  _renderCommonMeetings: function(cu) {
+    const meetings = window.db.getCommonMeetingsForUser(cu.username);
+    
+    // Group by status
+    const live = meetings.filter(m => m.status === 'Live Now');
+    const upcoming = meetings.filter(m => m.status === 'Upcoming');
+    const completed = meetings.filter(m => m.status === 'Completed');
+
+    // Helper to render meeting cards
+    const renderCard = (m) => {
+      let actionHtml = '';
+      if (m.status === 'Live Now') {
+        actionHtml = `
+          <a href="${m.meetLink}" target="_blank" class="btn btn-success btn-block" style="background:#10B981; border-color:#10B981; color:#fff; font-weight:800; font-size:1rem; padding:12px; margin-top:16px; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <i class="fa-solid fa-video"></i> Join Meeting Now
+          </a>
+        `;
+      } else if (m.status === 'Upcoming') {
+        actionHtml = `
+          <div class="cm-countdown-box" data-date="${m.date}T${m.startTime}" style="background:var(--bg-secondary); border:1.5px solid var(--border-color); border-radius:10px; padding:10px; margin-top:16px; text-align:center; font-weight:700; color:var(--brand-blue); font-size:0.9rem;">
+            Starts in: <span class="cm-timer">Calculating...</span>
+          </div>
+        `;
+      } else if (m.status === 'Completed') {
+        actionHtml = m.recordingLink 
+          ? `<a href="${m.recordingLink}" target="_blank" class="btn btn-outline btn-block" style="margin-top:16px; display:flex; align-items:center; justify-content:center; gap:8px;">
+               <i class="fa-solid fa-play"></i> Watch Recording
+             </a>`
+          : `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:16px; text-align:center; font-style:italic;">No recording available</div>`;
+      }
+
+      return `
+        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; justify-content:space-between; height:100%; border:1px solid var(--border-color); text-align:left; background:var(--bg-card);">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted);">${m.hostName} (Host)</span>
+              <span class="status-badge ${m.status === 'Live Now' ? 'success' : (m.status === 'Upcoming' ? 'warning' : 'info')}" style="font-size:0.7rem; padding:2px 8px;">${m.status}</span>
+            </div>
+            <h3 style="margin:0 0 8px 0; font-size:1.05rem; font-weight:800; color:var(--text-primary); line-height:1.3;">${m.title}</h3>
+            <p style="font-size:0.83rem; color:var(--text-secondary); line-height:1.5; margin:0 0 16px 0; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">${m.description || 'No agenda details provided.'}</p>
+          </div>
+          
+          <div style="border-top:1px solid var(--border-color); padding-top:12px; margin-top:auto;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">
+              <i class="fa-regular fa-calendar-days" style="color:var(--brand-blue);"></i>
+              <span>Date: <strong>${m.date}</strong></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">
+              <i class="fa-regular fa-clock" style="color:var(--brand-blue);"></i>
+              <span>Time: <strong>${m.startTime} - ${m.endTime}</strong></span>
+            </div>
+            ${m.password ? `
+              <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">
+                <i class="fa-solid fa-lock" style="color:var(--brand-blue);"></i>
+                <span>Password: <strong>${m.password}</strong></span>
+              </div>
+            ` : ''}
+            ${m.googleDriveResources ? `
+              <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">
+                <i class="fa-solid fa-link" style="color:var(--brand-blue);"></i>
+                <span>Resources: <a href="${m.googleDriveResources}" target="_blank" style="color:var(--brand-blue); text-decoration:none; font-weight:700;">Open Folder</a></span>
+              </div>
+            ` : ''}
+            ${actionHtml}
+          </div>
+        </div>
+      `;
+    };
+
+    // Trigger timer update
+    setTimeout(() => {
+      DashboardComponent._startCommonMeetingTimers();
+    }, 100);
+
+    return `
+      <div class="dashboard-welcome">
+        <h2>Common Meetings</h2>
+        <p>Participate in orientation events, webinars, guest lectures, and academy updates.</p>
+      </div>
+
+      <!-- Live Meetings Section -->
+      ${live.length > 0 ? `
+        <div style="margin-top:28px;">
+          <h3 style="font-size:1.1rem; font-weight:800; color:var(--text-primary); margin-bottom:16px; display:flex; align-items:center; gap:8px; text-align:left;">
+            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10B981; box-shadow:0 0 10px #10B981; animation:pulse 1.5s infinite;"></span>
+            Live Meetings (${live.length})
+          </h3>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:20px;">
+            ${live.map(m => renderCard(m)).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Upcoming Meetings Section -->
+      <div style="margin-top:28px;">
+        <h3 style="font-size:1.1rem; font-weight:800; color:var(--text-primary); margin-bottom:16px; text-align:left;">Upcoming Meetings (${upcoming.length})</h3>
+        ${upcoming.length === 0 ? `
+          <div class="glass-panel" style="padding:32px; text-align:center; color:var(--text-muted); background:var(--bg-card); border:1px solid var(--border-color);">No upcoming common meetings scheduled. Check back later!</div>
+        ` : `
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:20px;">
+            ${upcoming.map(m => renderCard(m)).join('')}
+          </div>
+        `}
+      </div>
+
+      <!-- Completed Meetings Section -->
+      <div style="margin-top:28px;">
+        <h3 style="font-size:1.1rem; font-weight:800; color:var(--text-primary); margin-bottom:16px; text-align:left;">Completed Meetings (${completed.length})</h3>
+        ${completed.length === 0 ? `
+          <div class="glass-panel" style="padding:32px; text-align:center; color:var(--text-muted); background:var(--bg-card); border:1px solid var(--border-color);">No completed meetings records found.</div>
+        ` : `
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:20px;">
+            ${completed.map(m => renderCard(m)).join('')}
+          </div>
+        `}
+      </div>
+    `;
+  },
+
+  _startCommonMeetingTimers: function() {
+    if (DashboardComponent._cmIntervalId) clearInterval(DashboardComponent._cmIntervalId);
+
+    const updateTimers = () => {
+      document.querySelectorAll('.cm-countdown-box').forEach(box => {
+        const targetDate = new Date(box.getAttribute('data-date'));
+        const now = new Date();
+        const diff = targetDate - now;
+
+        const timerSpan = box.querySelector('.cm-timer');
+        if (!timerSpan) return;
+
+        if (diff <= 0) {
+          timerSpan.innerHTML = '<span style="color:#10B981;">Live Now! Reload page</span>';
+        } else {
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const secs = Math.floor((diff % (1000 * 60)) / 1000);
+          
+          let display = '';
+          if (hours > 0) display += `${hours}h `;
+          display += `${mins}m ${secs}s`;
+          timerSpan.textContent = display;
+        }
+      });
+    };
+
+    updateTimers();
+    DashboardComponent._cmIntervalId = setInterval(updateTimers, 1000);
   }
 };
 window.DashboardComponent = DashboardComponent;
