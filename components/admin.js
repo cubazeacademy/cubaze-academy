@@ -1286,11 +1286,11 @@ const AdminComponent = {
           <div style="padding:24px;">
             <div class="form-group" style="margin-bottom:14px;">
               <label>Supabase URL</label>
-              <input class="form-control" id="sb-url" placeholder="https://your-project.supabase.co" value="${localStorage.getItem('cubaze_supabase_url') || 'https://aqvtbtfospccfwpbqycx.supabase.co'}" style="width:100%;box-sizing:border-box;">
+              <input class="form-control" id="sb-url" placeholder="https://your-project.supabase.co" value="${localStorage.getItem('cubaze_supabase_url') || 'https://ayxahneijhskjbadqxoc.supabase.co'}" style="width:100%;box-sizing:border-box;">
             </div>
             <div class="form-group" style="margin-bottom:14px;">
               <label>Supabase Anon Key</label>
-              <input class="form-control" id="sb-key" type="password" placeholder="eyJhbGciOi..." value="${localStorage.getItem('cubaze_supabase_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxdnRidGZvc3BjY2Z3cGJxeWN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzE2MDQsImV4cCI6MjA5OTAwNzYwNH0.rwTdM4F8LZevcTyCanQb3eVyzrPMliYMuHyMKcP5QA8'}" style="width:100%;box-sizing:border-box;">
+              <input class="form-control" id="sb-key" type="password" placeholder="eyJhbGciOi..." value="${localStorage.getItem('cubaze_supabase_key') || 'sb_publishable_8qB2RP83kMetgafrGcizEQ_AZk1Mi7_'}" style="width:100%;box-sizing:border-box;">
             </div>
             <div style="display:flex;gap:10px;margin-bottom:12px;">
               <button class="btn btn-primary btn-sm" onclick="AdminComponent._saveSupabaseSettings()"><i class="fa-solid fa-save"></i> Save & Connect</button>

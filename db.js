@@ -718,8 +718,15 @@ class CubazeDB {
   }
 
   initSupabase() {
-    this.supabaseUrl = localStorage.getItem("cubaze_supabase_url") || "https://aqvtbtfospccfwpbqycx.supabase.co";
-    this.supabaseKey = localStorage.getItem("cubaze_supabase_key") || "sb_publishable_FLwO81D6elF-d-BOclwq2A_uQICgl5g";
+    // Clear stale config from localStorage if it points to the old project
+    const storedUrl = localStorage.getItem("cubaze_supabase_url");
+    if (storedUrl && storedUrl.includes("aqvtbtfospccfwpbqycx")) {
+      localStorage.removeItem("cubaze_supabase_url");
+      localStorage.removeItem("cubaze_supabase_key");
+    }
+
+    this.supabaseUrl = localStorage.getItem("cubaze_supabase_url") || "https://ayxahneijhskjbadqxoc.supabase.co";
+    this.supabaseKey = localStorage.getItem("cubaze_supabase_key") || "sb_publishable_8qB2RP83kMetgafrGcizEQ_AZk1Mi7_";
     this.sb = null;
 
     if (this.supabaseUrl && this.supabaseKey && window.supabase) {
@@ -738,7 +745,7 @@ class CubazeDB {
     if (!this.sb) return { success: false, error: "Supabase not connected." };
     try {
       console.log("🔄 Syncing data from Supabase...");
-      
+
       // Sync Users — convert Supabase snake_case → JS camelCase
       const { data: users, error: uErr } = await this.sb.from('cubaze_users').select('*');
       if (!uErr && users && users.length > 0) {
@@ -932,7 +939,7 @@ class CubazeDB {
 
   setItemAndSync(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
-    
+
     // Check if Supabase client is initialized
     if (!this.sb) return;
 
@@ -1160,7 +1167,7 @@ class CubazeDB {
     const currentUsers = JSON.parse(localStorage.getItem("cubaze_users") || "[]");
     let migrated = false;
     const currentBatches = JSON.parse(localStorage.getItem("cubaze_batches") || "[]");
-    
+
     currentUsers.forEach(u => {
       if (u.role === 'student' && u.enrolledCourses && u.enrolledCourses.length > 0) {
         if (!u.enrolledBatches) {
@@ -1174,7 +1181,7 @@ class CubazeDB {
             if (!batch) {
               // Create default batch
               batch = {
-                id: `B-${cid.substring(0,4).toUpperCase()}-LEGACY`,
+                id: `B-${cid.substring(0, 4).toUpperCase()}-LEGACY`,
                 name: `Legacy Batch - ${cid}`,
                 courseId: cid,
                 tutorIds: ["sinanmp"],
@@ -1197,7 +1204,7 @@ class CubazeDB {
         });
       }
     });
-    
+
     if (migrated) {
       localStorage.setItem("cubaze_users", JSON.stringify(currentUsers));
     }
@@ -1443,10 +1450,10 @@ class CubazeDB {
   getAttendanceReport(classId) {
     const liveClass = this.getLiveClassById(classId);
     if (!liveClass) return [];
-    
+
     // Find all users enrolled in the course
     const users = this.getUsers().filter(u => u.role === 'student' && (u.enrolledCourses || []).includes(liveClass.course_id));
-    
+
     // Generate deterministic mock attendance based on username
     return users.map((u, i) => {
       const hash = (u.username.length + i) % 10;
@@ -1644,7 +1651,7 @@ class CubazeDB {
     const users = this.getUsers();
     const student = users.find(u => u.username.toLowerCase() === username.toLowerCase());
     if (!student) return { success: false, error: "Student not found." };
-    
+
     const currentEnrolled = student.enrolledCourses || [];
     const currentBatches = student.enrolledBatches || {};
 
@@ -1696,12 +1703,12 @@ class CubazeDB {
     if (!course.modules || !course.modules[modIdx]) return { success: false, error: "Module not found." };
     const lesIdx = course.modules[modIdx].lessons.findIndex(l => l.id === lessonId);
     if (lesIdx === -1) return { success: false, error: "Lesson not found." };
-    
-    course.modules[modIdx].lessons[lesIdx] = { 
-      ...course.modules[modIdx].lessons[lesIdx], 
-      ...updates 
+
+    course.modules[modIdx].lessons[lesIdx] = {
+      ...course.modules[modIdx].lessons[lesIdx],
+      ...updates
     };
-    
+
     courses[courseIndex] = course;
     this.setItemAndSync("cubaze_courses", courses);
     return { success: true };
@@ -2101,9 +2108,9 @@ class CubazeDB {
     if (!cu) return [];
     const convs = JSON.parse(localStorage.getItem("cubaze_support_conversations") || "[]");
     if (cu.role === 'admin') {
-      return convs.sort((a,b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+      return convs.sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
     } else {
-      return convs.filter(c => c.student_username === cu.username).sort((a,b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+      return convs.filter(c => c.student_username === cu.username).sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
     }
   }
 
@@ -2131,7 +2138,7 @@ class CubazeDB {
     if (cu.role !== 'admin') {
       msgs = msgs.filter(m => !m.is_internal);
     }
-    return msgs.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    return msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   }
 
   async createSupportConversation(subject, category, priority, messageText, fileData = null, externalLink = '') {
@@ -2271,7 +2278,7 @@ class CubazeDB {
 
   async markConversationStatus(conversationId, status) {
     const updates = { status: status, last_reply_at: new Date().toISOString() };
-    
+
     if (this.sb) {
       try {
         const { error } = await this.sb.from('cubaze_support_conversations').update(updates).eq('id', conversationId);
@@ -2361,8 +2368,8 @@ class CubazeDB {
     let updatedMsgs = false;
     messages.forEach(m => {
       if (m.conversation_id === conversationId && m.sender !== cu.username && !m.seen) {
-         m.seen = true;
-         updatedMsgs = true;
+        m.seen = true;
+        updatedMsgs = true;
       }
     });
 
@@ -2435,7 +2442,7 @@ class CubazeDB {
 
   subscribeToSupportRealtime(callback) {
     if (!this.sb) return null;
-    
+
     const channel = this.sb.channel('realtime:support')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cubaze_support_messages' }, payload => {
         callback({ type: 'message', payload });
@@ -2517,11 +2524,11 @@ class CubazeDB {
 
     const list = JSON.parse(localStorage.getItem("cubaze_tutor_conversations") || "[]");
     if (cu.role === 'student') {
-      return list.filter(c => c.student_username === cu.username).sort((a,b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+      return list.filter(c => c.student_username === cu.username).sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
     } else if (cu.role === 'instructor') {
-      return list.filter(c => c.tutor_username === cu.username).sort((a,b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+      return list.filter(c => c.tutor_username === cu.username).sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
     } else {
-      return list.sort((a,b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+      return list.sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
     }
   }
 
@@ -2610,7 +2617,7 @@ class CubazeDB {
 
     const nowStr = new Date().toISOString();
     const isStudent = cu.role === 'student';
-    
+
     const convUpdates = {
       last_reply_at: nowStr,
       last_reply_by: isStudent ? 'student' : 'tutor',
@@ -2716,8 +2723,8 @@ class CubazeDB {
     let updatedMsgs = false;
     messages.forEach(m => {
       if (m.conversation_id === convId && m.sender !== cu.username && !m.seen) {
-         m.seen = true;
-         updatedMsgs = true;
+        m.seen = true;
+        updatedMsgs = true;
       }
     });
 
@@ -2743,7 +2750,7 @@ class CubazeDB {
 
   subscribeToTutorRealtime(callback) {
     if (!this.sb) return null;
-    
+
     const channel = this.sb.channel('realtime:tutor_chat')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cubaze_tutor_messages' }, payload => {
         callback({ type: 'message', payload });
@@ -2770,16 +2777,16 @@ class CubazeDB {
     const batches = this.getBatches();
     // Find the first "Enrollment Open" batch for this course
     let openBatch = batches.find(b => b.courseId === courseId && b.status === "Enrollment Open");
-    
+
     if (!openBatch) {
       // Create a new batch
       const courseBatches = batches.filter(b => b.courseId === courseId);
       const nextNumber = courseBatches.length + 1;
       const course = this.getCourseById(courseId);
       const courseTitle = course ? course.title : courseId;
-      
+
       openBatch = {
-        id: `B-${courseId.substring(0,4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        id: `B-${courseId.substring(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
         name: `${courseTitle} - Batch ${nextNumber}`,
         courseId: courseId,
         tutorIds: [],
@@ -2797,10 +2804,10 @@ class CubazeDB {
       batches.push(openBatch);
       this.setItemAndSync("cubaze_batches", batches);
     }
-    
+
     // Enroll the student
     this.enrollUserInBatch(username, courseId, openBatch.id);
-    
+
     // Check if the batch is now full
     const updatedBatches = this.getBatches();
     const updatedBatch = updatedBatches.find(b => b.id === openBatch.id);
@@ -2813,7 +2820,7 @@ class CubazeDB {
   saveBatch(batchData) {
     const batches = this.getBatches();
     const index = batches.findIndex(b => b.id === batchData.id);
-    
+
     // Count actual enrollment
     const users = this.getUsers();
     const enrollmentCount = users.filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[batchData.courseId] === batchData.id).length;
@@ -2866,7 +2873,7 @@ class CubazeDB {
     } else {
       batches.push(batchData);
     }
-    
+
     this.setItemAndSync("cubaze_batches", batches);
     return { success: true, batch: batchData };
   }
@@ -2887,7 +2894,7 @@ class CubazeDB {
     if (!batch) return { success: false, error: "Batch not found." };
     const newBatch = {
       ...batch,
-      id: `B-${batch.courseId.substring(0,4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: `B-${batch.courseId.substring(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
       name: `${batch.name} (Copy)`,
       currentEnrollment: 0,
       status: "Upcoming"
@@ -3031,7 +3038,7 @@ class CubazeDB {
     } else {
       atts.push(attObj);
     }
-    
+
     this.setItemAndSync("cubaze_attendance", atts);
     return { success: true };
   }
@@ -3046,13 +3053,13 @@ class CubazeDB {
       if (!users[index].enrolledCourses.includes(courseId)) {
         users[index].enrolledCourses.push(courseId);
       }
-      
+
       // Link to batch
       if (!users[index].enrolledBatches) users[index].enrolledBatches = {};
       users[index].enrolledBatches[courseId] = batchId;
 
       this.setItemAndSync("cubaze_users", users);
-      
+
       // Sync currentUser in local storage
       const cu = this.getCurrentUser();
       if (cu && cu.username.toLowerCase() === username.toLowerCase()) {
@@ -3060,7 +3067,7 @@ class CubazeDB {
         cu.enrolledBatches = users[index].enrolledBatches;
         this.setCurrentUser(cu);
       }
-      
+
       // Update batch enrollment count
       const batches = this.getBatches();
       const bIdx = batches.findIndex(b => b.id === batchId);
@@ -3068,7 +3075,7 @@ class CubazeDB {
         batches[bIdx].currentEnrollment = users.filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[courseId] === batchId).length;
         this.setItemAndSync("cubaze_batches", batches);
       }
-      
+
       return { success: true };
     }
     return { success: false, error: "User not found." };
@@ -3085,7 +3092,7 @@ class CubazeDB {
         delete users[index].enrolledBatches[courseId];
       }
       this.setItemAndSync("cubaze_users", users);
-      
+
       const cu = this.getCurrentUser();
       if (cu && cu.username.toLowerCase() === username.toLowerCase()) {
         cu.enrolledCourses = users[index].enrolledCourses;
@@ -3155,14 +3162,14 @@ class CubazeDB {
     const user = this.getUsers().find(u => u.username.toLowerCase() === username.toLowerCase());
     const meetings = this.getCommonMeetings();
     if (!user) return [];
-    
+
     // Admin has full control and sees all
     if (user.role === 'admin') return meetings;
-    
+
     return meetings.filter(m => {
       const type = m.access.type;
       if (type === 'everyone') return true;
-      
+
       if (user.role === 'student') {
         if (type === 'all_students' || type === 'all_students_tutors') return true;
         if (type === 'selected_courses') {
@@ -3172,7 +3179,7 @@ class CubazeDB {
           return (m.access.batchIds || []).some(bid => Object.values(user.enrolledBatches || {}).includes(bid));
         }
       }
-      
+
       if (user.role === 'instructor') {
         if (type === 'all_tutors' || type === 'all_students_tutors') return true;
         if (type === 'selected_courses') {
@@ -3183,11 +3190,11 @@ class CubazeDB {
           return (m.access.batchIds || []).some(bid => tutorBatches.includes(bid));
         }
       }
-      
+
       if (user.role === 'admission_counselor') {
         if (type === 'admission_counselors') return true;
       }
-      
+
       return false;
     });
   }
