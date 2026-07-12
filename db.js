@@ -1931,13 +1931,10 @@ class CubazeDB {
   }
 
   deleteUser(username) {
-    const users = this.getUsers();
-    const idx = users.findIndex(u => u.username === username);
-    if (idx === -1) return { success: false, error: "User not found." };
-    const name = users[idx].name;
-    users[idx].deleted = true;
+    const users = this.getUsers().filter(u => u.username !== username);
     this.setItemAndSync("cubaze_users", users);
-    this.addActivity("admin", "DELETED_USER", "user", username, name);
+    this.deleteFromSupabase("cubaze_users", "username", username);
+    this.addActivity("admin", "DELETED_USER", "user", username, `Deleted user ${username}`);
     return { success: true };
   }
 
