@@ -929,8 +929,12 @@ class CubazeDB {
     if (!this.sb) return;
     try {
       // Upsert the record asynchronously in background
-      await this.sb.from(table).upsert(record);
-      console.log(`📡 Pushed update to Supabase table: ${table}`);
+      const { error } = await this.sb.from(table).upsert(record);
+      if (error) {
+        console.error(`Supabase push failed for table ${table}:`, error.message || error);
+      } else {
+        console.log(`📡 Pushed update to Supabase table: ${table}`);
+      }
     } catch (err) {
       console.error(`Supabase push failed for table ${table}:`, err);
     }
