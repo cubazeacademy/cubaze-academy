@@ -718,9 +718,9 @@ class CubazeDB {
   }
 
   initSupabase() {
-    // Clear stale config from localStorage if it points to the old project
+    // Clear stale config from localStorage if it doesn't match the active project
     const storedUrl = localStorage.getItem("cubaze_supabase_url");
-    if (storedUrl && storedUrl.includes("aqvtbtfospccfwpbqycx")) {
+    if (storedUrl && !storedUrl.includes("ayxahneijhskjbadqxoc")) {
       localStorage.removeItem("cubaze_supabase_url");
       localStorage.removeItem("cubaze_supabase_key");
     }
