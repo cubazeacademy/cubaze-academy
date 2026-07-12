@@ -719,7 +719,7 @@ class CubazeDB {
 
   initSupabase() {
     this.supabaseUrl = localStorage.getItem("cubaze_supabase_url") || "https://aqvtbtfospccfwpbqycx.supabase.co";
-    this.supabaseKey = localStorage.getItem("cubaze_supabase_key") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxdnRidGZvc3BjY2Z3cGJxeWN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzE2MDQsImV4cCI6MjA5OTAwNzYwNH0.rwTdM4F8LZevcTyCanQb3eVyzrPMliYMuHyMKcP5QA8";
+    this.supabaseKey = localStorage.getItem("cubaze_supabase_key") || "sb_publishable_FLwO81D6elF-d-BOclwq2A_uQICgl5g";
     this.sb = null;
 
     if (this.supabaseUrl && this.supabaseKey && window.supabase) {
