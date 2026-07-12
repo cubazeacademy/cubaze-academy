@@ -985,13 +985,7 @@ class CubazeDB {
           role: user.role || "student",
           registered_date: user.registeredDate || new Date().toISOString().split('T')[0],
           enrolled_courses: user.enrolledCourses || [],
-          enrolled_batches: user.enrolledBatches || {},
-          wishlist: user.wishlist || [],
-          author_bio: user.authorBio || "",
-          assigned_courses: user.assignedCourses || [],
-          suspended: user.suspended === true,
-          deleted: user.deleted === true,
-          phone: user.phone || ""
+          wishlist: user.wishlist || []
         });
       });
     } else if (key === "cubaze_batches") {
