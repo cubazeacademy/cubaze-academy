@@ -724,18 +724,8 @@ class CubazeDB {
 
     if (this.supabaseUrl && this.supabaseKey && window.supabase) {
       try {
-        const cu = this.getCurrentUser();
-        const options = {};
-        if (cu) {
-          options.global = {
-            headers: {
-              'X-Custom-Username': cu.username || '',
-              'X-Custom-Role': cu.role || 'student'
-            }
-          };
-        }
-        this.sb = window.supabase.createClient(this.supabaseUrl, this.supabaseKey, options);
-        console.log("⚡ Supabase Client initialized with headers:", options.global ? options.global.headers : 'none');
+        this.sb = window.supabase.createClient(this.supabaseUrl, this.supabaseKey);
+        console.log("⚡ Supabase Client initialized");
         // Try initial sync in background
         this.syncFromSupabase();
       } catch (err) {
