@@ -2676,6 +2676,7 @@ const AdminComponent = {
 
       const headers = lines[0].map(h => h.trim().toLowerCase().replace(/[\s_\-\/]/g, ''));
       const rows = lines.slice(1);
+      const allCourses = window.db.getCourses();
 
       let successCount = 0;
       let skipCount = 0;
