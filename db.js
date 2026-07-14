@@ -868,7 +868,8 @@ class CubazeDB {
           dob: u.dob || '',
           qualification: u.qualification || '',
           qualificationOther: u.qualification_other || '',
-          whatsapp: u.whatsapp || ''
+          whatsapp: u.whatsapp || '',
+          profilePhoto: u.profile_photo || ''
         }));
 
         // Self-healing migration for student batch assignments
@@ -899,10 +900,40 @@ class CubazeDB {
         }
       }
 
-      // Sync Courses
+      // Sync Courses — map snake_case to camelCase
       const { data: courses, error: cErr } = await this.sb.from('cubaze_courses').select('*');
       if (!cErr && courses && courses.length > 0) {
-        localStorage.setItem("cubaze_courses", JSON.stringify(courses));
+        const mappedCourses = courses.map(course => ({
+          id: course.id,
+          title: course.title,
+          shortDescription: course.short_description || "",
+          description: course.description || "",
+          price: course.price,
+          badge: course.badge || "",
+          badgeColor: course.badge_color || "",
+          level: course.level || "",
+          language: course.language || "",
+          studentsCount: course.students_count || 0,
+          duration: course.duration || "",
+          lessonsCount: course.lessons_count || 0,
+          rating: course.rating || 4.5,
+          author: course.author || "admin",
+          authorName: course.author_name || "Cubaze Academy",
+          authorBio: course.author_bio || "",
+          image: course.image || "",
+          previewVideo: course.preview_video || "",
+          requirements: course.requirements || [],
+          projects: course.projects || [],
+          reviews: course.reviews || [],
+          modules: course.modules || [],
+          quiz: course.quiz || { questions: [] },
+          published: course.published !== false,
+          archived: course.archived === true,
+          createdDate: course.created_at || new Date().toISOString(),
+          updatedDate: course.updated_at || new Date().toISOString(),
+          category: course.category || "General"
+        }));
+        localStorage.setItem("cubaze_courses", JSON.stringify(mappedCourses));
       }
 
       // Sync Batches
@@ -1008,10 +1039,22 @@ class CubazeDB {
         localStorage.setItem("cubaze_attendance", JSON.stringify(mappedAtts));
       }
 
-      // Sync Transactions
+      // Sync Transactions — map snake_case to camelCase
       const { data: txns, error: tErr } = await this.sb.from('cubaze_transactions').select('*');
       if (!tErr && txns && txns.length > 0) {
-        localStorage.setItem("cubaze_transactions", JSON.stringify(txns));
+        const mappedTxns = txns.map(txn => ({
+          id: txn.id,
+          username: txn.username,
+          courseId: txn.course_id,
+          courseTitle: txn.course_title || "",
+          amount: txn.amount,
+          status: txn.status || "PENDING",
+          paymentMethod: txn.payment_method || "",
+          timestamp: txn.timestamp || new Date().toISOString(),
+          adminStatus: txn.admin_status || "PENDING",
+          invoiceNumber: txn.invoice_number || ""
+        }));
+        localStorage.setItem("cubaze_transactions", JSON.stringify(mappedTxns));
       }
 
       // Sync Progress
@@ -1031,10 +1074,19 @@ class CubazeDB {
         }
       }
 
-      // Sync Activity Log
+      // Sync Activity Log — map snake_case to camelCase
       const { data: acts, error: aErr } = await this.sb.from('cubaze_activity_log').select('*').order('timestamp', { ascending: false });
       if (!aErr && acts && acts.length > 0) {
-        localStorage.setItem("cubaze_activity_log", JSON.stringify(acts));
+        const mappedActs = acts.map(act => ({
+          id: act.id,
+          actor: act.actor,
+          action: act.action,
+          resourceType: act.resource_type,
+          resourceId: act.resource_id,
+          details: act.details || "",
+          timestamp: act.timestamp
+        }));
+        localStorage.setItem("cubaze_activity_log", JSON.stringify(mappedActs));
       }
 
       // Sync Posters
@@ -1161,7 +1213,10 @@ class CubazeDB {
           whatsapp: user.whatsapp || '',
           wishlist: user.wishlist || [],
           suspended: user.suspended === true,
-          deleted: user.deleted === true
+          deleted: user.deleted === true,
+          profile_photo: user.profilePhoto || '',
+          author_bio: user.authorBio || '',
+          assigned_courses: user.assignedCourses || []
         });
       });
     } else if (key === "cubaze_batches") {
@@ -1513,9 +1568,9 @@ class CubazeDB {
       this.setItemAndSync("cubaze_users", users);
       const cu = this.getCurrentUser();
       if (cu && cu.username === username) this.setCurrentUser(users[index]);
-      return { success: true };
+      return { success: true, user: users[index] };
     }
-    return { success: false };
+    return { success: false, error: "User not found." };
   }
 
   enrollUserInCourse(username, courseId) {
@@ -1690,32 +1745,6 @@ class CubazeDB {
     return { grossSales: totalSales, instructorShare: Math.round(totalSales * 0.70), enrollmentCount };
   }
 
-  getAdminAnalytics() {
-    const txns = this.getTransactions().filter(t => t.status === "SUCCESS");
-    const users = this.getUsers();
-    const today = new Date().toISOString().split('T')[0];
-    const todayRevenue = txns.filter(t => t.timestamp.startsWith(today)).reduce((s, t) => s + t.amount, 0);
-    const monthRevenue = txns.reduce((s, t) => s + t.amount, 0);
-    const students = users.filter(u => u.role === "student");
-    const activeStudents = students.filter(u => u.enrolledCourses && u.enrolledCourses.length > 0);
-
-    // Most popular course
-    const courseEnrollments = {};
-    txns.forEach(t => { courseEnrollments[t.courseId] = (courseEnrollments[t.courseId] || 0) + 1; });
-    const popularCourseId = Object.keys(courseEnrollments).sort((a, b) => courseEnrollments[b] - courseEnrollments[a])[0];
-    const popularCourse = popularCourseId ? this.getCourseById(popularCourseId) : null;
-
-    return {
-      todayRevenue, monthRevenue,
-      totalStudents: students.length,
-      activeStudents: activeStudents.length,
-      totalCourses: this.getCourses().length,
-      totalTransactions: txns.length,
-      popularCourse: popularCourse ? popularCourse.title : "N/A",
-      recentTransactions: txns.slice(0, 5)
-    };
-  }
-
   // --- PROGRESS ---
   getProgress() { return JSON.parse(localStorage.getItem("cubaze_progress")) || {}; }
 
@@ -1783,53 +1812,6 @@ class CubazeDB {
     return false;
   }
 
-  // --- DARK MODE ---
-  getDarkMode() { return localStorage.getItem("cubaze_dark_mode") === "true"; }
-  setDarkMode(val) { localStorage.setItem("cubaze_dark_mode", val.toString()); }
-
-  // --- CONVENIENCE ALIASES ---
-  login(username, password) { return this.loginUser(username, password); }
-  register(name, username, password, phone = "") { return this.registerUser(username, password, name, "student", phone); }
-
-  // --- TUTORS MANAGEMENT BY ADMIN ---
-  addTutor(username, password, name, bio = "", assignedCourseIds = []) {
-    const users = this.getUsers();
-    if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-      return { success: false, error: "Username already exists." };
-    }
-    const newTutor = {
-      username: username.trim(),
-      password: password,
-      name: name.trim(),
-      role: "instructor",
-      authorBio: bio.trim(),
-      registeredDate: new Date().toISOString().split('T')[0],
-      enrolledCourses: [],
-      assignedCourses: assignedCourseIds  // Courses admin assigned to this tutor
-    };
-    users.push(newTutor);
-    this.setItemAndSync("cubaze_users", users);
-    return { success: true, user: newTutor };
-  }
-
-  // Get the courses assigned to a specific tutor by admin
-  getTutorAssignedCourses(username) {
-    const users = this.getUsers();
-    const tutor = users.find(u => u.username === username);
-    if (!tutor || !tutor.assignedCourses || tutor.assignedCourses.length === 0) return [];
-    const allCourses = this.getCourses();
-    return allCourses.filter(c => tutor.assignedCourses.includes(c.id));
-  }
-
-  // Admin updates a tutor's assigned courses
-  updateTutorCourseAssignments(username, courseIds = []) {
-    const users = this.getUsers();
-    const idx = users.findIndex(u => u.username === username);
-    if (idx === -1) return { success: false, error: "Tutor not found." };
-    users[idx].assignedCourses = courseIds;
-    this.setItemAndSync("cubaze_users", users);
-    return { success: true };
-  }
 
   // Admin updates a student's enrolled courses (assignments)
   updateStudentCourseEnrollments(username, courseIds = []) {
@@ -2114,15 +2096,6 @@ class CubazeDB {
     this.setItemAndSync("cubaze_users", users);
     this.addActivity("admin", "RESET_PASSWORD", "user", username, users[idx].name);
     return { success: true };
-  }
-
-  updateUser(username, updates) {
-    const users = this.getUsers();
-    const idx = users.findIndex(u => u.username === username);
-    if (idx === -1) return { success: false, error: "User not found." };
-    users[idx] = { ...users[idx], ...updates };
-    this.setItemAndSync("cubaze_users", users);
-    return { success: true, user: users[idx] };
   }
 
   // ============================================================
