@@ -38,7 +38,7 @@ const TutorComponent = {
               ['upload', 'fa-cloud-arrow-up', 'Upload Content'],
             ].map(([tab, icon, label]) =>
               `<div class="sidebar-nav-item ${TutorComponent._activeTab === tab ? 'active' : ''}" data-tutor-tab="${tab}">
-                <i class="fa-solid ${icon}"></i>${label}
+                <span style="display:flex; align-items:center; gap:10px;"><i class="fa-solid ${icon}" style="width:20px; text-align:center;"></i>${label}</span>
               </div>`
             ).join('')}
           </div>
@@ -52,7 +52,7 @@ const TutorComponent = {
               ['settings', 'fa-gear', 'Settings'],
             ].map(([tab, icon, label]) =>
               `<div class="sidebar-nav-item ${TutorComponent._activeTab === tab ? 'active' : ''}" data-tutor-tab="${tab}">
-                <i class="fa-solid ${icon}"></i>${label}
+                <span style="display:flex; align-items:center; gap:10px;"><i class="fa-solid ${icon}" style="width:20px; text-align:center;"></i>${label}</span>
                 ${tab === 'messages' ? `<span class="support-badge" id="tutor-unread-badge" style="display:none;"></span>` : ''}
               </div>`
             ).join('')}

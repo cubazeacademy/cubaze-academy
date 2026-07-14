@@ -324,13 +324,45 @@ const DEFAULT_COURSES = [
 // DEFAULT USERS
 // ============================================================
 const DEFAULT_USERS = [
-  { username: "sinanmp", password: "admin", name: "Cubaze Admin", role: "admin", registeredDate: "2026-01-01", enrolledCourses: [] }
+  { username: "sinanmp", password: "admin", name: "Cubaze Admin", role: "admin", registeredDate: "2026-01-01", enrolledCourses: [] },
+  { username: "afnan", password: "student", name: "Afnan", role: "student", registeredDate: "2026-07-11", enrolledCourses: ["premiere-pro"], enrolledBatches: { "premiere-pro": "B-PREM-001" }, phone: "+91 98765 43211", dob: "2002-05-15", qualification: "degree" },
+  { username: "shanif", password: "student", name: "Shanif", role: "student", registeredDate: "2026-07-11", enrolledCourses: ["blender-premium"], enrolledBatches: { "blender-premium": "B-BLNP-001" }, phone: "+91 98765 43212", dob: "2003-08-20", qualification: "degree" },
+  { username: "riya_learns", password: "student", name: "Riya Sharma", role: "student", registeredDate: "2026-06-28", enrolledCourses: ["blender-premium"], enrolledBatches: { "blender-premium": "B-BLNP-001" }, phone: "+91 98765 43213", dob: "2001-11-10", qualification: "pg" },
+  { username: "dev_3d", password: "student", name: "Devraj Patel", role: "student", registeredDate: "2026-07-01", enrolledCourses: ["blender-premium"], enrolledBatches: { "blender-premium": "B-BLNP-001" }, phone: "+91 98765 43214", dob: "2000-02-28", qualification: "degree" },
+  { username: "sinansir", password: "instructor", name: "Sinan Sir", role: "instructor", registeredDate: "2026-01-01", assignedCourses: ["blender-premium"], authorBio: "Senior 3D Instructor" },
+  { username: "shifinsir", password: "instructor", name: "Shifin Sir", role: "instructor", registeredDate: "2026-01-01", assignedCourses: ["blender-basics"], authorBio: "Basics of Blender Mentor" },
+  { username: "munavvir", password: "instructor", name: "Munavvir", role: "instructor", registeredDate: "2026-01-01", assignedCourses: ["premiere-pro"], authorBio: "Premiere Pro Video Editor" }
 ];
 
 // ============================================================
 // DEFAULT TRANSACTIONS
 // ============================================================
-const DEFAULT_TRANSACTIONS = [];
+const DEFAULT_TRANSACTIONS = [
+  {
+    id: "TXN_MOCK_1",
+    username: "afnan",
+    courseId: "premiere-pro",
+    courseTitle: "Adobe Premiere Pro Tutorial",
+    amount: 999,
+    status: "SUCCESS",
+    paymentMethod: "PhonePe UPI",
+    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1d ago
+    adminStatus: "APPROVED",
+    invoiceNumber: "INV-10001"
+  },
+  {
+    id: "TXN_MOCK_2",
+    username: "shanif",
+    courseId: "blender-premium",
+    courseTitle: "Blender Premium Course",
+    amount: 2999,
+    status: "SUCCESS",
+    paymentMethod: "PhonePe UPI",
+    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1d ago
+    adminStatus: "APPROVED",
+    invoiceNumber: "INV-10002"
+  }
+];
 
 // ============================================================
 // DEFAULT PROGRESS
@@ -478,6 +510,38 @@ const DEFAULT_COUPONS = [
   { code: "STUDENT25", discount: 25, type: "percentage", active: true }
 ];
 
+const DEFAULT_SUPPORT_CONVERSATIONS = [
+  {
+    id: "conv_mock_1",
+    student_username: "afnan",
+    subject: "Unable to download Blender premium course resources",
+    category: "Course Content",
+    priority: "High",
+    status: "Open",
+    created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    last_reply_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    last_reply_by: "student",
+    unread_by_admin: true,
+    unread_by_student: false
+  }
+];
+
+const DEFAULT_SUPPORT_MESSAGES = [
+  {
+    id: "msg_mock_1",
+    conversation_id: "conv_mock_1",
+    sender: "afnan",
+    message: "Hi, I just purchased the Blender course but the drive resources link isn't loading. Can you please check?",
+    file_url: null,
+    file_name: null,
+    file_type: null,
+    external_link: null,
+    is_internal: false,
+    created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    seen: false
+  }
+];
+
 // Helper to get formatted dates relative to today
 const getRelativeDateString = (offsetDays) => {
   const d = new Date();
@@ -536,14 +600,22 @@ const DEFAULT_LIVE_CLASSES = [
 
 const DEFAULT_COMMON_MEETINGS = [
   {
-    id: "CM-ORIENT-101",
-    title: "Academy Orientation Session 2026",
-    description: "Welcome to Cubaze Academy! Join this platform-wide orientation session to understand the curriculum, meet your instructors, and learn how to navigate the LMS.",
-    meetLink: "https://meet.google.com/abc-orient-xyz",
-    date: "2026-07-15",
-    startTime: "10:00",
-    endTime: "11:30",
-    hostName: "Director Admin",
+    id: "CM-FRESH-101",
+    title: "Freshers Party",
+    description: "Welcome to Cubaze Academy! Join our freshers party to interact with instructors and peers.",
+    meetLink: "https://meet.google.com/xyz-pdqo-tuv",
+    date: getRelativeDateString(0),
+    startTime: (() => {
+      const d = new Date(Date.now() + 65 * 60 * 1000);
+      const pad = n => String(n).padStart(2, '0');
+      return `${pad(d.getHours())}:00`;
+    })(),
+    endTime: (() => {
+      const d = new Date(Date.now() + 185 * 60 * 1000);
+      const pad = n => String(n).padStart(2, '0');
+      return `${pad(d.getHours())}:00`;
+    })(),
+    hostName: "Sinan mp Admin",
     status: "Upcoming",
     access: {
       type: "everyone",
@@ -552,8 +624,8 @@ const DEFAULT_COMMON_MEETINGS = [
     },
     password: "welcome_cubaze",
     recordingLink: "",
-    googleDriveResources: "https://drive.google.com/drive/folders/orient-resources",
-    notes: "Please arrive 5 minutes early. Keep your microphone muted unless asked."
+    googleDriveResources: "",
+    notes: "Join with video enabled."
   }
 ];
 
@@ -562,9 +634,9 @@ const DEFAULT_BATCHES = [
     id: "B-BLNP-001",
     name: "Blender Premium - Batch 1",
     courseId: "blender-premium",
-    tutorIds: ["sinanmp"],
-    maxStudents: 50,
-    currentEnrollment: 10,
+    tutorIds: ["sinansir"],
+    maxStudents: 10,
+    currentEnrollment: 0,
     startDate: "2026-07-01",
     endDate: "2026-10-01",
     classDays: ["Mon", "Wed", "Fri"],
@@ -574,27 +646,12 @@ const DEFAULT_BATCHES = [
     status: "Active"
   },
   {
-    id: "B-BLNP-002",
-    name: "Blender Premium - Batch 2",
-    courseId: "blender-premium",
-    tutorIds: ["sinanmp"],
-    maxStudents: 50,
-    currentEnrollment: 0,
-    startDate: "2026-08-01",
-    endDate: "2026-11-01",
-    classDays: ["Tue", "Thu", "Sat"],
-    classTime: "19:00 - 21:00",
-    googleMeetLink: "https://meet.google.com/xyz-pdqo-tuv",
-    googleDriveFolder: "https://drive.google.com/drive/folders/blender-premium-b2",
-    status: "Upcoming"
-  },
-  {
     id: "B-BLNB-001",
     name: "Blender Basics - Batch 1",
     courseId: "blender-basics",
-    tutorIds: ["sinanmp"],
-    maxStudents: 100,
-    currentEnrollment: 5,
+    tutorIds: ["shifinsir"],
+    maxStudents: 10,
+    currentEnrollment: 0,
     startDate: "2026-07-10",
     endDate: "2026-08-10",
     classDays: ["Mon", "Thu"],
@@ -607,9 +664,9 @@ const DEFAULT_BATCHES = [
     id: "B-PREM-001",
     name: "Premiere Pro - Batch 1",
     courseId: "premiere-pro",
-    tutorIds: ["sinanmp"],
-    maxStudents: 40,
-    currentEnrollment: 8,
+    tutorIds: ["munavvir"],
+    maxStudents: 10,
+    currentEnrollment: 0,
     startDate: "2026-06-15",
     endDate: "2026-08-15",
     classDays: ["Tue", "Fri"],
@@ -617,6 +674,51 @@ const DEFAULT_BATCHES = [
     googleMeetLink: "https://meet.google.com/qwe-rtyu-iop",
     googleDriveFolder: "https://drive.google.com/drive/folders/premiere-pro-b1",
     status: "Active"
+  },
+  {
+    id: "B-BLNP-002",
+    name: "Blender Premium - Batch 2",
+    courseId: "blender-premium",
+    tutorIds: ["sinansir"],
+    maxStudents: 10,
+    currentEnrollment: 0,
+    startDate: "2026-08-01",
+    endDate: "2026-11-01",
+    classDays: ["Tue", "Thu", "Sat"],
+    classTime: "19:00 - 21:00",
+    googleMeetLink: "https://meet.google.com/xyz-pdqo-tuv",
+    googleDriveFolder: "https://drive.google.com/drive/folders/blender-premium-b2",
+    status: "Active"
+  },
+  {
+    id: "B-BLNB-002",
+    name: "Blender Basics - Batch 2",
+    courseId: "blender-basics",
+    tutorIds: ["shifinsir"],
+    maxStudents: 10,
+    currentEnrollment: 0,
+    startDate: "2026-05-10",
+    endDate: "2026-06-10",
+    classDays: ["Mon", "Thu"],
+    classTime: "16:00 - 17:30",
+    googleMeetLink: "",
+    googleDriveFolder: "",
+    status: "Completed"
+  },
+  {
+    id: "B-PREM-002",
+    name: "Premiere Pro - Batch 2",
+    courseId: "premiere-pro",
+    tutorIds: ["munavvir"],
+    maxStudents: 10,
+    currentEnrollment: 0,
+    startDate: "2026-09-01",
+    endDate: "2026-11-01",
+    classDays: ["Tue", "Fri"],
+    classTime: "17:00 - 18:30",
+    googleMeetLink: "",
+    googleDriveFolder: "",
+    status: "Upcoming"
   }
 ];
 
@@ -762,9 +864,39 @@ class CubazeDB {
           assignedCourses: u.assigned_courses || [],
           suspended: u.suspended || false,
           deleted: u.deleted || false,
-          phone: u.phone || ''
+          phone: u.phone || '',
+          dob: u.dob || '',
+          qualification: u.qualification || '',
+          qualificationOther: u.qualification_other || '',
+          whatsapp: u.whatsapp || ''
         }));
+
+        // Self-healing migration for student batch assignments
+        const currentBatches = JSON.parse(localStorage.getItem("cubaze_batches") || "[]");
+        let migrated = false;
+        mappedUsers.forEach(u => {
+          if (u.role === 'student' && u.enrolledCourses && u.enrolledCourses.length > 0) {
+            if (!u.enrolledBatches || Object.keys(u.enrolledBatches).length === 0) {
+              u.enrolledBatches = {};
+              migrated = true;
+            }
+            u.enrolledCourses.forEach(cid => {
+              if (!u.enrolledBatches[cid]) {
+                const batch = currentBatches.find(b => b.courseId === cid && b.status !== 'Archived');
+                if (batch) {
+                  u.enrolledBatches[cid] = batch.id;
+                  migrated = true;
+                }
+              }
+            });
+          }
+        });
+
         localStorage.setItem("cubaze_users", JSON.stringify(mappedUsers));
+
+        if (migrated) {
+          this.setItemAndSync("cubaze_users", mappedUsers);
+        }
       }
 
       // Sync Courses
@@ -776,22 +908,43 @@ class CubazeDB {
       // Sync Batches
       const { data: batches, error: bErr } = await this.sb.from('cubaze_batches').select('*');
       if (!bErr && batches && batches.length > 0) {
-        const mappedBatches = batches.map(b => ({
-          id: b.id,
-          name: b.name,
-          courseId: b.course_id,
-          tutorIds: b.tutor_ids || [],
-          maxStudents: b.max_students || 50,
-          currentEnrollment: b.current_enrollment || 0,
-          startDate: b.start_date || '',
-          endDate: b.end_date || '',
-          classDays: b.class_days || [],
-          classTime: b.class_time || '',
-          googleMeetLink: b.google_meet_link || '',
-          googleDriveFolder: b.google_drive_folder || '',
-          status: b.status || 'Upcoming'
-        }));
+        const localUsers = JSON.parse(localStorage.getItem("cubaze_users")) || [];
+        let batchInfoChanged = false;
+
+        const mappedBatches = batches.map(b => {
+          const enrollmentCount = localUsers.filter(u => 
+            u.role === 'student' && 
+            u.enrolledBatches && 
+            Object.values(u.enrolledBatches).includes(b.id)
+          ).length;
+
+          if (b.current_enrollment !== enrollmentCount) {
+            batchInfoChanged = true;
+          }
+
+          return {
+            id: b.id,
+            name: b.name,
+            courseId: b.course_id,
+            tutorIds: b.tutor_ids || [],
+            maxStudents: b.max_students || 50,
+            currentEnrollment: enrollmentCount,
+            startDate: b.start_date || '',
+            endDate: b.end_date || '',
+            classDays: b.class_days || [],
+            classTime: b.class_time || '',
+            googleMeetLink: b.google_meet_link || '',
+            googleDriveFolder: b.google_drive_folder || '',
+            whatsappLink: b.whatsapp_link || '',
+            status: b.status || 'Upcoming'
+          };
+        });
         localStorage.setItem("cubaze_batches", JSON.stringify(mappedBatches));
+
+        if (batchInfoChanged) {
+          console.log("🔄 Syncing corrected batch enrollment counts back to Supabase...");
+          this.setItemAndSync("cubaze_batches", mappedBatches);
+        }
       }
 
       // Sync Announcements
@@ -1000,6 +1153,12 @@ class CubazeDB {
           role: user.role || "student",
           registered_date: user.registeredDate || new Date().toISOString().split('T')[0],
           enrolled_courses: user.enrolledCourses || [],
+          enrolled_batches: user.enrolledBatches || {},
+          phone: user.phone || '',
+          dob: user.dob || '',
+          qualification: user.qualification || '',
+          qualification_other: user.qualificationOther || '',
+          whatsapp: user.whatsapp || '',
           wishlist: user.wishlist || [],
           suspended: user.suspended === true,
           deleted: user.deleted === true
@@ -1013,12 +1172,14 @@ class CubazeDB {
           course_id: batch.courseId,
           tutor_ids: batch.tutorIds || [],
           max_students: batch.maxStudents || 50,
+          current_enrollment: batch.currentEnrollment || 0,
           start_date: batch.startDate || null,
           end_date: batch.endDate || null,
           class_days: batch.classDays || [],
           class_time: batch.classTime || '',
           google_meet_link: batch.googleMeetLink || '',
           google_drive_folder: batch.googleDriveFolder || '',
+          whatsapp_link: batch.whatsappLink || '',
           status: batch.status || 'Upcoming'
         });
       });
@@ -1136,7 +1297,7 @@ class CubazeDB {
 
   init() {
     // ── App version stamp: bump this string any time you want a forced clean reset ──
-    const APP_VERSION = "v4.3-common-meetings";
+    const APP_VERSION = "v4.4-admin-revamp";
     const storedVersion = localStorage.getItem("cubaze_app_version");
 
     // Force reset if course IDs have changed OR version mismatch
@@ -1156,6 +1317,11 @@ class CubazeDB {
       localStorage.removeItem("cubaze_progress");
       localStorage.removeItem("cubaze_submitted_courses");
       localStorage.removeItem("cubaze_activity_log");
+      localStorage.removeItem("cubaze_batches");
+      localStorage.removeItem("cubaze_announcements");
+      localStorage.removeItem("cubaze_common_meetings");
+      localStorage.removeItem("cubaze_support_conversations");
+      localStorage.removeItem("cubaze_support_messages");
       localStorage.setItem("cubaze_app_version", APP_VERSION);
     }
 
@@ -1178,6 +1344,8 @@ class CubazeDB {
     if (!localStorage.getItem("cubaze_resources")) localStorage.setItem("cubaze_resources", JSON.stringify(DEFAULT_RESOURCES));
     if (!localStorage.getItem("cubaze_attendance")) localStorage.setItem("cubaze_attendance", JSON.stringify(DEFAULT_ATTENDANCE));
     if (!localStorage.getItem("cubaze_common_meetings")) localStorage.setItem("cubaze_common_meetings", JSON.stringify(DEFAULT_COMMON_MEETINGS));
+    if (!localStorage.getItem("cubaze_support_conversations")) localStorage.setItem("cubaze_support_conversations", JSON.stringify(DEFAULT_SUPPORT_CONVERSATIONS));
+    if (!localStorage.getItem("cubaze_support_messages")) localStorage.setItem("cubaze_support_messages", JSON.stringify(DEFAULT_SUPPORT_MESSAGES));
 
     // Migrate legacy users without enrolledBatches
     const currentUsers = JSON.parse(localStorage.getItem("cubaze_users") || "[]");
@@ -1226,7 +1394,7 @@ class CubazeDB {
     }
 
     // ── Sanitize: remove any leftover demo users (keep only admin + real registrations) ──
-    const DEMO_USERNAMES = ["student", "riya_learns", "vikas_edit", "alex_j", "demo_user"];
+    const DEMO_USERNAMES = ["student", "vikas_edit", "alex_j", "demo_user"];
     const currentUsersRaw = JSON.parse(localStorage.getItem("cubaze_users") || "[]");
     const cleanUsers = currentUsersRaw.filter(u => !DEMO_USERNAMES.includes(u.username));
     if (cleanUsers.length !== currentUsersRaw.length) {
@@ -2780,7 +2948,12 @@ class CubazeDB {
   // --- BATCH MANAGEMENT SYSTEM APIs ---
 
   getBatches() {
-    return JSON.parse(localStorage.getItem("cubaze_batches")) || [];
+    const batches = JSON.parse(localStorage.getItem("cubaze_batches")) || [];
+    const users = this.getUsers();
+    return batches.map(b => {
+      b.currentEnrollment = users.filter(u => u.role === 'student' && u.enrolledBatches && Object.values(u.enrolledBatches).includes(b.id)).length;
+      return b;
+    });
   }
 
   getBatchById(id) {

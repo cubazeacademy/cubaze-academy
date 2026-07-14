@@ -193,7 +193,7 @@ class CubazeApp {
         let targetHash = '#/dashboard';
         if (result.user.role === 'admin') targetHash = '#/admin';
         else if (result.user.role === 'instructor') targetHash = '#/tutor';
-        
+
         if (window.location.hash === targetHash) {
           this.renderRoute();
         } else {

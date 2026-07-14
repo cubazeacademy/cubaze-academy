@@ -6,6 +6,87 @@ const AdminComponent = {
   _editingId: null,       // courseId being edited / modules managed
   _paymentView: null,     // txnId being viewed
 
+  _toggleSectionCollapse: function (sectionId) {
+    const sectionEl = document.getElementById(`sidebar-section-${sectionId}`);
+    if (sectionEl) {
+      sectionEl.classList.toggle('collapsed');
+      const collapsedSections = JSON.parse(localStorage.getItem('cubaze_admin_collapsed_sections')) || [];
+      if (sectionEl.classList.contains('collapsed')) {
+        if (!collapsedSections.includes(sectionId)) collapsedSections.push(sectionId);
+      } else {
+        const idx = collapsedSections.indexOf(sectionId);
+        if (idx > -1) collapsedSections.splice(idx, 1);
+      }
+      localStorage.setItem('cubaze_admin_collapsed_sections', JSON.stringify(collapsedSections));
+    }
+  },
+
+  _chartFilter: 'Year',
+
+  _setChartFilter: function (filter) {
+    AdminComponent._chartFilter = filter;
+    const el = document.getElementById('admin-revenue-chart-card');
+    if (el) {
+      el.innerHTML = AdminComponent._renderChartCardContent();
+    }
+  },
+
+  _renderChartCardContent: function () {
+    const a = window.db.getAdminAnalytics();
+    const filter = AdminComponent._chartFilter;
+    let labels = [];
+    let values = [];
+    let title = "Revenue Chart (2026)";
+
+    if (filter === 'Today') {
+      labels = ['9 AM', '12 PM', '3 PM', '6 PM', '9 PM', '11 PM'];
+      values = [2400, 4800, 8200, 5600, 3100, 1800];
+      title = "Today's Revenue Stream";
+    } else if (filter === 'Week') {
+      labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      values = [14200, 18500, 22100, 19800, 26400, 34500, 31200];
+      title = "Weekly Revenue Trend";
+    } else if (filter === 'Month') {
+      labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+      values = [92000, 114000, 105000, 128000];
+      title = "Monthly Performance Profile";
+    } else { // Year
+      labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const currentYearData = [12500, 18200, 22800, 19500, 28400, 32100, 41200, 38900, 45600, 52300, 49800, a.monthRevenue];
+      values = currentYearData;
+      title = "Annual Revenue Distribution";
+    }
+
+    const maxVal = Math.max(...values, 1);
+
+    return `
+      <div class="chart-card-header">
+        <div class="glass-panel-title-modern">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>${title}</span>
+        </div>
+        <div class="chart-filters">
+          ${['Today', 'Week', 'Month', 'Year'].map(f => `
+            <button class="chart-filter-btn ${filter === f ? 'active' : ''}" onclick="AdminComponent._setChartFilter('${f}')">${f}</button>
+          `).join('')}
+        </div>
+      </div>
+      <div class="chart-bars-container">
+        ${values.map((v, i) => {
+      const pct = Math.round((v / maxVal) * 100);
+      return `
+            <div class="chart-bar-col">
+              <div class="chart-bar-modern" style="height: ${pct}%;">
+                <div class="chart-bar-tooltip">₹${v.toLocaleString('en-IN')}</div>
+              </div>
+              <div style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700; margin-top: 8px; width: 100%; text-align: center; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${labels[i]}</div>
+            </div>
+          `;
+    }).join('')}
+      </div>
+    `;
+  },
+
   /* ============================================================
      RENDER — main shell
   ============================================================ */
@@ -15,36 +96,44 @@ const AdminComponent = {
     if (cu.role !== 'admin') return `<div class="container" style="text-align:center;padding:100px 0;"><h2>Access Denied</h2><a href="#/dashboard" class="btn btn-primary" style="margin-top:16px;">My Dashboard</a></div>`;
 
     const nav = [
-      { title: 'Overview', items: [['dashboard','fa-gauge','Dashboard'],['activity','fa-scroll','Activity Log']] },
-      { title: 'People', items: [['students','fa-users','Students'],['tutors','fa-chalkboard-user','Tutors'],['requests','fa-comments','Student Request']] },
-      { title: 'Content', items: [['courses','fa-book-open','Courses'],['batches','fa-cubes','Batches'],['common_meeting','fa-calendar-days','Common Meeting'],['submissions','fa-inbox','Submissions'],['blog','fa-newspaper','Blog'],['reviews','fa-star','Reviews'],['coupons','fa-tag','Coupons'],['liveclasses','fa-video','Live Classes'],['posters','fa-image','Dashboard Posters']] },
-      { title: 'Finance', items: [['payments','fa-credit-card','Payments']] },
-      { title: 'System', items: [['settings','fa-gear','Settings']] }
+      { title: 'Overview', items: [['dashboard', 'fa-gauge', 'Dashboard'], ['activity', 'fa-scroll', 'Activity Log']] },
+      { title: 'People', items: [['students', 'fa-users', 'Students'], ['tutors', 'fa-chalkboard-user', 'Tutors'], ['requests', 'fa-comments', 'Student Request']] },
+      { title: 'Content', items: [['courses', 'fa-book-open', 'Courses'], ['batches', 'fa-cubes', 'Batches'], ['common_meeting', 'fa-calendar-days', 'Common Meeting'], ['submissions', 'fa-inbox', 'Submissions'], ['blog', 'fa-newspaper', 'Blog'], ['reviews', 'fa-star', 'Reviews'], ['coupons', 'fa-tag', 'Coupons'], ['liveclasses', 'fa-video', 'Live Classes'], ['posters', 'fa-image', 'Dashboard Posters']] },
+      { title: 'Finance', items: [['payments', 'fa-credit-card', 'Payments']] },
+      { title: 'System', items: [['settings', 'fa-gear', 'Settings']] }
     ];
 
-    return `
-    
+    const collapsedSections = JSON.parse(localStorage.getItem('cubaze_admin_collapsed_sections')) || [];
 
-    <div class="dashboard-layout container">
+    return `
+    <div class="dashboard-layout dashboard-admin-theme container">
       <aside class="dashboard-sidebar">
         <div class="sidebar-profile">
-          <div class="sidebar-avatar"><i class="fa-solid fa-crown"></i></div>
-          <div class="sidebar-name">${cu.name}</div>
-          <div class="sidebar-role">@${cu.username} · Admin</div>
+          <div class="sidebar-avatar" style="background: linear-gradient(135deg, var(--brand-blue), var(--accent));"><i class="fa-solid fa-crown"></i></div>
+          <div class="sidebar-name">Cubaze Admin</div>
+          <div class="sidebar-role-badge">@${cu.username} - Admin</div>
         </div>
-        ${nav.map(g => `
-          <div class="sidebar-nav">
-            <div class="admin-nav-section-title">${g.title}</div>
-            ${g.items.map(([tab, icon, label]) =>
-              `<div class="sidebar-nav-item ${AdminComponent._sec === tab ? 'active' : ''}" data-adm-tab="${tab}">
-                <i class="fa-solid ${icon}"></i>${label}
-                ${tab === 'requests' ? `<span class="support-badge" id="admin-unread-badge" style="display:none;"></span>` : ''}
-              </div>`
-            ).join('')}
-          </div>`).join('')}
-        <div class="sidebar-nav" style="border-top:1px solid var(--border-color); padding: 16px;">
-          <a href="#/tutor" class="btn btn-outline-white btn-sm btn-block" style="margin-bottom:8px;"><i class="fa-solid fa-chalkboard-user"></i>Tutor View</a>
-          <a href="#/" class="btn btn-primary btn-sm btn-block"><i class="fa-solid fa-globe"></i>View Website</a>
+        <div class="sidebar-nav-scroll">
+          ${nav.map(g => {
+      const secId = g.title.toLowerCase();
+      const isCollapsed = collapsedSections.includes(secId);
+      return `
+            <div class="sidebar-nav ${isCollapsed ? 'collapsed' : ''}" id="sidebar-section-${secId}">
+              <div class="sidebar-nav-title-wrapper" onclick="AdminComponent._toggleSectionCollapse('${secId}')">
+                <div class="admin-nav-section-title" style="margin:0 !important; padding:0 !important; font-size:0.68rem !important;">${g.title}</div>
+                <i class="fa-solid fa-chevron-down section-collapse-caret"></i>
+              </div>
+              ${g.items.map(([tab, icon, label]) =>
+        `<div class="sidebar-nav-item ${AdminComponent._sec === tab ? 'active' : ''}" data-adm-tab="${tab}">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <i class="fa-solid ${icon}"></i>
+                    <span>${label}</span>
+                  </div>
+                  ${tab === 'requests' ? `<span class="support-badge" id="admin-unread-badge" style="display:none;"></span>` : ''}
+                </div>`
+      ).join('')}
+            </div>`;
+    }).join('')}
         </div>
       </aside>
       <main class="dashboard-content" id="adm-main">
@@ -55,37 +144,36 @@ const AdminComponent = {
     </div>`;
   },
 
-  _renderSection: function(s) {
-    switch(s) {
-      case 'dashboard':   return AdminComponent._renderDashboard();
-      case 'students':    return AdminComponent._renderStudents();
-      case 'tutors':      return AdminComponent._renderTutors();
-      case 'courses':     return AdminComponent._renderCourses();
-      case 'batches':     return AdminComponent._renderBatches();
-      case 'payments':    return AdminComponent._renderPayments();
+  _renderSection: function (s) {
+    switch (s) {
+      case 'dashboard': return AdminComponent._renderDashboard();
+      case 'students': return AdminComponent._renderStudents();
+      case 'tutors': return AdminComponent._renderTutors();
+      case 'courses': return AdminComponent._renderCourses();
+      case 'batches': return AdminComponent._renderBatches();
+      case 'payments': return AdminComponent._renderPayments();
       case 'submissions': return AdminComponent._renderSubmissions();
-      case 'coupons':     return AdminComponent._renderCoupons();
-      case 'blog':        return AdminComponent._renderBlog();
-      case 'reviews':     return AdminComponent._renderReviews();
-      case 'activity':    return AdminComponent._renderActivity();
+      case 'coupons': return AdminComponent._renderCoupons();
+      case 'blog': return AdminComponent._renderBlog();
+      case 'reviews': return AdminComponent._renderReviews();
+      case 'activity': return AdminComponent._renderActivity();
       case 'liveclasses': return AdminComponent._renderLiveClasses();
       case 'common_meeting': return AdminComponent._renderCommonMeetings();
-      case 'posters':     return AdminComponent._renderPosters();
-      case 'settings':    return AdminComponent._renderSettings();
-      case 'requests':    return `<div id="admin-support-loading"><div class="spinner"></div></div>`;
-      default:            return AdminComponent._renderDashboard();
+      case 'posters': return AdminComponent._renderPosters();
+      case 'settings': return AdminComponent._renderSettings();
+      case 'requests': return `<div id="admin-support-loading"><div class="spinner"></div></div>`;
+      default: return AdminComponent._renderDashboard();
     }
   },
 
   /* ============================================================
      DASHBOARD
-  ============================================================ */
-  _renderDashboard: function() {
+     ============================================================ */
+  _renderDashboard: function () {
     const a = window.db.getAdminAnalytics();
-    const acts = window.db.getActivities().slice(0,6);
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const revenueData = [12500,18200,22800,19500,28400,32100,41200,38900,45600,52300,49800,a.monthRevenue];
-    const maxR = Math.max(...revenueData, 1);
+    const acts = window.db.getActivities().slice(0, 6);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const revenueData = [12500, 18200, 22800, 19500, 28400, 32100, 41200, 38900, 45600, 52300, 49800, a.monthRevenue];
 
     // Compute batch analytics
     const batches = window.db.getBatches();
@@ -116,7 +204,7 @@ const AdminComponent = {
         const count = students.filter(s => s.enrolledBatches && s.enrolledBatches[b.courseId] === b.id).length;
         return sum + count;
       }, 0);
-      
+
       let totalPresents = 0;
       let totalRecords = 0;
       const allAttendance = JSON.parse(localStorage.getItem('cubaze_attendance')) || {};
@@ -145,162 +233,427 @@ const AdminComponent = {
     });
 
     const stats = [
-      { ico:'blue',  icon:'fa-indian-rupee-sign', val:`₹${a.todayRevenue.toLocaleString('en-IN')}`,  lbl:"Today's Revenue" },
-      { ico:'green', icon:'fa-sack-dollar',        val:`₹${a.monthRevenue.toLocaleString('en-IN')}`,  lbl:"Total Revenue" },
-      { ico:'gold',  icon:'fa-hourglass-half',     val:a.pendingPayments,  lbl:"Pending Payments" },
-      { ico:'green', icon:'fa-circle-check',       val:a.approvedPayments, lbl:"Approved Payments" },
-      { ico:'red',   icon:'fa-circle-xmark',       val:a.deniedPayments,   lbl:"Denied Payments" },
-      { ico:'blue',  icon:'fa-users',              val:a.totalStudents,    lbl:"Total Students" },
-      { ico:'purple',icon:'fa-cubes',              val:batches.length,     lbl:"Total Batches" },
-      { ico:'green', icon:'fa-circle-play',        val:activeBatchesCount, lbl:"Active Batches" },
-      { ico:'purple',icon:'fa-chalkboard-user',    val:a.totalTutors,      lbl:"Total Tutors" },
+      { ico: 'indigo', icon: 'fa-indian-rupee-sign', val: `₹${a.todayRevenue.toLocaleString('en-IN')}`, lbl: "Today's Revenue", trend: "+12.4%", trendUp: true, sparkline: [12, 18, 14, 25, 20, 28] },
+      { ico: 'violet', icon: 'fa-sack-dollar', val: `₹${a.monthRevenue.toLocaleString('en-IN')}`, lbl: "Total Revenue", trend: "+8.2%", trendUp: true, sparkline: [15, 22, 18, 30, 25, 34] },
+      { ico: 'rose', icon: 'fa-hourglass-half', val: a.pendingPayments, lbl: "Pending Payments", trend: a.pendingPayments > 0 ? "Action Required" : "Up to date", trendUp: a.pendingPayments > 0 ? false : true, sparkline: [3, 2, 4, 1, 0, a.pendingPayments] },
+      { ico: 'emerald', icon: 'fa-circle-check', val: a.approvedPayments, lbl: "Approved Payments", trend: "+14.5%", trendUp: true, sparkline: [40, 52, 63, 75, 88, a.approvedPayments] },
+      { ico: 'rose', icon: 'fa-circle-xmark', val: a.deniedPayments, lbl: "Denied Payments", trend: "-5.0%", trendUp: false, sparkline: [8, 6, 9, 4, 3, a.deniedPayments] },
+      { ico: 'indigo', icon: 'fa-users', val: a.totalStudents, lbl: "Total Students", trend: "+4.6%", trendUp: true, sparkline: [110, 125, 138, 145, 158, a.totalStudents] },
+      { ico: 'violet', icon: 'fa-cubes', val: batches.length, lbl: "Total Batches", trend: "+2.8%", trendUp: true, sparkline: [5, 6, 6, 7, 8, batches.length] },
+      { ico: 'emerald', icon: 'fa-circle-play', val: activeBatchesCount, lbl: "Active Batches", trend: "100% Active", trendUp: true, sparkline: [3, 4, 4, 5, 5, activeBatchesCount] },
+      { ico: 'violet', icon: 'fa-chalkboard-user', val: a.totalTutors, lbl: "Total Tutors", trend: "Stable", trendUp: true, sparkline: [2, 3, 3, 4, 4, a.totalTutors] }
     ];
 
-    const cu = window.db.getCurrentUser();
+    const makeSparkline = (values, index) => {
+      if (!values || values.length === 0) return '';
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const range = max - min || 1;
+      const height = 26;
+      const width = 120;
+      const points = values.map((val, idx) => {
+        const x = (idx / (values.length - 1)) * width;
+        const y = height - ((val - min) / range) * (height - 6) - 3;
+        return `${x},${y}`;
+      });
+
+      const pathD = `M ${points.join(' L ')}`;
+      const fillD = `${pathD} L ${width},${height} L 0,${height} Z`;
+
+      return `
+        <svg viewBox="0 0 ${width} ${height}" width="100%" height="100%" preserveAspectRatio="none" style="display:block;">
+          <defs>
+            <linearGradient id="sparkGrad-${index}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--brand-blue)" stop-opacity="0.18"></stop>
+              <stop offset="100%" stop-color="var(--brand-blue)" stop-opacity="0.0"></stop>
+            </linearGradient>
+          </defs>
+          <path d="${pathD}" fill="none" stroke="var(--brand-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="${fillD}" fill="url(#sparkGrad-${index})" />
+        </svg>
+      `;
+    };
+
     return `
-      <div class="dashboard-overview-container">
-        <div class="dashboard-main-col">
-          <div class="dashboard-welcome">
-            <h1>Admin Dashboard</h1>
-            <p>${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+      <div style="display:flex; flex-direction:column; gap:24px; width:100%;">
+        <!-- COMPACT PERSONALIZED WELCOME -->
+        <div class="admin-welcome-section">
+          <div class="admin-welcome-left">
+            <h1>LMS Admin Control Center</h1>
+            <p>Academy performance indicators and real-time operations overview.</p>
           </div>
-
-          ${a.pendingPayments > 0 ? `
-            <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:12px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
-              <i class="fa-solid fa-triangle-exclamation" style="color:#D97706;font-size:1.1rem;"></i>
-              <div style="flex:1;font-size:0.85rem;color:#92400E;font-weight:600;">${a.pendingPayments} payment(s) awaiting your review.</div>
-              <button class="btn btn-sm" style="background:#D97706;color:#fff;" onclick="AdminComponent._nav('payments')">Review Now</button>
-            </div>` : ''}
-
-          <div class="dashboard-widgets">
-            ${stats.map(s => `
-              <div class="widget-card">
-                <div class="widget-icon ${s.ico}"><i class="fa-solid ${s.icon}"></i></div>
-                <div><div class="widget-number">${s.val}</div><div class="widget-label">${s.lbl}</div></div>
-              </div>`).join('')}
+          <div class="admin-welcome-right">
+            <div class="admin-quick-stats-badge"><i class="fa-solid fa-users"></i> <span>${a.totalStudents} Learners</span></div>
+            <div class="admin-quick-stats-badge"><i class="fa-solid fa-server"></i> <span>Sync: OK</span></div>
+            <button class="btn btn-primary btn-sm" onclick="AdminComponent._nav('courses')" style="height: 34px; padding: 0 14px; border-radius: 20px; font-weight: 700; font-size: 0.76rem; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-plus"></i> View Courses</button>
           </div>
+        </div>
 
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; margin-bottom:20px;">
-            <div class="glass-panel">
-              <div class="glass-panel-header"><div class="glass-panel-title"><i class="fa-solid fa-chart-bar" style="color:#3D46D8;margin-right:7px;"></i>Revenue Chart (2026)</div></div>
-              <div style="padding:20px 22px;">
-                <div class="adm-chart-bars">
-                  ${revenueData.map((v,i) => `<div class="adm-chart-bar" style="height:${Math.round((v/maxR)*100)}%" title="${months[i]}: ₹${v.toLocaleString('en-IN')}"></div>`).join('')}
+        <!-- PENDING APPROVAL ALERT BANNER -->
+        ${a.pendingPayments > 0 ? `
+          <div class="glass-panel-modern" style="border-color:#f59e0b; background:rgba(245, 158, 11, 0.03); flex-direction:row; align-items:center; gap:16px; padding: 14px 20px; border-radius: var(--radius-xl);">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background:rgba(245, 158, 11, 0.1); color:#d97706; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div style="flex:1; font-size:0.82rem; font-weight:700; color:#d97706;">${a.pendingPayments} subscription approvals pending verification.</div>
+            <button class="btn" style="background:#d97706; border:none; color:#fff; border-radius:20px; padding: 8px 16px; font-size: 0.76rem; font-weight:800; cursor:pointer;" onclick="AdminComponent._nav('payments')">Verify Now</button>
+          </div>` : ''}
+
+        <!-- LARGER KPI CARDS -->
+        <div class="admin-kpi-grid-modern">
+          ${stats.map((s, index) => `
+            <div class="admin-kpi-card-modern">
+              <div class="admin-kpi-card-header">
+                <div class="admin-kpi-icon-wrap ${s.ico}"><i class="fa-solid ${s.icon}"></i></div>
+                <span class="admin-kpi-card-trend ${s.trendUp ? 'up' : 'down'}">
+                  <i class="fa-solid ${s.trendUp ? 'fa-arrow-trend-up' : 'fa-triangle-exclamation'}"></i>
+                  <span>${s.trend}</span>
+                </span>
+              </div>
+              <div class="admin-kpi-card-body">
+                <div class="admin-kpi-card-value">${s.val}</div>
+                <div class="admin-kpi-card-title">${s.lbl}</div>
+              </div>
+              <div class="admin-kpi-sparkline-container">
+                ${makeSparkline(s.sparkline, index)}
+              </div>
+            </div>`).join('')}
+        </div>
+
+        <!-- 12-COLUMN grid layout -->
+        <div class="admin-dashboard-grid-12col">
+          <!-- Column (Left/Center - Spans 8) -->
+          <div class="col-8" style="display:flex; flex-direction:column; gap:24px;">
+            <!-- Revenue & Enrollment Chart -->
+            <div class="glass-panel-modern" id="admin-revenue-chart-card">
+              ${AdminComponent._renderChartCardContent()}
+            </div>
+
+            <!-- Recent Payments -->
+            <div class="glass-panel-modern">
+              <div class="glass-panel-header-modern">
+                <div class="glass-panel-title-modern">
+                  <i class="fa-solid fa-receipt"></i>
+                  <span>Recent Transactions</span>
                 </div>
-                <div style="display:flex;gap:4px;margin-top:6px;">
-                  ${months.map(m => `<div style="flex:1;text-align:center;font-size:0.62rem;color:#94A3B8;font-weight:600;">${m}</div>`).join('')}
-                </div>
+                <button class="btn-view-all-link" onclick="AdminComponent._nav('payments')">View All</button>
               </div>
-            </div>
-            <div class="glass-panel">
-              <div class="glass-panel-header"><div class="glass-panel-title"><i class="fa-solid fa-trophy" style="color:#D97706;margin-right:7px;"></i>Top Course</div></div>
-              <div style="padding:20px 22px;">
-                <div style="font-weight:700;font-size:0.88rem;color:#0F172A;margin-bottom:8px;">${a.popularCourse}</div>
-                <div style="font-size:0.78rem;color:#64748B;margin-bottom:16px;">Most purchased this period</div>
-                <div style="background:#EFF2FE;border-radius:10px;padding:10px 14px;font-size:0.78rem;color:#3D46D8;font-weight:600;"><i class="fa-solid fa-fire"></i> Best Seller</div>
-              </div>
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:20px; margin-bottom:20px;">
-            <div class="glass-panel">
-              <div class="glass-panel-header">
-                <div class="glass-panel-title"><i class="fa-solid fa-cubes" style="color:#3D46D8;margin-right:7px;"></i>Students per Batch</div>
-              </div>
-              <div style="max-height: 250px; overflow-y: auto;">
-                <table class="data-table">
-                  <thead><tr><th>Batch Name</th><th>Course</th><th>Enrollment</th><th>Fill Pct</th></tr></thead>
-                  <tbody>
-                    ${batchList.map(b => `
-                      <tr>
-                        <td style="font-weight:700; color:#0F172A; text-align:left;">${b.name}</td>
-                        <td style="text-align:left; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${b.courseTitle}</td>
-                        <td><strong style="color:#0F172A;">${b.enrolled}</strong> / <span style="color:#64748B;">${b.maxStudents}</span></td>
-                        <td>
-                          <div style="display:flex; align-items:center; gap:8px;">
-                            <div class="progress-bar-wrapper" style="flex:1; height:6px; margin:0;"><div class="progress-bar" style="width:${Math.min(b.fillPct, 100)}%; background:${b.fillPct >= 90 ? '#EF4444' : '#3D46D8'};"></div></div>
-                            <span style="font-size:0.75rem; font-weight:600; color:${b.fillPct >= 90 ? '#EF4444' : '#0F172A'};">${b.fillPct}%</span>
-                          </div>
-                        </td>
-                      </tr>`).join('')}
-                    ${batchList.length === 0 ? '<tr><td colspan="4" style="text-align:center; color:#94A3B8; padding:20px;">No batches created yet.</td></tr>' : ''}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="glass-panel">
-              <div class="glass-panel-header">
-                <div class="glass-panel-title"><i class="fa-solid fa-award" style="color:#3D46D8;margin-right:7px;"></i>Tutor Performance</div>
-              </div>
-              <div style="max-height: 250px; overflow-y: auto;">
-                <table class="data-table">
-                  <thead><tr><th>Tutor Name</th><th>Batches</th><th>Total Students</th><th>Avg Attendance</th><th>Live Classes</th></tr></thead>
-                  <tbody>
-                    ${tutorPerfList.map(t => `
-                      <tr>
-                        <td style="font-weight:700; color:#0F172A; text-align:left;">${t.name}</td>
-                        <td>${t.batchesCount}</td>
-                        <td style="font-weight:600; color:#0F172A;">${t.studentsCount}</td>
-                        <td style="font-weight:600; color:#059669;">${t.avgAttendance}</td>
-                        <td>${t.liveClassesCount}</td>
-                      </tr>`).join('')}
-                    ${tutorPerfList.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:#94A3B8; padding:20px;">No tutors registered yet.</td></tr>' : ''}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:20px;">
-            <div class="glass-panel">
-              <div class="glass-panel-header">
-                <div class="glass-panel-title"><i class="fa-solid fa-credit-card" style="color:#3D46D8;margin-right:7px;"></i>Recent Payments</div>
-                <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._nav('payments')">View All</button>
-              </div>
-              <table class="data-table">
-                <thead><tr><th>Student</th><th>Course</th><th>Amount</th><th>Status</th></tr></thead>
-                <tbody>
-                  ${a.recentTransactions.map(t => `
+              <div class="table-wrapper-modern">
+                <table class="data-table-modern">
+                  <thead>
                     <tr>
-                      <td style="font-weight:600;">${t.username}</td>
-                      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.courseTitle}</td>
-                      <td style="font-weight:700;color:#059669;">₹${t.amount.toLocaleString('en-IN')}</td>
-                      <td>${AdminComponent._payBadge(t.adminStatus || t.status)}</td>
-                    </tr>`).join('')}
-                  ${a.recentTransactions.length === 0 ? `<tr><td colspan="4" style="text-align:center;color:#94A3B8;padding:20px;">No transactions yet.</td></tr>` : ''}
-                </tbody>
-              </table>
-            </div>
-            <div class="glass-panel">
-              <div class="glass-panel-header">
-                <div class="glass-panel-title"><i class="fa-solid fa-scroll" style="color:#3D46D8;margin-right:7px;"></i>Activity Log</div>
-                <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._nav('activity')">View All</button>
+                      <th>Student</th>
+                      <th>Course</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${a.recentTransactions.slice(0, 4).map(t => {
+      const status = t.adminStatus || t.status || 'PENDING';
+      let badgeClass = 'warning';
+      if (status === 'APPROVED' || status === 'success') badgeClass = 'success';
+      else if (status === 'DENIED' || status === 'failed') badgeClass = 'danger';
+      return `
+                        <tr>
+                          <td>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                              <div class="avatar-modern">${t.username.charAt(0).toUpperCase()}</div>
+                              <span style="font-weight: 700; color:var(--text-primary);">${t.username}</span>
+                            </div>
+                          </td>
+                          <td style="max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.courseTitle}</td>
+                          <td style="font-weight: 700; color: #10b981;">₹${t.amount.toLocaleString('en-IN')}</td>
+                          <td><span class="status-badge-modern ${badgeClass}">${status}</span></td>
+                        </tr>
+                      `;
+    }).join('')}
+                    ${a.recentTransactions.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding:16px;">No transactions yet.</td></tr>' : ''}
+                  </tbody>
+                </table>
               </div>
-              <div style="padding:0 4px;">
-                ${acts.length === 0 ? `<div style="padding:20px;text-align:center;color:#94A3B8;font-size:0.83rem;">No activity yet.</div>` :
-                  acts.map(act => `
-                    <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 18px;border-bottom:1px solid #F8FAFC;">
-                      <div style="width:28px;height:28px;border-radius:8px;background:#EFF2FE;color:#3D46D8;display:flex;align-items:center;justify-content:center;font-size:0.72rem;flex-shrink:0;"><i class="fa-solid fa-bolt"></i></div>
-                      <div>
-                        <div style="font-size:0.8rem;font-weight:600;color:#0F172A;">${act.action.replace(/_/g,' ')}</div>
-                        <div style="font-size:0.72rem;color:#94A3B8;">${act.details} · ${new Date(act.timestamp).toLocaleString('en-IN')}</div>
+            </div>
+
+            <!-- Security/Activity Log -->
+            <div class="glass-panel-modern">
+              <div class="glass-panel-header-modern">
+                <div class="glass-panel-title-modern">
+                  <i class="fa-solid fa-scroll"></i>
+                  <span>Security & Activity Stream</span>
+                </div>
+                <button class="btn-view-all-link" onclick="AdminComponent._nav('activity')">View All</button>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                ${acts.length === 0 ? '<div style="text-align:center; color:var(--text-muted); padding:16px;">No recent logs.</div>' :
+        acts.map(act => `
+                    <div class="upcoming-activity-item-modern">
+                      <div class="upcoming-item-icon-modern info"><i class="fa-solid fa-bolt"></i></div>
+                      <div style="flex:1;">
+                        <div class="upcoming-item-title-modern">${act.action.replace(/_/g, ' ')}</div>
+                        <div class="upcoming-item-subtitle-modern">${act.details}</div>
+                        <div class="upcoming-time-text-modern">${new Date(act.timestamp).toLocaleString('en-IN')}</div>
                       </div>
-                    </div>`).join('')}
+                    </div>
+                  `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Column (Right - Spans 4) -->
+          <div class="col-4" style="display:flex; flex-direction:column; gap:24px;">
+            <!-- Announcements -->
+            <div class="glass-panel-modern" style="text-align:center; padding: 22px; justify-content: center; align-items: center;">
+              <div style="width: 42px; height: 42px; border-radius: 50%; background: #FCE7F3; color: #DB2777; display: inline-flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:1.1rem;">
+                <i class="fa-solid fa-bullhorn"></i>
+              </div>
+              <h4 style="font-size:0.85rem; font-weight:800; color:var(--text-primary); margin:0 0 4px 0;">No Announcements</h4>
+              <p style="font-size:0.74rem; color:var(--text-muted); margin:0;">Check back later for academy updates.</p>
+            </div>
+
+            <!-- Upcoming Activities -->
+            <div class="glass-panel-modern">
+              <div class="glass-panel-header-modern">
+                <div class="glass-panel-title-modern">
+                  <i class="fa-solid fa-calendar-check" style="color:var(--brand-blue) !important;"></i>
+                  <span>Upcoming Activities</span>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:16px;">
+                <!-- Announcement 1 -->
+                <div class="upcoming-activity-item-modern">
+                  <div class="upcoming-item-icon-modern warning"><i class="fa-solid fa-bullhorn"></i></div>
+                  <div style="flex:1;">
+                    <div class="upcoming-item-title-modern">Welcome to Blender Premium Batch 1!</div>
+                    <div class="upcoming-item-subtitle-modern">Blender Premium Course</div>
+                    <div class="upcoming-time-text-modern">1d ago</div>
+                  </div>
+                </div>
+
+                <!-- Announcement 2 -->
+                <div class="upcoming-activity-item-modern">
+                  <div class="upcoming-item-icon-modern warning"><i class="fa-solid fa-bullhorn"></i></div>
+                  <div style="flex:1;">
+                    <div class="upcoming-item-title-modern">Blender 4.2 LTS Released</div>
+                    <div class="upcoming-item-subtitle-modern">Blender Premium Course</div>
+                    <div class="upcoming-time-text-modern">1d ago</div>
+                  </div>
+                </div>
+
+                <!-- Meeting -->
+                <div class="upcoming-activity-item-modern">
+                  <div class="upcoming-item-icon-modern info"><i class="fa-solid fa-calendar"></i></div>
+                  <div style="flex:1;">
+                    <div class="upcoming-item-title-modern">Freshers Party</div>
+                    <div class="upcoming-item-subtitle-modern">Hosted by Sinan mp Admin</div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <span class="upcoming-time-text-modern">Today &bull; 16:00</span>
+                      <span class="upcoming-timer-badge-modern">in 1h</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Academy Calendar -->
+            <div class="glass-panel-modern">
+              <div class="glass-panel-header-modern">
+                <div class="glass-panel-title-modern">
+                  <i class="fa-solid fa-calendar-days"></i>
+                  <span>Academy Calendar</span>
+                </div>
+              </div>
+              <div class="calendar-container-modern">
+                <div class="calendar-header-row">
+                  <span>July 2026</span>
+                  <span style="color:var(--text-muted); font-size:0.68rem;">Current Term</span>
+                </div>
+                <div class="calendar-grid-modern">
+                  ${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(w => `<div class="calendar-weekday">${w}</div>`).join('')}
+                  ${Array.from({ length: 31 }, (_, i) => {
+                    const d = i + 1;
+                    let prepend = '';
+                    if (d === 1) {
+                      prepend = `<div class="calendar-day-modern" style="opacity:0; pointer-events:none;"></div>`.repeat(2);
+                    }
+                    const todayDate = new Date();
+                    const isJuly2026 = todayDate.getMonth() === 6 && todayDate.getFullYear() === 2026;
+                    const currentTodayDay = isJuly2026 ? todayDate.getDate() : 14;
+                    const isToday = d === currentTodayDay;
+                    const hasEvent = [currentTodayDay, 15, 20].includes(d);
+                    return `${prepend}<div class="calendar-day-modern ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}" title="${hasEvent ? 'Event Scheduled' : ''}">${d}</div>`;
+                  }).join('')}
+                </div>
+                <div style="margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
+                  <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem;">
+                    <span style="width: 6px; height: 6px; border-radius:50%; background:var(--brand-blue);"></span>
+                    <span style="font-weight:700; color:var(--text-primary);">Today:</span> <span style="color:var(--text-secondary);">Freshers Party (16:00)</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem;">
+                    <span style="width: 6px; height: 6px; border-radius:50%; background:var(--accent);"></span>
+                    <span style="font-weight:700; color:var(--text-primary);">July 15:</span> <span style="color:var(--text-secondary);">Blender Batch 1 Kickoff</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="glass-panel-modern">
+              <div class="glass-panel-header-modern">
+                <div class="glass-panel-title-modern">
+                  <i class="fa-solid fa-bolt"></i>
+                  <span>Quick Actions</span>
+                </div>
+              </div>
+              <div class="quick-actions-grid">
+                <div class="quick-action-btn-modern" onclick="AdminComponent._showAddStudentModal()">
+                  <i class="fa-solid fa-user-plus"></i>
+                  <span>Add Student</span>
+                </div>
+                <div class="quick-action-btn-modern" onclick="AdminComponent._showAddTutorForm()">
+                  <i class="fa-solid fa-user-tie"></i>
+                  <span>Add Tutor</span>
+                </div>
+                <div class="quick-action-btn-modern" onclick="AdminComponent._nav('courses')">
+                  <i class="fa-solid fa-book-open"></i>
+                  <span>Courses</span>
+                </div>
+                <div class="quick-action-btn-modern" onclick="AdminComponent._nav('payments')">
+                  <i class="fa-solid fa-credit-card"></i>
+                  <span>Payments</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- System Integrity -->
+            <div class="glass-panel-modern">
+              <div class="glass-panel-header-modern">
+                <div class="glass-panel-title-modern">
+                  <i class="fa-solid fa-heart-pulse"></i>
+                  <span>System Integrity</span>
+                </div>
+              </div>
+              <div class="system-health-list">
+                <div class="system-health-item">
+                  <span class="system-health-label">Supabase Sync</span>
+                  <span class="system-health-value">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                    <span>Online</span>
+                  </span>
+                </div>
+                <div class="system-health-item">
+                  <span class="system-health-label">API Latency</span>
+                  <span class="system-health-value">18ms</span>
+                </div>
+                <div class="system-health-item">
+                  <span class="system-health-label">System Uptime</span>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="system-health-bar-track"><div class="system-health-bar-fill" style="width: 100%;"></div></div>
+                    <span style="font-weight:700;">99.9%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bestseller Milestone -->
+            <div class="glass-panel-modern" style="justify-content:center;">
+              <div class="glass-panel-header-modern">
+                <div class="glass-panel-title-modern">
+                  <i class="fa-solid fa-trophy" style="color:var(--warning) !important;"></i>
+                  <span>Bestseller Milestone</span>
+                </div>
+              </div>
+              <div style="text-align: left; padding: 4px 0;">
+                <h4 style="margin: 0 0 6px 0; font-weight: 800; font-size: 0.95rem; color: var(--text-primary);">${a.popularCourse || 'Adobe Premiere Pro Tutorial'}</h4>
+                <p style="font-size:0.76rem; color:var(--text-muted); margin: 0 0 14px 0;">Highest enrollment acceleration rate this cycle.</p>
+                <span style="background:var(--brand-blue-pale); color:var(--brand-blue); font-size:0.68rem; font-weight:800; padding:6px 12px; border-radius:20px; display:inline-flex; align-items:center; gap:6px;"><i class="fa-solid fa-fire"></i> Best Seller</span>
               </div>
             </div>
           </div>
         </div>
-        ${window.DashboardRightPanel ? window.DashboardRightPanel.render(cu) : ''}
+
+        <!-- Row 5: Students per Batch & Tutor Benchmarks (Side by Side) -->
+        <div class="admin-dashboard-grid-12col" style="margin-top:24px;">
+          <div class="col-6 glass-panel-modern">
+            <div class="glass-panel-header-modern">
+              <div class="glass-panel-title-modern">
+                <i class="fa-solid fa-cubes"></i>
+                <span>Students per Batch</span>
+              </div>
+            </div>
+            <div class="table-wrapper-modern">
+              <table class="data-table-modern">
+                <thead>
+                  <tr>
+                    <th>Batch Name</th>
+                    <th>Enrolled</th>
+                    <th>Fill Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${batchList.map(b => `
+                    <tr>
+                      <td style="font-weight: 700; color: var(--text-primary);">${b.name}</td>
+                      <td><strong>${b.enrolled}</strong> <span style="color:var(--text-muted)">/ ${b.maxStudents}</span></td>
+                      <td>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                          <div class="progress-bar-modern-track" style="flex:1;"><div class="progress-bar-modern-fill" style="width: ${Math.min(b.fillPct, 100)}%; background:${b.fillPct >= 90 ? '#ef4444' : ''};"></div></div>
+                          <span style="font-size:0.7rem; font-weight:700; color:${b.fillPct >= 90 ? '#ef4444' : 'var(--text-primary)'};">${b.fillPct}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  `).join('')}
+                  ${batchList.length === 0 ? '<tr><td colspan="3" style="text-align:center; padding:16px;">No active batches.</td></tr>' : ''}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="col-6 glass-panel-modern">
+            <div class="glass-panel-header-modern">
+              <div class="glass-panel-title-modern">
+                <i class="fa-solid fa-chalkboard-user"></i>
+                <span>Tutor Benchmarks</span>
+              </div>
+            </div>
+            <div class="table-wrapper-modern">
+              <table class="data-table-modern">
+                <thead>
+                  <tr>
+                    <th>Instructor</th>
+                    <th>Batches</th>
+                    <th>Attendance</th>
+                    <th>Classes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tutorPerfList.map(t => `
+                    <tr>
+                      <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <div class="avatar-modern" style="background: linear-gradient(135deg, var(--accent), var(--brand-blue-light));">${t.name.charAt(0)}</div>
+                          <span style="font-weight: 700; color:var(--text-primary);">${t.name}</span>
+                        </div>
+                      </td>
+                      <td>${t.batchesCount}</td>
+                      <td style="font-weight: 700; color: #10b981;">${t.avgAttendance}</td>
+                      <td>${t.liveClassesCount}</td>
+                    </tr>
+                  `).join('')}
+                  ${tutorPerfList.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding:16px;">No active tutors.</td></tr>' : ''}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>`;
   },
 
   /* ============================================================
      STUDENTS
-  ============================================================ */
-  _renderStudents: function(search='', filter='') {
+     ============================================================ */
+  _renderStudents: function (search = '', filter = '') {
     let users = window.db.getUsers().filter(u => u.role === 'student' && !u.deleted);
-    if (search) users = users.filter(u => (u.name+u.username).toLowerCase().includes(search.toLowerCase()));
+    if (search) users = users.filter(u => (u.name + u.username).toLowerCase().includes(search.toLowerCase()));
     if (filter === 'suspended') users = users.filter(u => u.suspended);
     else if (filter === 'active') users = users.filter(u => !u.suspended);
     const allCourses = window.db.getCourses();
@@ -317,9 +670,9 @@ const AdminComponent = {
               <input id="stu-search" placeholder="Search students..." value="${search}">
             </div>
             <select id="stu-filter" style="width: 160px; height: 46px;">
-              <option value="" ${!filter?'selected':''}>All Students</option>
-              <option value="active" ${filter==='active'?'selected':''}>Active</option>
-              <option value="suspended" ${filter==='suspended'?'selected':''}>Suspended</option>
+              <option value="" ${!filter ? 'selected' : ''}>All Students</option>
+              <option value="active" ${filter === 'active' ? 'selected' : ''}>Active</option>
+              <option value="suspended" ${filter === 'suspended' ? 'selected' : ''}>Suspended</option>
             </select>
             <div id="stu-bulk-actions" style="display:none; align-items:center; gap:8px; margin-left:12px;">
               <span id="stu-bulk-count" style="font-size:0.8rem; font-weight:700; color:#475569; margin-right:8px; white-space:nowrap;">0 selected</span>
@@ -340,12 +693,12 @@ const AdminComponent = {
           <thead><tr><th><input type="checkbox" id="stu-check-all"></th><th>Student</th><th>Username</th><th>Enrolled</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody>
             ${users.map(u => {
-              const enrolledIds = u.enrolledCourses || [];
-              const enrolledNames = enrolledIds.map(id => {
-                const c = allCourses.find(x => x.id === id);
-                return c ? c.title : id;
-              });
-              return `
+      const enrolledIds = u.enrolledCourses || [];
+      const enrolledNames = enrolledIds.map(id => {
+        const c = allCourses.find(x => x.id === id);
+        return c ? c.title : id;
+      });
+      return `
               <tr>
                 <td><input type="checkbox" class="stu-check" data-username="${u.username}"></td>
                 <td>
@@ -357,10 +710,10 @@ const AdminComponent = {
                 <td style="color:#64748B;">@${u.username}</td>
                 <td style="max-width:220px;" title="${enrolledNames.join(', ')}">
                   ${enrolledNames.length === 0 ? `<span style="color:#94A3B8;font-style:italic;font-size:0.78rem;">None enrolled</span>` :
-                    enrolledNames.slice(0, 2).map(n => `<span style="display:inline-block;background:#EFF2FE;color:#3D46D8;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:600;margin:2px;">${n.slice(0, 22)}${n.length > 22 ? '...' : ''}</span>`).join('') + (enrolledNames.length > 2 ? `<span style="font-size:0.72rem;color:#94A3B8;cursor:help;">+${enrolledNames.length - 2} more</span>` : '')}
+          enrolledNames.slice(0, 2).map(n => `<span style="display:inline-block;background:#EFF2FE;color:#3D46D8;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:600;margin:2px;">${n.slice(0, 22)}${n.length > 22 ? '...' : ''}</span>`).join('') + (enrolledNames.length > 2 ? `<span style="font-size:0.72rem;color:#94A3B8;cursor:help;">+${enrolledNames.length - 2} more</span>` : '')}
                 </td>
                 <td>${u.suspended ? '<span class="status-badge danger">⚫ Suspended</span>' : '<span class="status-badge success">🟢 Active</span>'}</td>
-                <td style="color:#94A3B8;font-size:0.78rem;">${u.registeredDate||'—'}</td>
+                <td style="color:#94A3B8;font-size:0.78rem;">${u.registeredDate || '—'}</td>
                 <td>
                   <div class="adm-action-wrap">
                     <button class="btn btn-outline-white btn-sm btn-icon" onclick="AdminComponent._openAdmMenu(this, event)"><i class="fa-solid fa-ellipsis"></i></button>
@@ -370,13 +723,14 @@ const AdminComponent = {
                       <button onclick="AdminComponent._showResetModal('${u.username}','${u.name}')"><i class="fa-solid fa-key" style="color:#D97706;"></i> Reset Password</button>
                       <div class="adm-menu-divider"></div>
                       ${u.suspended
-                        ? `<button onclick="AdminComponent._activateUser('${u.username}')"><i class="fa-solid fa-circle-check" style="color:#059669;"></i> Activate</button>`
-                        : `<button onclick="AdminComponent._suspendUser('${u.username}')"><i class="fa-solid fa-ban" style="color:#D97706;"></i> Suspend</button>`}
+          ? `<button onclick="AdminComponent._activateUser('${u.username}')"><i class="fa-solid fa-circle-check" style="color:#059669;"></i> Activate</button>`
+          : `<button onclick="AdminComponent._suspendUser('${u.username}')"><i class="fa-solid fa-ban" style="color:#D97706;"></i> Suspend</button>`}
                       <button class="danger" onclick="AdminComponent._deleteUser('${u.username}','student')"><i class="fa-solid fa-trash-can"></i> Delete</button>
                     </div>
                   </div>
                 </td>
-              </tr>`;}).join('')}
+              </tr>`;
+    }).join('')}
             ${users.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:32px;">No students found.</td></tr>` : ''}
           </tbody>
         </table>
@@ -386,9 +740,9 @@ const AdminComponent = {
   /* ============================================================
      TUTORS
   ============================================================ */
-  _renderTutors: function(search='') {
+  _renderTutors: function (search = '') {
     let users = window.db.getUsers().filter(u => u.role === 'instructor' && !u.deleted);
-    if (search) users = users.filter(u => (u.name+u.username).toLowerCase().includes(search.toLowerCase()));
+    if (search) users = users.filter(u => (u.name + u.username).toLowerCase().includes(search.toLowerCase()));
     const allCourses = window.db.getCourses();
     return `
       <div class="dashboard-welcome">
@@ -420,9 +774,9 @@ const AdminComponent = {
           <thead><tr><th><input type="checkbox" id="tut-check-all"></th><th>Name</th><th>Username</th><th>Assigned Courses</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody>
             ${users.map(u => {
-              const assigned = (u.assignedCourses||[]);
-              const names = assigned.map(id=>{const c=allCourses.find(x=>x.id===id);return c?c.title:id;});
-              return `
+      const assigned = (u.assignedCourses || []);
+      const names = assigned.map(id => { const c = allCourses.find(x => x.id === id); return c ? c.title : id; });
+      return `
               <tr>
                 <td><input type="checkbox" class="tut-check" data-username="${u.username}"></td>
                 <td>
@@ -430,17 +784,17 @@ const AdminComponent = {
                     <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#6366F1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;color:#fff;flex-shrink:0;">${u.name.charAt(0)}</div>
                     <div>
                       <div style="font-weight:700;color:#0F172A;font-size:0.85rem;">${u.name}</div>
-                      <div style="font-size:0.72rem;color:#94A3B8;">${u.authorBio?u.authorBio.slice(0,40)+'...':'No bio'}</div>
+                      <div style="font-size:0.72rem;color:#94A3B8;">${u.authorBio ? u.authorBio.slice(0, 40) + '...' : 'No bio'}</div>
                     </div>
                   </div>
                 </td>
                 <td style="color:#64748B;">@${u.username}</td>
                 <td style="max-width:220px;" title="${names.join(', ')}">
-                  ${names.length===0?`<span style="color:#94A3B8;font-style:italic;font-size:0.78rem;">None assigned</span>`:
-                    names.slice(0,2).map(n=>`<span style="display:inline-block;background:#EFF2FE;color:#3D46D8;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:600;margin:2px;">${n.slice(0,22)}</span>`).join('')+(names.length>2?`<span style="font-size:0.72rem;color:#94A3B8;cursor:help;">+${names.length-2} more</span>`:'')}
+                  ${names.length === 0 ? `<span style="color:#94A3B8;font-style:italic;font-size:0.78rem;">None assigned</span>` :
+          names.slice(0, 2).map(n => `<span style="display:inline-block;background:#EFF2FE;color:#3D46D8;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:600;margin:2px;">${n.slice(0, 22)}</span>`).join('') + (names.length > 2 ? `<span style="font-size:0.72rem;color:#94A3B8;cursor:help;">+${names.length - 2} more</span>` : '')}
                 </td>
-                <td>${u.suspended?'<span class="status-badge danger">⚫ Suspended</span>':'<span class="status-badge success">🟢 Active</span>'}</td>
-                <td style="color:#94A3B8;font-size:0.78rem;">${u.registeredDate||'—'}</td>
+                <td>${u.suspended ? '<span class="status-badge danger">⚫ Suspended</span>' : '<span class="status-badge success">🟢 Active</span>'}</td>
+                <td style="color:#94A3B8;font-size:0.78rem;">${u.registeredDate || '—'}</td>
                 <td>
                   <div class="adm-action-wrap">
                     <button class="btn btn-outline-white btn-sm btn-icon" onclick="AdminComponent._openAdmMenu(this, event)"><i class="fa-solid fa-ellipsis"></i></button>
@@ -450,14 +804,15 @@ const AdminComponent = {
                       <button onclick="AdminComponent._showResetModal('${u.username}','${u.name}')"><i class="fa-solid fa-key" style="color:#D97706;"></i> Reset Password</button>
                       <div class="adm-menu-divider"></div>
                       ${u.suspended
-                        ?`<button onclick="AdminComponent._activateUser('${u.username}')"><i class="fa-solid fa-circle-check" style="color:#059669;"></i> Activate</button>`
-                        :`<button onclick="AdminComponent._suspendUser('${u.username}')"><i class="fa-solid fa-ban" style="color:#D97706;"></i> Suspend</button>`}
+          ? `<button onclick="AdminComponent._activateUser('${u.username}')"><i class="fa-solid fa-circle-check" style="color:#059669;"></i> Activate</button>`
+          : `<button onclick="AdminComponent._suspendUser('${u.username}')"><i class="fa-solid fa-ban" style="color:#D97706;"></i> Suspend</button>`}
                       <button class="danger" onclick="AdminComponent._deleteUser('${u.username}','tutor')"><i class="fa-solid fa-trash-can"></i> Delete</button>
                     </div>
                   </div>
                 </td>
-              </tr>`;}).join('')}
-            ${users.length===0?`<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:32px;">No tutors found.</td></tr>`:''}
+              </tr>`;
+    }).join('')}
+            ${users.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:32px;">No tutors found.</td></tr>` : ''}
           </tbody>
         </table>
       </div>`;
@@ -466,11 +821,11 @@ const AdminComponent = {
   /* ============================================================
      COURSES
   ============================================================ */
-  _renderBatches: function(search='', courseId='', tutorId='', status='', date='') {
+  _renderBatches: function (search = '', courseId = '', tutorId = '', status = '', date = '') {
     let batches = window.db.getBatches();
     const courses = window.db.getCourses();
-    const tutors = window.db.getUsers().filter(u => u.role==='instructor');
-    
+    const tutors = window.db.getUsers().filter(u => u.role === 'instructor');
+
     // Filtering
     if (search) {
       batches = batches.filter(b => b.name.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase()));
@@ -502,15 +857,15 @@ const AdminComponent = {
             </div>
             <select id="bt-course" style="width: 150px; height: 46px; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-card); font-family: inherit; font-size: 0.85rem; padding: 0 12px;">
               <option value="">All Courses</option>
-              ${courses.map(c => `<option value="${c.id}" ${courseId===c.id?'selected':''}>${c.title}</option>`).join('')}
+              ${courses.map(c => `<option value="${c.id}" ${courseId === c.id ? 'selected' : ''}>${c.title}</option>`).join('')}
             </select>
             <select id="bt-tutor" style="width: 150px; height: 46px; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-card); font-family: inherit; font-size: 0.85rem; padding: 0 12px;">
               <option value="">All Tutors</option>
-              ${tutors.map(t => `<option value="${t.username}" ${tutorId===t.username?'selected':''}>${t.name}</option>`).join('')}
+              ${tutors.map(t => `<option value="${t.username}" ${tutorId === t.username ? 'selected' : ''}>${t.name}</option>`).join('')}
             </select>
             <select id="bt-status" style="width: 150px; height: 46px; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-card); font-family: inherit; font-size: 0.85rem; padding: 0 12px;">
               <option value="">All Status</option>
-              ${['Enrollment Open', 'Upcoming', 'Active', 'Completed', 'Archived'].map(s => `<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}
+              ${['Enrollment Open', 'Upcoming', 'Active', 'Completed', 'Archived'].map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`).join('')}
             </select>
             <input type="date" id="bt-date" value="${date}" style="height: 46px; width: 140px; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-card); font-family: inherit; font-size: 0.85rem; padding: 0 12px;">
           </div>
@@ -534,19 +889,19 @@ const AdminComponent = {
           </thead>
           <tbody>
             ${batches.map(b => {
-              const course = courses.find(c => c.id === b.courseId);
-              const tutorNames = b.tutorIds.map(tid => {
-                const t = tutors.find(x => x.username === tid);
-                return t ? t.name : tid;
-              }).join(', ');
-              
-              let statusClass = 'status-badge';
-              if (b.status === 'Active') statusClass += ' success';
-              else if (b.status === 'Enrollment Open') statusClass += ' warning';
-              else if (b.status === 'Completed') statusClass += ' info';
-              else if (b.status === 'Archived') statusClass += ' danger';
-              
-              return `
+      const course = courses.find(c => c.id === b.courseId);
+      const tutorNames = b.tutorIds.map(tid => {
+        const t = tutors.find(x => x.username === tid);
+        return t ? t.name : tid;
+      }).join(', ');
+
+      let statusClass = 'status-badge';
+      if (b.status === 'Active') statusClass += ' success';
+      else if (b.status === 'Enrollment Open') statusClass += ' warning';
+      else if (b.status === 'Completed') statusClass += ' info';
+      else if (b.status === 'Archived') statusClass += ' danger';
+
+      return `
                 <tr>
                   <td style="font-family:monospace;font-weight:700;color:#3D46D8;">${b.id}</td>
                   <td style="font-weight:700;color:#0F172A;">${b.name}</td>
@@ -576,7 +931,7 @@ const AdminComponent = {
                   </td>
                 </tr>
               `;
-            }).join('')}
+    }).join('')}
             ${batches.length === 0 ? `<tr><td colspan="8" style="text-align:center;color:#94A3B8;padding:32px;">No batches found.</td></tr>` : ''}
           </tbody>
         </table>
@@ -585,10 +940,10 @@ const AdminComponent = {
     `;
   },
 
-  _renderBatchForm: function(batch) {
+  _renderBatchForm: function (batch) {
     const isEdit = !!batch;
     const courses = window.db.getCourses();
-    const tutors = window.db.getUsers().filter(u => u.role==='instructor');
+    const tutors = window.db.getUsers().filter(u => u.role === 'instructor');
     const classDaysList = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const activeDays = batch ? (batch.classDays || []) : [];
     const activeTutors = batch ? (batch.tutorIds || []) : [];
@@ -596,47 +951,47 @@ const AdminComponent = {
     return `
       <div class="adm-modal" style="max-width: 800px; width: 100%;">
         <div class="glass-panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 20px;">
-          <div class="glass-panel-title" style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);"><i class="fa-solid fa-cubes" style="color:#3D46D8;margin-right:7px;"></i>${isEdit?'Edit Batch':'Create New Batch'}</div>
+          <div class="glass-panel-title" style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);"><i class="fa-solid fa-cubes" style="color:#3D46D8;margin-right:7px;"></i>${isEdit ? 'Edit Batch' : 'Create New Batch'}</div>
           <button type="button" class="btn btn-outline-white btn-sm btn-icon" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" onclick="document.getElementById('batch-form-panel').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div>
           <form id="form-batch">
-            <input type="hidden" id="bf-id" value="${batch?batch.id:''}">
+            <input type="hidden" id="bf-id" value="${batch ? batch.id : ''}">
             <div class="form-grid" style="margin-bottom:14px; grid-template-columns: repeat(2, 1fr);">
               <div class="form-group">
                 <label>Batch Name *</label>
-                <input class="form-control" type="text" id="bf-name" required placeholder="e.g. Blender Premium - Batch 3" value="${batch?batch.name:''}">
+                <input class="form-control" type="text" id="bf-name" required placeholder="e.g. Blender Premium - Batch 3" value="${batch ? batch.name : ''}">
               </div>
               <div class="form-group">
                 <label>Course *</label>
                 <select id="bf-course" class="form-control" required>
                   <option value="">-- Select Course --</option>
-                  ${courses.map(c => `<option value="${c.id}" ${batch&&batch.courseId===c.id?'selected':''}>${c.title}</option>`).join('')}
+                  ${courses.map(c => `<option value="${c.id}" ${batch && batch.courseId === c.id ? 'selected' : ''}>${c.title}</option>`).join('')}
                 </select>
               </div>
               <div class="form-group">
                 <label>Max Students *</label>
-                <input class="form-control" type="number" id="bf-max" required placeholder="50" value="${batch?batch.maxStudents:'50'}">
+                <input class="form-control" type="number" id="bf-max" required placeholder="50" value="${batch ? batch.maxStudents : '50'}">
               </div>
               <div class="form-group">
                 <label>Class Time</label>
-                <input class="form-control" type="text" id="bf-time" placeholder="e.g. 18:00 - 20:00" value="${batch?batch.classTime:''}">
+                <input class="form-control" type="text" id="bf-time" placeholder="e.g. 18:00 - 20:00" value="${batch ? batch.classTime : ''}">
               </div>
               <div class="form-group">
                 <label>Start Date</label>
-                <input class="form-control" type="date" id="bf-start" value="${batch?batch.startDate:''}">
+                <input class="form-control" type="date" id="bf-start" value="${batch ? batch.startDate : ''}">
               </div>
               <div class="form-group">
                 <label>End Date</label>
-                <input class="form-control" type="date" id="bf-end" value="${batch?batch.endDate:''}">
+                <input class="form-control" type="date" id="bf-end" value="${batch ? batch.endDate : ''}">
               </div>
               <div class="form-group">
                 <label>Google Meet Link</label>
-                <input class="form-control" type="url" id="bf-meet" placeholder="https://meet.google.com/..." value="${batch?batch.googleMeetLink:''}">
+                <input class="form-control" type="url" id="bf-meet" placeholder="https://meet.google.com/..." value="${batch ? batch.googleMeetLink : ''}">
               </div>
               <div class="form-group">
                 <label>Google Drive Resource Folder</label>
-                <input class="form-control" type="url" id="bf-drive" placeholder="https://drive.google.com/..." value="${batch?batch.googleDriveFolder:''}">
+                <input class="form-control" type="url" id="bf-drive" placeholder="https://drive.google.com/..." value="${batch ? batch.googleDriveFolder : ''}">
               </div>
               <div class="form-group">
                 <label>WhatsApp Group Link</label>
@@ -645,7 +1000,7 @@ const AdminComponent = {
               <div class="form-group">
                 <label>Status</label>
                 <select id="bf-status" class="form-control">
-                  ${['Enrollment Open', 'Upcoming', 'Active', 'Full', 'Completed', 'Archived'].map(s => `<option value="${s}" ${batch&&batch.status===s?'selected':''}>${s}</option>`).join('')}
+                  ${['Enrollment Open', 'Upcoming', 'Active', 'Full', 'Completed', 'Archived'].map(s => `<option value="${s}" ${batch && batch.status === s ? 'selected' : ''}>${s}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -655,7 +1010,7 @@ const AdminComponent = {
               <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:8px;">
                 ${tutors.map(t => `
                   <label style="display:flex; align-items:center; gap:6px; font-weight:600; cursor:pointer;">
-                    <input type="checkbox" class="bf-tutors-cb" value="${t.username}" ${activeTutors.includes(t.username)?'checked':''}> ${t.name}
+                    <input type="checkbox" class="bf-tutors-cb" value="${t.username}" ${activeTutors.includes(t.username) ? 'checked' : ''}> ${t.name}
                   </label>
                 `).join('')}
                 ${tutors.length === 0 ? '<div style="color:var(--text-muted); font-size:0.85rem;">No tutors registered yet. Create a tutor profile first.</div>' : ''}
@@ -667,7 +1022,7 @@ const AdminComponent = {
               <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:8px;">
                 ${classDaysList.map(d => `
                   <label style="display:flex; align-items:center; gap:6px; font-weight:600; cursor:pointer;">
-                    <input type="checkbox" class="bf-days-cb" value="${d}" ${activeDays.includes(d)?'checked':''}> ${d}
+                    <input type="checkbox" class="bf-days-cb" value="${d}" ${activeDays.includes(d) ? 'checked' : ''}> ${d}
                   </label>
                 `).join('')}
               </div>
@@ -675,7 +1030,7 @@ const AdminComponent = {
 
             <div style="display:flex; gap:10px; justify-content:flex-end; border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
               <button type="button" class="btn btn-outline-white" onclick="document.getElementById('batch-form-panel').style.display='none'">Cancel</button>
-              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> ${isEdit?'Save Changes':'Create Batch'}</button>
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> ${isEdit ? 'Save Changes' : 'Create Batch'}</button>
             </div>
           </form>
         </div>
@@ -683,7 +1038,7 @@ const AdminComponent = {
     `;
   },
 
-  _showCreateBatch: function() {
+  _showCreateBatch: function () {
     const panel = document.getElementById('batch-form-panel');
     panel.innerHTML = AdminComponent._renderBatchForm(null);
     panel.style.display = 'flex';
@@ -691,7 +1046,7 @@ const AdminComponent = {
     AdminComponent._bindBatchForm();
   },
 
-  _showEditBatch: function(id) {
+  _showEditBatch: function (id) {
     const batch = window.db.getBatchById(id);
     if (!batch) return;
     const panel = document.getElementById('batch-form-panel');
@@ -701,40 +1056,40 @@ const AdminComponent = {
     AdminComponent._bindBatchForm();
   },
 
-  _duplicateBatch: function(id) {
+  _duplicateBatch: function (id) {
     if (!confirm('Duplicate this batch?')) return;
     const res = window.db.duplicateBatch(id);
     if (res.success) {
-      window.app.showToast('Batch duplicated successfully!','success');
+      window.app.showToast('Batch duplicated successfully!', 'success');
       AdminComponent._nav('batches');
     } else {
       window.app.showToast(res.error || 'Failed to duplicate batch.', 'danger');
     }
   },
 
-  _archiveBatch: function(id) {
+  _archiveBatch: function (id) {
     if (!confirm('Archive this batch?')) return;
     const res = window.db.archiveBatch(id);
     if (res.success) {
-      window.app.showToast('Batch archived!','success');
+      window.app.showToast('Batch archived!', 'success');
       AdminComponent._nav('batches');
     } else {
       window.app.showToast(res.error || 'Failed to archive batch.', 'danger');
     }
   },
 
-  _deleteBatch: function(id) {
+  _deleteBatch: function (id) {
     if (!confirm('Are you sure you want to permanently delete this batch? This action cannot be undone.')) return;
     const res = window.db.deleteBatch(id);
     if (res.success) {
-      window.app.showToast('Batch deleted permanently.','success');
+      window.app.showToast('Batch deleted permanently.', 'success');
       AdminComponent._nav('batches');
     } else {
       window.app.showToast(res.error || 'Failed to delete batch.', 'danger');
     }
   },
 
-  _renderCourses: function(search='',filter='') {
+  _renderCourses: function (search = '', filter = '') {
     let courses = window.db.getCourses();
     if (search) courses = courses.filter(c => c.title.toLowerCase().includes(search.toLowerCase()));
     if (filter === 'published') courses = courses.filter(c => c.published && !c.archived);
@@ -762,9 +1117,9 @@ const AdminComponent = {
             </div>
             <select id="crs-filter" style="width: 160px; height: 46px;">
               <option value="">All Status</option>
-              <option value="published" ${filter==='published'?'selected':''}>Published</option>
-              <option value="draft" ${filter==='draft'?'selected':''}>Draft</option>
-              <option value="archived" ${filter==='archived'?'selected':''}>Archived</option>
+              <option value="published" ${filter === 'published' ? 'selected' : ''}>Published</option>
+              <option value="draft" ${filter === 'draft' ? 'selected' : ''}>Draft</option>
+              <option value="archived" ${filter === 'archived' ? 'selected' : ''}>Archived</option>
             </select>
           </div>
           <div class="table-actions-right">
@@ -782,15 +1137,15 @@ const AdminComponent = {
                     <img src="${c.image}" style="width:56px;height:38px;object-fit:cover;border-radius:8px;flex-shrink:0;">
                     <div>
                       <div style="font-weight:700;font-size:0.85rem;color:#0F172A;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title}</div>
-                      <div style="font-size:0.72rem;color:#94A3B8;">${c.lessonsCount||0} lessons · ${c.level||'—'}</div>
+                      <div style="font-size:0.72rem;color:#94A3B8;">${c.lessonsCount || 0} lessons · ${c.level || '—'}</div>
                     </div>
                   </div>
                 </td>
                 <td style="font-weight:700;color:#0F172A;">₹${c.price.toLocaleString('en-IN')}</td>
-                <td style="font-weight:600;">${(c.studentsCount||0).toLocaleString('en-IN')}</td>
+                <td style="font-weight:600;">${(c.studentsCount || 0).toLocaleString('en-IN')}</td>
                 <td style="color:#D97706;font-weight:700;">★ ${c.rating}</td>
                 <td>${statusBadge(c)}</td>
-                <td style="color:#94A3B8;font-size:0.78rem;">${c.updatedDate||c.createdDate||'—'}</td>
+                <td style="color:#94A3B8;font-size:0.78rem;">${c.updatedDate || c.createdDate || '—'}</td>
                 <td>
                   <div class="adm-action-wrap">
                     <button class="btn btn-outline-white btn-sm btn-icon" onclick="AdminComponent._openAdmMenu(this, event)"><i class="fa-solid fa-ellipsis"></i></button>
@@ -801,18 +1156,18 @@ const AdminComponent = {
                       <button onclick="AdminComponent._duplicateCourse('${c.id}')"><i class="fa-solid fa-copy" style="color:#64748B;"></i> Duplicate</button>
                       <div class="adm-menu-divider"></div>
                       ${c.published
-                        ? `<button onclick="AdminComponent._unpublishCourse('${c.id}')"><i class="fa-solid fa-eye-slash" style="color:#D97706;"></i> Unpublish</button>`
-                        : `<button onclick="AdminComponent._publishCourse('${c.id}')"><i class="fa-solid fa-globe" style="color:#059669;"></i> Publish</button>`}
+        ? `<button onclick="AdminComponent._unpublishCourse('${c.id}')"><i class="fa-solid fa-eye-slash" style="color:#D97706;"></i> Unpublish</button>`
+        : `<button onclick="AdminComponent._publishCourse('${c.id}')"><i class="fa-solid fa-globe" style="color:#059669;"></i> Publish</button>`}
                       ${c.archived
-                        ? `<button onclick="AdminComponent._restoreCourse('${c.id}')"><i class="fa-solid fa-rotate-left" style="color:#64748B;"></i> Restore</button>`
-                        : `<button onclick="AdminComponent._archiveCourse('${c.id}')"><i class="fa-solid fa-box-archive" style="color:#64748B;"></i> Archive</button>`}
+        ? `<button onclick="AdminComponent._restoreCourse('${c.id}')"><i class="fa-solid fa-rotate-left" style="color:#64748B;"></i> Restore</button>`
+        : `<button onclick="AdminComponent._archiveCourse('${c.id}')"><i class="fa-solid fa-box-archive" style="color:#64748B;"></i> Archive</button>`}
                       <div class="adm-menu-divider"></div>
                       <button class="danger" onclick="AdminComponent._deleteCourse('${c.id}')"><i class="fa-solid fa-trash-can"></i> Delete</button>
                     </div>
                   </div>
                 </td>
               </tr>`).join('')}
-            ${courses.length===0?`<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:32px;">No courses found.</td></tr>`:''}
+            ${courses.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:32px;">No courses found.</td></tr>` : ''}
           </tbody>
         </table>
       </div>
@@ -820,49 +1175,49 @@ const AdminComponent = {
       <div id="modules-panel" class="adm-modal-overlay" style="display:none;"></div>`;
   },
 
-  _renderCourseForm: function(course) {
+  _renderCourseForm: function (course) {
     const isEdit = !!course;
-    const tutors = window.db.getUsers().filter(u => u.role==='instructor');
+    const tutors = window.db.getUsers().filter(u => u.role === 'instructor');
     return `
       <div class="adm-modal" style="max-width: 800px; width: 100%;">
         <div class="glass-panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 20px;">
-          <div class="glass-panel-title" style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);"><i class="fa-solid ${isEdit?'fa-pen-to-square':'fa-plus'}" style="color:#3D46D8;margin-right:7px;"></i>${isEdit?'Edit Course':'Create New Course'}</div>
+          <div class="glass-panel-title" style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);"><i class="fa-solid ${isEdit ? 'fa-pen-to-square' : 'fa-plus'}" style="color:#3D46D8;margin-right:7px;"></i>${isEdit ? 'Edit Course' : 'Create New Course'}</div>
           <button type="button" class="btn btn-outline-white btn-sm btn-icon" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" onclick="document.getElementById('course-form-panel').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div>
           <form id="form-course">
-            <input type="hidden" id="cf-id" value="${course?course.id:''}">
+            <input type="hidden" id="cf-id" value="${course ? course.id : ''}">
             <div class="form-grid" style="margin-bottom:14px; grid-template-columns: repeat(2, 1fr);">
-              <div class="form-group"><label>Course Title *</label><input class="form-control" type="text" id="cf-title" required placeholder="e.g. Blender Premium Course" value="${course?course.title:''}"></div>
-              <div class="form-group"><label>Price (₹) *</label><input class="form-control" type="number" id="cf-price" required placeholder="1999" value="${course?course.price:''}"></div>
+              <div class="form-group"><label>Course Title *</label><input class="form-control" type="text" id="cf-title" required placeholder="e.g. Blender Premium Course" value="${course ? course.title : ''}"></div>
+              <div class="form-group"><label>Price (₹) *</label><input class="form-control" type="number" id="cf-price" required placeholder="1999" value="${course ? course.price : ''}"></div>
               <div class="form-group"><label>Level</label>
                 <select id="cf-level" class="form-control">
-                  ${['Beginner','Intermediate','Advanced','Beginner to Advanced','All Levels'].map(l=>`<option ${course&&course.level===l?'selected':''}>${l}</option>`).join('')}
+                  ${['Beginner', 'Intermediate', 'Advanced', 'Beginner to Advanced', 'All Levels'].map(l => `<option ${course && course.level === l ? 'selected' : ''}>${l}</option>`).join('')}
                 </select>
               </div>
-              <div class="form-group"><label>Duration</label><input class="form-control" type="text" id="cf-duration" placeholder="e.g. 28 Hours" value="${course?course.duration:''}"></div>
-              <div class="form-group"><label>Category</label><input class="form-control" type="text" id="cf-category" placeholder="e.g. 3D Design" value="${course?course.category:''}"></div>
+              <div class="form-group"><label>Duration</label><input class="form-control" type="text" id="cf-duration" placeholder="e.g. 28 Hours" value="${course ? course.duration : ''}"></div>
+              <div class="form-group"><label>Category</label><input class="form-control" type="text" id="cf-category" placeholder="e.g. 3D Design" value="${course ? course.category : ''}"></div>
               <div class="form-group"><label>Assign Tutor</label>
                 <select id="cf-tutor" class="form-control">
                   <option value="admin">Cubaze Academy (Admin)</option>
-                  ${tutors.map(t=>`<option value="${t.username}" ${course&&course.author===t.username?'selected':''}>${t.name}</option>`).join('')}
+                  ${tutors.map(t => `<option value="${t.username}" ${course && course.author === t.username ? 'selected' : ''}>${t.name}</option>`).join('')}
                 </select>
               </div>
             </div>
-            <div class="form-group" style="margin-bottom:14px;"><label>Short Description *</label><input class="form-control" type="text" id="cf-sdesc" required placeholder="One-line course summary" value="${course?course.shortDescription:''}"></div>
-            <div class="form-group" style="margin-bottom:14px;"><label>Full Description</label><textarea class="form-control" id="cf-desc" rows="4" placeholder="Detailed course description...">${course?course.description:''}</textarea></div>
-            <div class="form-group" style="margin-bottom:14px;"><label>Thumbnail URL</label><input class="form-control" type="url" id="cf-image" placeholder="https://..." value="${course?course.image:''}"></div>
-            <div class="form-group" style="margin-bottom:20px;"><label>Preview Video URL</label><input class="form-control" type="url" id="cf-preview" placeholder="https://youtube.com/embed/..." value="${course?course.previewVideo:''}"></div>
+            <div class="form-group" style="margin-bottom:14px;"><label>Short Description *</label><input class="form-control" type="text" id="cf-sdesc" required placeholder="One-line course summary" value="${course ? course.shortDescription : ''}"></div>
+            <div class="form-group" style="margin-bottom:14px;"><label>Full Description</label><textarea class="form-control" id="cf-desc" rows="4" placeholder="Detailed course description...">${course ? course.description : ''}</textarea></div>
+            <div class="form-group" style="margin-bottom:14px;"><label>Thumbnail URL</label><input class="form-control" type="url" id="cf-image" placeholder="https://..." value="${course ? course.image : ''}"></div>
+            <div class="form-group" style="margin-bottom:20px;"><label>Preview Video URL</label><input class="form-control" type="url" id="cf-preview" placeholder="https://youtube.com/embed/..." value="${course ? course.previewVideo : ''}"></div>
             <div style="display:flex; gap:10px; justify-content:flex-end; border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
               <button type="button" class="btn btn-outline-white" onclick="document.getElementById('course-form-panel').style.display='none'">Cancel</button>
-              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> ${isEdit?'Save Changes':'Create Course'}</button>
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> ${isEdit ? 'Save Changes' : 'Create Course'}</button>
             </div>
           </form>
         </div>
       </div>`;
   },
 
-  _renderModulesPanel: function(courseId) {
+  _renderModulesPanel: function (courseId) {
     const course = window.db.getCourseById(courseId);
     if (!course) return '<div style="padding:20px;">Course not found.</div>';
     return `
@@ -877,7 +1232,7 @@ const AdminComponent = {
             <input id="new-mod-title" class="form-control" placeholder="New Module Title..." style="flex:1; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
             <button class="btn btn-primary btn-sm" style="padding: 10px 20px; font-weight: 600; border-radius: 8px;" onclick="AdminComponent._addModule('${courseId}')"><i class="fa-solid fa-plus"></i> Add Module</button>
           </div>
-          ${(course.modules||[]).map((mod,modIdx) => `
+          ${(course.modules || []).map((mod, modIdx) => `
             <div style="background: #FFFFFF; border-radius: 12px; margin-bottom: 24px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);">
               <div style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0;">
                 <div style="font-weight: 700; font-size: 0.95rem; color: #0F172A; display: flex; align-items: center; gap: 10px;"><i class="fa-solid fa-layer-group" style="color: #6366F1;"></i>${mod.title}</div>
@@ -887,14 +1242,14 @@ const AdminComponent = {
                 </div>
               </div>
               <div style="padding: 16px 20px;">
-                ${(mod.lessons||[]).map((les,lesIdx) => `
+                ${(mod.lessons || []).map((les, lesIdx) => `
                   <div style="display:flex; align-items:center; gap: 16px; padding: 12px 16px; border-radius: 8px; border: 1px solid transparent; margin-bottom: 8px; background: #FAFAF9; transition: all 0.2s;" onmouseover="this.style.background='#F1F5F9';this.style.borderColor='#E2E8F0'" onmouseout="this.style.background='#FAFAF9';this.style.borderColor='transparent'">
-                    <div style="width: 32px; height: 32px; background: #EEF2FF; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; color: #4F46E5; flex-shrink: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">${lesIdx+1}</div>
+                    <div style="width: 32px; height: 32px; background: #EEF2FF; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; color: #4F46E5; flex-shrink: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">${lesIdx + 1}</div>
                     <div style="flex:1;">
                       <div style="font-size: 0.9rem; font-weight: 700; color: #1E293B; margin-bottom: 4px;">${les.title}</div>
                       <div style="font-size: 0.75rem; color: #64748B; display: flex; gap: 16px; align-items: center;">
-                        <span style="display:flex; align-items:center; gap:4px;"><i class="fa-regular fa-clock"></i>${les.duration||'—'}</span>
-                        ${les.videoUrl?`<a href="${les.videoUrl}" target="_blank" style="color: #EF4444; text-decoration: none; display:flex; align-items:center; gap:4px; font-weight:600;"><i class="fa-brands fa-youtube"></i>Watch</a>`:''}
+                        <span style="display:flex; align-items:center; gap:4px;"><i class="fa-regular fa-clock"></i>${les.duration || '—'}</span>
+                        ${les.videoUrl ? `<a href="${les.videoUrl}" target="_blank" style="color: #EF4444; text-decoration: none; display:flex; align-items:center; gap:4px; font-weight:600;"><i class="fa-brands fa-youtube"></i>Watch</a>` : ''}
                       </div>
                     </div>
                     <div style="display:flex; gap: 8px; opacity: 0.9;">
@@ -914,7 +1269,7 @@ const AdminComponent = {
                 </div>
               </div>
             </div>`).join('')}
-          ${(course.modules||[]).length===0?`<div style="text-align:center; padding: 40px; color: #64748B; background: #F8FAFC; border-radius: 12px; border: 1px dashed #CBD5E1;">No modules yet. Create your first module above.</div>`:''}
+          ${(course.modules || []).length === 0 ? `<div style="text-align:center; padding: 40px; color: #64748B; background: #F8FAFC; border-radius: 12px; border: 1px dashed #CBD5E1;">No modules yet. Create your first module above.</div>` : ''}
         </div>
       </div>`;
   },
@@ -922,13 +1277,13 @@ const AdminComponent = {
   /* ============================================================
      PAYMENTS
   ============================================================ */
-  _renderPayments: function(search='',filter='',viewingId=null) {
+  _renderPayments: function (search = '', filter = '', viewingId = null) {
     if (viewingId) return AdminComponent._renderPaymentDetail(viewingId);
     let txns = window.db.getTransactions();
-    if (search) txns = txns.filter(t=>(t.username+t.courseTitle+t.id).toLowerCase().includes(search.toLowerCase()));
-    if (filter==='APPROVED') txns=txns.filter(t=>(t.adminStatus||t.status)==='APPROVED'||t.status==='SUCCESS');
-    else if (filter==='PENDING') txns=txns.filter(t=>(t.adminStatus||t.status)==='PENDING'||t.status==='PENDING');
-    else if (filter==='DENIED') txns=txns.filter(t=>(t.adminStatus||t.status)==='DENIED'||t.status==='FAILED');
+    if (search) txns = txns.filter(t => (t.username + t.courseTitle + t.id).toLowerCase().includes(search.toLowerCase()));
+    if (filter === 'APPROVED') txns = txns.filter(t => (t.adminStatus || t.status) === 'APPROVED' || t.status === 'SUCCESS');
+    else if (filter === 'PENDING') txns = txns.filter(t => (t.adminStatus || t.status) === 'PENDING' || t.status === 'PENDING');
+    else if (filter === 'DENIED') txns = txns.filter(t => (t.adminStatus || t.status) === 'DENIED' || t.status === 'FAILED');
 
     return `
       <div class="dashboard-welcome">
@@ -936,11 +1291,11 @@ const AdminComponent = {
         <p>Manually review and approve/deny student payments. Approving automatically enrolls the student.</p>
       </div>
       <div class="dashboard-widgets" style="margin-bottom:20px; grid-template-columns: repeat(3, 1fr);">
-        ${[['PENDING','gold','fa-hourglass-half','Pending'],['APPROVED','green','fa-circle-check','Approved'],['DENIED','red','fa-circle-xmark','Denied']].map(([st,c,ic,lbl])=>`
+        ${[['PENDING', 'gold', 'fa-hourglass-half', 'Pending'], ['APPROVED', 'green', 'fa-circle-check', 'Approved'], ['DENIED', 'red', 'fa-circle-xmark', 'Denied']].map(([st, c, ic, lbl]) => `
           <div class="widget-card" style="cursor:pointer; display:flex; gap:16px; align-items:center;" onclick="AdminComponent._filterPayments('${st}')">
             <div class="widget-icon ${c}" style="margin-bottom:0;"><i class="fa-solid ${ic}"></i></div>
             <div>
-              <div class="widget-number">${window.db.getTransactions().filter(t=>{const s=t.adminStatus||t.status;return st==='APPROVED'?s==='APPROVED'||t.status==='SUCCESS':st==='PENDING'?s==='PENDING'||t.status==='PENDING':s==='DENIED'||t.status==='FAILED';}).length}</div>
+              <div class="widget-number">${window.db.getTransactions().filter(t => { const s = t.adminStatus || t.status; return st === 'APPROVED' ? s === 'APPROVED' || t.status === 'SUCCESS' : st === 'PENDING' ? s === 'PENDING' || t.status === 'PENDING' : s === 'DENIED' || t.status === 'FAILED'; }).length}</div>
               <div class="widget-label">${lbl}</div>
             </div>
           </div>`).join('')}
@@ -954,9 +1309,9 @@ const AdminComponent = {
             </div>
             <select id="pay-filter" style="width: 160px; height: 46px;">
               <option value="">All Payments</option>
-              <option value="PENDING" ${filter==='PENDING'?'selected':''}>Pending</option>
-              <option value="APPROVED" ${filter==='APPROVED'?'selected':''}>Approved</option>
-              <option value="DENIED" ${filter==='DENIED'?'selected':''}>Denied</option>
+              <option value="PENDING" ${filter === 'PENDING' ? 'selected' : ''}>Pending</option>
+              <option value="APPROVED" ${filter === 'APPROVED' ? 'selected' : ''}>Approved</option>
+              <option value="DENIED" ${filter === 'DENIED' ? 'selected' : ''}>Denied</option>
             </select>
           </div>
           <div class="table-actions-right">
@@ -967,21 +1322,21 @@ const AdminComponent = {
           <thead><tr><th>Invoice</th><th>Student</th><th>Course</th><th>Amount</th><th>Method</th><th>Txn ID</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
             ${txns.map(t => {
-              const adminSt = t.adminStatus || (t.status==='SUCCESS'?'APPROVED':'PENDING');
-              return `
+      const adminSt = t.adminStatus || (t.status === 'SUCCESS' ? 'APPROVED' : 'PENDING');
+      return `
               <tr>
-                <td style="font-family:monospace;font-size:0.72rem;color:#6366F1;font-weight:700;">${t.invoiceNumber||'—'}</td>
+                <td style="font-family:monospace;font-size:0.72rem;color:#6366F1;font-weight:700;">${t.invoiceNumber || '—'}</td>
                 <td style="font-weight:700;">${t.username}</td>
                 <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.courseTitle}</td>
                 <td style="font-weight:700;color:#059669;">₹${t.amount.toLocaleString('en-IN')}</td>
-                <td style="font-size:0.78rem;">${t.paymentMethod||'—'}</td>
-                <td style="font-family:monospace;font-size:0.68rem;color:#64748B;">${t.id.slice(0,14)}...</td>
+                <td style="font-size:0.78rem;">${t.paymentMethod || '—'}</td>
+                <td style="font-family:monospace;font-size:0.68rem;color:#64748B;">${t.id.slice(0, 14)}...</td>
                 <td style="font-size:0.78rem;color:#94A3B8;">${new Date(t.timestamp).toLocaleDateString('en-IN')}</td>
                 <td>
                   <select class="pay-status-select pss-${adminSt.toLowerCase()}" data-txn-id="${t.id}" onchange="AdminComponent._changePaymentStatus('${t.id}',this.value,this)">
-                    <option value="PENDING" ${adminSt==='PENDING'?'selected':''}>🟡 Pending</option>
-                    <option value="APPROVED" ${adminSt==='APPROVED'?'selected':''}>🟢 Approved</option>
-                    <option value="DENIED" ${adminSt==='DENIED'?'selected':''}>🔴 Denied</option>
+                    <option value="PENDING" ${adminSt === 'PENDING' ? 'selected' : ''}>🟡 Pending</option>
+                    <option value="APPROVED" ${adminSt === 'APPROVED' ? 'selected' : ''}>🟢 Approved</option>
+                    <option value="DENIED" ${adminSt === 'DENIED' ? 'selected' : ''}>🔴 Denied</option>
                   </select>
                 </td>
                 <td>
@@ -989,21 +1344,22 @@ const AdminComponent = {
                     <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._viewPayment('${t.id}')"><i class="fa-solid fa-eye"></i> View</button>
                   </div>
                 </td>
-              </tr>`;}).join('')}
-            ${txns.length===0?`<tr><td colspan="9" style="text-align:center;color:#94A3B8;padding:32px;">No transactions found.</td></tr>`:''}
+              </tr>`;
+    }).join('')}
+            ${txns.length === 0 ? `<tr><td colspan="9" style="text-align:center;color:#94A3B8;padding:32px;">No transactions found.</td></tr>` : ''}
           </tbody>
         </table>
       </div>`;
   },
 
-  _renderPaymentDetail: function(txnId) {
-    const t = window.db.getTransactions().find(x=>x.id===txnId);
+  _renderPaymentDetail: function (txnId) {
+    const t = window.db.getTransactions().find(x => x.id === txnId);
     if (!t) return `<div style="padding:40px;text-align:center;color:#94A3B8;">Transaction not found. <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._nav('payments')">Back</button></div>`;
-    const adminSt = t.adminStatus || (t.status==='SUCCESS'?'APPROVED':'PENDING');
+    const adminSt = t.adminStatus || (t.status === 'SUCCESS' ? 'APPROVED' : 'PENDING');
     const course = window.db.getCourseById(t.courseId);
-    const student = window.db.getUsers().find(u=>u.username===t.username);
-    const stColors = { APPROVED:['#059669','#ECFDF5'], PENDING:['#D97706','#FFFBEB'], DENIED:['#DC2626','#FEF2F2'] };
-    const [stColor, stBg] = stColors[adminSt] || ['#64748B','#F1F5F9'];
+    const student = window.db.getUsers().find(u => u.username === t.username);
+    const stColors = { APPROVED: ['#059669', '#ECFDF5'], PENDING: ['#D97706', '#FFFBEB'], DENIED: ['#DC2626', '#FEF2F2'] };
+    const [stColor, stBg] = stColors[adminSt] || ['#64748B', '#F1F5F9'];
     return `
       <div>
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
@@ -1017,14 +1373,14 @@ const AdminComponent = {
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
                 <div>
                   <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94A3B8;margin-bottom:4px;">Invoice</div>
-                  <div style="font-size:1.1rem;font-weight:800;color:#3D46D8;font-family:monospace;">${t.invoiceNumber||'Not generated'}</div>
+                  <div style="font-size:1.1rem;font-weight:800;color:#3D46D8;font-family:monospace;">${t.invoiceNumber || 'Not generated'}</div>
                 </div>
                 <div style="background:${stBg};color:${stColor};padding:8px 18px;border-radius:20px;font-weight:700;font-size:0.88rem;">${adminSt}</div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
                 <div>
                   <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#94A3B8;margin-bottom:4px;">Student</div>
-                  <div style="font-weight:700;color:#0F172A;">${student?student.name:t.username}</div>
+                  <div style="font-weight:700;color:#0F172A;">${student ? student.name : t.username}</div>
                   <div style="font-size:0.78rem;color:#64748B;">@${t.username}</div>
                 </div>
                 <div>
@@ -1037,7 +1393,7 @@ const AdminComponent = {
                 </div>
                 <div>
                   <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#94A3B8;margin-bottom:4px;">Payment Method</div>
-                  <div style="font-weight:700;color:#0F172A;">${t.paymentMethod||'—'}</div>
+                  <div style="font-weight:700;color:#0F172A;">${t.paymentMethod || '—'}</div>
                 </div>
                 <div>
                   <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#94A3B8;margin-bottom:4px;">Transaction ID</div>
@@ -1048,9 +1404,9 @@ const AdminComponent = {
                   <div style="font-weight:600;color:#0F172A;">${new Date(t.timestamp).toLocaleString('en-IN')}</div>
                 </div>
               </div>
-              ${adminSt==='APPROVED' ? `<div style="background:#ECFDF5;border:1.5px solid #A7F3D0;border-radius:12px;padding:16px;font-size:0.83rem;color:#065F46;"><i class="fa-solid fa-circle-check" style="margin-right:6px;"></i><strong>Course Unlocked.</strong> ${t.username} is enrolled in ${t.courseTitle}. Invoice: ${t.invoiceNumber||'—'}.</div>` : ''}
-              ${adminSt==='PENDING' ? `<div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:12px;padding:16px;font-size:0.83rem;color:#92400E;"><i class="fa-solid fa-hourglass-half" style="margin-right:6px;"></i><strong>Payment Verification Pending.</strong> Course is locked until approved.</div>` : ''}
-              ${adminSt==='DENIED' ? `<div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:16px;font-size:0.83rem;color:#991B1B;"><i class="fa-solid fa-circle-xmark" style="margin-right:6px;"></i><strong>Payment Rejected.</strong> Course remains locked. Student may re-upload proof.</div>` : ''}
+              ${adminSt === 'APPROVED' ? `<div style="background:#ECFDF5;border:1.5px solid #A7F3D0;border-radius:12px;padding:16px;font-size:0.83rem;color:#065F46;"><i class="fa-solid fa-circle-check" style="margin-right:6px;"></i><strong>Course Unlocked.</strong> ${t.username} is enrolled in ${t.courseTitle}. Invoice: ${t.invoiceNumber || '—'}.</div>` : ''}
+              ${adminSt === 'PENDING' ? `<div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:12px;padding:16px;font-size:0.83rem;color:#92400E;"><i class="fa-solid fa-hourglass-half" style="margin-right:6px;"></i><strong>Payment Verification Pending.</strong> Course is locked until approved.</div>` : ''}
+              ${adminSt === 'DENIED' ? `<div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:16px;font-size:0.83rem;color:#991B1B;"><i class="fa-solid fa-circle-xmark" style="margin-right:6px;"></i><strong>Payment Rejected.</strong> Course remains locked. Student may re-upload proof.</div>` : ''}
             </div>
           </div>
           <!-- Actions card -->
@@ -1069,7 +1425,7 @@ const AdminComponent = {
                 <img src="${course.image}" style="width:60px;height:42px;object-fit:cover;border-radius:8px;">
                 <div>
                   <div style="font-weight:700;font-size:0.83rem;color:#0F172A;">${course.title}</div>
-                  <div style="font-size:0.72rem;color:#94A3B8;">₹${course.price.toLocaleString('en-IN')} · ${course.level||'—'}</div>
+                  <div style="font-size:0.72rem;color:#94A3B8;">₹${course.price.toLocaleString('en-IN')} · ${course.level || '—'}</div>
                 </div>
               </div>` : ''}
           </div>
@@ -1080,25 +1436,25 @@ const AdminComponent = {
   /* ============================================================
      REVIEWS
   ============================================================ */
-  _renderReviews: function() {
+  _renderReviews: function () {
     const courses = window.db.getCourses();
-    const allReviews = courses.flatMap(c => (c.reviews||[]).map(r=>({...r,courseTitle:c.title,courseId:c.id})));
+    const allReviews = courses.flatMap(c => (c.reviews || []).map(r => ({ ...r, courseTitle: c.title, courseId: c.id })));
     return `
       <div class="dashboard-welcome"><h1>Reviews (${allReviews.length})</h1><p>All student reviews across all courses.</p></div>
       <div class="glass-panel">
         <table class="data-table">
           <thead><tr><th>Student</th><th>Course</th><th>Rating</th><th>Review</th><th>Date</th><th>Actions</th></tr></thead>
           <tbody>
-            ${allReviews.map(r=>`
+            ${allReviews.map(r => `
               <tr>
-                <td style="font-weight:700;">${r.name||r.username}</td>
+                <td style="font-weight:700;">${r.name || r.username}</td>
                 <td style="font-size:0.8rem;color:#64748B;">${r.courseTitle}</td>
-                <td style="color:#D97706;font-weight:700;">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</td>
+                <td style="color:#D97706;font-weight:700;">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</td>
                 <td style="font-size:0.8rem;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.comment}</td>
-                <td style="color:#94A3B8;font-size:0.78rem;">${r.date||'—'}</td>
+                <td style="color:#94A3B8;font-size:0.78rem;">${r.date || '—'}</td>
                 <td><button class="btn btn-danger btn-sm" onclick="window.app.showToast('Review deleted (demo).','success')"><i class="fa-solid fa-trash-can"></i></button></td>
               </tr>`).join('')}
-            ${allReviews.length===0?`<tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:32px;">No reviews yet.</td></tr>`:''}
+            ${allReviews.length === 0 ? `<tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:32px;">No reviews yet.</td></tr>` : ''}
           </tbody>
         </table>
       </div>`;
@@ -1107,28 +1463,28 @@ const AdminComponent = {
   /* ============================================================
      SUBMISSIONS
   ============================================================ */
-  _renderSubmissions: function() {
+  _renderSubmissions: function () {
     const subs = window.db.getSubmittedCourses();
     return `
       <div class="dashboard-welcome"><h1>Course Submissions (${subs.length})</h1><p>Review and approve/reject instructor-submitted courses.</p></div>
-      ${subs.length===0?`<div class="glass-panel" style="padding:60px;text-align:center;"><div style="font-size:3rem;margin-bottom:12px;">📥</div><p style="color:#64748B;">No pending submissions.</p></div>`:''}
-      ${subs.map(sub=>`
+      ${subs.length === 0 ? `<div class="glass-panel" style="padding:60px;text-align:center;"><div style="font-size:3rem;margin-bottom:12px;">📥</div><p style="color:#64748B;">No pending submissions.</p></div>` : ''}
+      ${subs.map(sub => `
         <div class="glass-panel" style="margin-bottom:16px;">
           <div style="padding:20px 24px;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
               <div style="flex:1;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
                   <h3 style="font-size:0.95rem;font-weight:800;color:#0F172A;">${sub.title}</h3>
-                  <span class="status-badge ${sub.status==='PENDING'?'badge-pending':sub.status==='APPROVED'?'badge-success':'danger'}">${sub.status}</span>
+                  <span class="status-badge ${sub.status === 'PENDING' ? 'badge-pending' : sub.status === 'APPROVED' ? 'badge-success' : 'danger'}">${sub.status}</span>
                 </div>
-                <p style="font-size:0.82rem;color:#64748B;margin-bottom:8px;">${(sub.shortDescription||sub.description||'').slice(0,120)}</p>
-                <div style="font-size:0.78rem;color:#94A3B8;">By: <strong>${sub.author}</strong> · ₹${(sub.price||0).toLocaleString('en-IN')} · ${sub.submittedDate}</div>
+                <p style="font-size:0.82rem;color:#64748B;margin-bottom:8px;">${(sub.shortDescription || sub.description || '').slice(0, 120)}</p>
+                <div style="font-size:0.78rem;color:#94A3B8;">By: <strong>${sub.author}</strong> · ₹${(sub.price || 0).toLocaleString('en-IN')} · ${sub.submittedDate}</div>
               </div>
-              ${sub.status==='PENDING'?`
+              ${sub.status === 'PENDING' ? `
                 <div style="display:flex;gap:8px;flex-shrink:0;">
                   <button class="btn btn-success btn-sm" onclick="AdminComponent._approveSub('${sub.id}')"><i class="fa-solid fa-check"></i> Approve</button>
                   <button class="btn btn-danger btn-sm" onclick="AdminComponent._rejectSub('${sub.id}')"><i class="fa-solid fa-xmark"></i> Reject</button>
-                </div>`:''}
+                </div>`: ''}
             </div>
           </div>
         </div>`).join('')}`;
@@ -1137,7 +1493,7 @@ const AdminComponent = {
   /* ============================================================
      COUPONS
   ============================================================ */
-  _renderCoupons: function() {
+  _renderCoupons: function () {
     const coupons = window.db.getCoupons();
     return `
       <div class="dashboard-welcome"><h1>Coupons (${coupons.length})</h1></div>
@@ -1145,12 +1501,12 @@ const AdminComponent = {
         <table class="data-table">
           <thead><tr><th>Code</th><th>Type</th><th>Discount</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
-            ${coupons.map(c=>`
+            ${coupons.map(c => `
               <tr>
                 <td><code style="background:#F1F5F9;padding:3px 10px;border-radius:6px;font-weight:700;color:#3D46D8;">${c.code}</code></td>
                 <td style="text-transform:capitalize;">${c.type}</td>
-                <td style="font-weight:700;">${c.type==='percentage'?c.discount+'%':'₹'+c.discount}</td>
-                <td><span class="status-badge ${c.active?'success':'danger'}">${c.active?'Active':'Inactive'}</span></td>
+                <td style="font-weight:700;">${c.type === 'percentage' ? c.discount + '%' : '₹' + c.discount}</td>
+                <td><span class="status-badge ${c.active ? 'success' : 'danger'}">${c.active ? 'Active' : 'Inactive'}</span></td>
                 <td><div style="display:flex;gap:6px;">
                   <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._showEditCoupon('${c.code}')"><i class="fa-solid fa-pen-to-square"></i></button>
                   <button class="btn btn-danger btn-sm" onclick="AdminComponent._deleteCoupon('${c.code}')"><i class="fa-solid fa-trash-can"></i></button>
@@ -1193,7 +1549,7 @@ const AdminComponent = {
   /* ============================================================
      BLOG
   ============================================================ */
-  _renderBlog: function() {
+  _renderBlog: function () {
     const posts = window.db.getBlogPosts();
     return `
       <div class="dashboard-welcome"><h1>Blog Posts (${posts.length})</h1></div>
@@ -1202,7 +1558,7 @@ const AdminComponent = {
           <div class="glass-panel-title">All Posts</div>
           <button class="btn btn-outline-white btn-sm" onclick="window.location.hash='/blog'"><i class="fa-solid fa-eye"></i> View Blog</button>
         </div>
-        ${posts.map(p=>`
+        ${posts.map(p => `
           <div style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid #F8FAFC;">
             <img src="${p.image}" style="width:64px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;">
             <div style="flex:1;">
@@ -1220,28 +1576,28 @@ const AdminComponent = {
   /* ============================================================
      ACTIVITY LOG
   ============================================================ */
-  _renderActivity: function() {
+  _renderActivity: function () {
     const acts = window.db.getActivities();
-    const icons = { APPROVED_PAYMENT:'fa-circle-check', DENIED_PAYMENT:'fa-circle-xmark', PENDING_PAYMENT:'fa-hourglass-half', CREATED_COURSE:'fa-book-open', UPDATED_COURSE:'fa-pen-to-square', PUBLISHED_COURSE:'fa-globe', ARCHIVED_COURSE:'fa-box-archive', DUPLICATED_COURSE:'fa-copy', SUSPENDED_USER:'fa-ban', ACTIVATED_USER:'fa-circle-check', DELETED_USER:'fa-trash-can', RESET_PASSWORD:'fa-key', CREATED_TUTOR:'fa-user-plus' };
+    const icons = { APPROVED_PAYMENT: 'fa-circle-check', DENIED_PAYMENT: 'fa-circle-xmark', PENDING_PAYMENT: 'fa-hourglass-half', CREATED_COURSE: 'fa-book-open', UPDATED_COURSE: 'fa-pen-to-square', PUBLISHED_COURSE: 'fa-globe', ARCHIVED_COURSE: 'fa-box-archive', DUPLICATED_COURSE: 'fa-copy', SUSPENDED_USER: 'fa-ban', ACTIVATED_USER: 'fa-circle-check', DELETED_USER: 'fa-trash-can', RESET_PASSWORD: 'fa-key', CREATED_TUTOR: 'fa-user-plus' };
     return `
       <div class="dashboard-welcome"><h1>Activity Log</h1><p>Full audit trail of all admin actions.</p></div>
       <div class="glass-panel">
         <table class="data-table">
           <thead><tr><th>Action</th><th>Resource</th><th>Details</th><th>Date & Time</th></tr></thead>
           <tbody>
-            ${acts.map(act=>`
+            ${acts.map(act => `
               <tr>
                 <td>
                   <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="width:28px;height:28px;background:#EFF2FE;color:#3D46D8;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;flex-shrink:0;"><i class="fa-solid ${icons[act.action]||'fa-bolt'}"></i></div>
-                    <span style="font-size:0.82rem;font-weight:700;color:#0F172A;">${act.action.replace(/_/g,' ')}</span>
+                    <div style="width:28px;height:28px;background:#EFF2FE;color:#3D46D8;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;flex-shrink:0;"><i class="fa-solid ${icons[act.action] || 'fa-bolt'}"></i></div>
+                    <span style="font-size:0.82rem;font-weight:700;color:#0F172A;">${act.action.replace(/_/g, ' ')}</span>
                   </div>
                 </td>
                 <td style="font-size:0.78rem;color:#6366F1;font-weight:600;">${act.resourceType} · <code style="font-size:0.7rem;">${act.resourceId}</code></td>
                 <td style="font-size:0.8rem;color:#374151;">${act.details}</td>
                 <td style="font-size:0.75rem;color:#94A3B8;white-space:nowrap;">${new Date(act.timestamp).toLocaleString('en-IN')}</td>
               </tr>`).join('')}
-            ${acts.length===0?`<tr><td colspan="4" style="text-align:center;color:#94A3B8;padding:32px;">No activity recorded yet.</td></tr>`:''}
+            ${acts.length === 0 ? `<tr><td colspan="4" style="text-align:center;color:#94A3B8;padding:32px;">No activity recorded yet.</td></tr>` : ''}
           </tbody>
         </table>
       </div>`;
@@ -1250,7 +1606,7 @@ const AdminComponent = {
   /* ============================================================
      SETTINGS
   ============================================================ */
-  _renderSettings: function() {
+  _renderSettings: function () {
     return `
       <div class="dashboard-welcome"><h1>Settings</h1><p>System configuration and API settings.</p></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
@@ -1321,49 +1677,49 @@ const AdminComponent = {
   /* ============================================================
      HELPERS — payment badge
   ============================================================ */
-  _payBadge: function(status) {
-    if (!status || status==='SUCCESS' || status==='APPROVED') return '<span class="status-badge badge-success">🟢 Approved</span>';
-    if (status==='PENDING') return '<span class="status-badge badge-pending">🟡 Pending</span>';
-    if (status==='DENIED' || status==='FAILED') return '<span class="status-badge danger">🔴 Denied</span>';
+  _payBadge: function (status) {
+    if (!status || status === 'SUCCESS' || status === 'APPROVED') return '<span class="status-badge badge-success">🟢 Approved</span>';
+    if (status === 'PENDING') return '<span class="status-badge badge-pending">🟡 Pending</span>';
+    if (status === 'DENIED' || status === 'FAILED') return '<span class="status-badge danger">🔴 Denied</span>';
     return `<span class="status-badge status-badge">${status}</span>`;
   },
 
   /* ============================================================
      ACTION METHODS
   ============================================================ */
-  _saveSupabaseSettings: function() {
+  _saveSupabaseSettings: function () {
     const url = document.getElementById('sb-url').value.trim();
     const key = document.getElementById('sb-key').value.trim();
     if (!url || !key) {
-      window.app.showToast('Please fill in both URL and key.','danger');
+      window.app.showToast('Please fill in both URL and key.', 'danger');
       return;
     }
     localStorage.setItem('cubaze_supabase_url', url);
     localStorage.setItem('cubaze_supabase_key', key);
-    
+
     // Initialize & Sync
     window.db.initSupabase();
-    
+
     if (window.db.sb) {
-      window.app.showToast('Supabase settings saved! Syncing data in background...','success');
+      window.app.showToast('Supabase settings saved! Syncing data in background...', 'success');
       document.getElementById('sb-status-msg').innerHTML = '🟢 Connected & Syncing...';
       document.getElementById('sb-status-msg').style.color = '#059669';
     } else {
-      window.app.showToast('Could not initialize Supabase. Check configuration.','danger');
+      window.app.showToast('Could not initialize Supabase. Check configuration.', 'danger');
       document.getElementById('sb-status-msg').innerHTML = '🔴 Initialisation Failed';
       document.getElementById('sb-status-msg').style.color = '#DC2626';
     }
   },
 
-  _testSupabaseConnection: async function() {
+  _testSupabaseConnection: async function () {
     const url = document.getElementById('sb-url').value.trim();
     const key = document.getElementById('sb-key').value.trim();
     if (!url || !key) {
-      window.app.showToast('Please enter URL and key to test connection.','warning');
+      window.app.showToast('Please enter URL and key to test connection.', 'warning');
       return;
     }
     if (!window.supabase) {
-      window.app.showToast('Supabase SDK not loaded in browser.','danger');
+      window.app.showToast('Supabase SDK not loaded in browser.', 'danger');
       return;
     }
     const testMsg = document.getElementById('sb-status-msg');
@@ -1388,14 +1744,14 @@ const AdminComponent = {
     }
   },
 
-  _nav: function(tab) {
+  _nav: function (tab) {
     AdminComponent._sec = tab;
     AdminComponent._courseView = null;
     AdminComponent._editingId = null;
     AdminComponent._paymentView = null;
-    document.querySelectorAll('.sidebar-nav-item').forEach(i=>i.classList.remove('active'));
+    document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`[data-adm-tab="${tab}"]`)?.classList.add('active');
-    
+
     if (tab === 'requests') {
       AdminComponent._loadAndRenderRequests();
     } else {
@@ -1411,11 +1767,11 @@ const AdminComponent = {
     }
   },
 
-  _changePaymentStatus: function(txnId, newStatus, selectEl) {
+  _changePaymentStatus: function (txnId, newStatus, selectEl) {
     if (newStatus === 'APPROVED') {
       const txn = window.db.getTransactions().find(t => t.id === txnId);
       if (!txn) return;
-      
+
       const batches = window.db.getBatches().filter(b => b.courseId === txn.courseId && b.status !== 'Archived');
       if (batches.length === 0) {
         window.app.showToast('No active batches found for this course. Please create a batch first.', 'danger');
@@ -1446,7 +1802,7 @@ const AdminComponent = {
       `;
       overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); if (selectEl) selectEl.value = 'PENDING'; } });
       document.body.appendChild(overlay);
-      
+
       overlay.querySelector('.btn-outline-white').addEventListener('click', () => {
         if (selectEl) selectEl.value = 'PENDING';
       });
@@ -1454,13 +1810,13 @@ const AdminComponent = {
       overlay.querySelector('#btn-confirm-approve').addEventListener('click', () => {
         const batchId = document.getElementById('ap-batch-id').value;
         overlay.remove();
-        
+
         const res = window.db.updatePaymentAdminStatus(txnId, 'APPROVED');
         if (res.success) {
           // Enroll student in batch
           window.db.enrollUserInBatch(txn.username, txn.courseId, batchId);
           window.app.showToast('Payment approved and student enrolled in batch! 🎉', 'success');
-          
+
           if (selectEl) {
             selectEl.className = `pay-status-select pss-approved`;
           } else {
@@ -1476,8 +1832,8 @@ const AdminComponent = {
 
     const res = window.db.updatePaymentAdminStatus(txnId, newStatus);
     if (res.success) {
-      const msgs = { APPROVED:'✅ Payment approved! Student enrolled automatically.', PENDING:'⏳ Payment marked as pending.', DENIED:'❌ Payment denied. Enrollment removed.' };
-      window.app.showToast(msgs[newStatus]||'Status updated.', newStatus==='APPROVED'?'success':newStatus==='DENIED'?'danger':'warning');
+      const msgs = { APPROVED: '✅ Payment approved! Student enrolled automatically.', PENDING: '⏳ Payment marked as pending.', DENIED: '❌ Payment denied. Enrollment removed.' };
+      window.app.showToast(msgs[newStatus] || 'Status updated.', newStatus === 'APPROVED' ? 'success' : newStatus === 'DENIED' ? 'danger' : 'warning');
       // Update select color class
       if (selectEl) {
         selectEl.className = `pay-status-select pss-${newStatus.toLowerCase()}`;
@@ -1487,21 +1843,21 @@ const AdminComponent = {
         AdminComponent._bindSection('payments');
       }
     } else {
-      window.app.showToast(res.error||'Failed to update status.','danger');
+      window.app.showToast(res.error || 'Failed to update status.', 'danger');
     }
   },
 
-  _viewPayment: function(txnId) {
+  _viewPayment: function (txnId) {
     document.getElementById('adm-main').innerHTML = AdminComponent._renderPaymentDetail(txnId);
     AdminComponent._bindSection('payments');
   },
 
-  _filterPayments: function(status) {
+  _filterPayments: function (status) {
     document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments('', status);
     AdminComponent._bindSection('payments');
   },
 
-  _showCreateCourse: function() {
+  _showCreateCourse: function () {
     const panel = document.getElementById('course-form-panel');
     panel.style.display = 'flex';
     panel.innerHTML = AdminComponent._renderCourseForm(null);
@@ -1509,7 +1865,7 @@ const AdminComponent = {
     AdminComponent._bindCourseForm();
   },
 
-  _showEditCourse: function(courseId) {
+  _showEditCourse: function (courseId) {
     const course = window.db.getCourseById(courseId);
     const panel = document.getElementById('course-form-panel');
     panel.style.display = 'flex';
@@ -1518,7 +1874,7 @@ const AdminComponent = {
     AdminComponent._bindCourseForm();
   },
 
-  _manageModules: function(courseId) {
+  _manageModules: function (courseId) {
     const panel = document.getElementById('modules-panel');
     panel.style.display = 'flex';
     panel.innerHTML = AdminComponent._renderModulesPanel(courseId);
@@ -1526,52 +1882,52 @@ const AdminComponent = {
     AdminComponent._bindModuleEvents(courseId);
   },
 
-  _publishCourse: function(id) {
+  _publishCourse: function (id) {
     const res = window.db.publishCourse(id);
-    if (res.success) { window.app.showToast('Course published! 🌐','success'); AdminComponent._nav('courses'); }
+    if (res.success) { window.app.showToast('Course published! 🌐', 'success'); AdminComponent._nav('courses'); }
   },
-  _unpublishCourse: function(id) {
+  _unpublishCourse: function (id) {
     const res = window.db.unpublishCourse(id);
-    if (res.success) { window.app.showToast('Course unpublished.','warning'); AdminComponent._nav('courses'); }
+    if (res.success) { window.app.showToast('Course unpublished.', 'warning'); AdminComponent._nav('courses'); }
   },
-  _archiveCourse: function(id) {
+  _archiveCourse: function (id) {
     if (!confirm('Archive this course?')) return;
     const res = window.db.archiveCourse(id);
-    if (res.success) { window.app.showToast('Course archived.','success'); AdminComponent._nav('courses'); }
+    if (res.success) { window.app.showToast('Course archived.', 'success'); AdminComponent._nav('courses'); }
   },
-  _restoreCourse: function(id) {
+  _restoreCourse: function (id) {
     const res = window.db.restoreCourse(id);
-    if (res.success) { window.app.showToast('Course restored.','success'); AdminComponent._nav('courses'); }
+    if (res.success) { window.app.showToast('Course restored.', 'success'); AdminComponent._nav('courses'); }
   },
-  _duplicateCourse: function(id) {
+  _duplicateCourse: function (id) {
     const res = window.db.duplicateCourse(id);
-    if (res.success) { window.app.showToast('Course duplicated! ✅','success'); AdminComponent._nav('courses'); }
+    if (res.success) { window.app.showToast('Course duplicated! ✅', 'success'); AdminComponent._nav('courses'); }
   },
-  _deleteCourse: function(id) {
+  _deleteCourse: function (id) {
     if (!confirm('Delete this course permanently?')) return;
     window.db.deleteCourse(id);
-    window.app.showToast('Course deleted.','success');
+    window.app.showToast('Course deleted.', 'success');
     AdminComponent._nav('courses');
   },
 
-  _addModule: function(courseId) {
+  _addModule: function (courseId) {
     const title = document.getElementById('new-mod-title').value.trim();
-    if (!title) { window.app.showToast('Enter a module title.','danger'); return; }
+    if (!title) { window.app.showToast('Enter a module title.', 'danger'); return; }
     const res = window.db.addCourseModule(courseId, title);
-    if (res.success) { window.app.showToast('Module added!','success'); AdminComponent._manageModules(courseId); }
+    if (res.success) { window.app.showToast('Module added!', 'success'); AdminComponent._manageModules(courseId); }
   },
-  _deleteModule: function(courseId, modIdx) {
+  _deleteModule: function (courseId, modIdx) {
     if (!confirm('Delete this module and all its lessons?')) return;
     const res = window.db.deleteCourseModule(courseId, modIdx);
-    if (res.success) { window.app.showToast('Module deleted.','success'); AdminComponent._manageModules(courseId); }
+    if (res.success) { window.app.showToast('Module deleted.', 'success'); AdminComponent._manageModules(courseId); }
   },
-  _deleteLesson: function(courseId, lessonId) {
+  _deleteLesson: function (courseId, lessonId) {
     if (!confirm('Delete this lesson?')) return;
     const res = window.db.deleteLessonFromCourseModule(courseId, lessonId);
-    if (res.success) { window.app.showToast('Lesson deleted.','success'); AdminComponent._manageModules(courseId); }
+    if (res.success) { window.app.showToast('Lesson deleted.', 'success'); AdminComponent._manageModules(courseId); }
   },
 
-  _editLesson: function(courseId, modIdx, lessonId) {
+  _editLesson: function (courseId, modIdx, lessonId) {
     const course = window.db.getCourseById(courseId);
     if (!course || !course.modules || !course.modules[modIdx]) return;
     const lesson = course.modules[modIdx].lessons.find(l => l.id === lessonId);
@@ -1612,27 +1968,27 @@ const AdminComponent = {
       const newTitle = document.getElementById('edit-l-title').value.trim();
       const newUrl = document.getElementById('edit-l-url').value.trim();
       const newDuration = document.getElementById('edit-l-duration').value.trim();
-      
-      if (!newTitle) { window.app.showToast('Title is required','danger'); return; }
-      
+
+      if (!newTitle) { window.app.showToast('Title is required', 'danger'); return; }
+
       const res = window.db.updateLessonInCourseModule(courseId, modIdx, lessonId, {
         title: newTitle,
         videoUrl: newUrl,
         duration: newDuration
       });
       if (res.success) {
-        window.app.showToast('Lesson updated!','success');
+        window.app.showToast('Lesson updated!', 'success');
         overlay.remove();
         AdminComponent._manageModules(courseId);
       } else {
-        window.app.showToast(res.error || 'Failed to update lesson.','danger');
+        window.app.showToast(res.error || 'Failed to update lesson.', 'danger');
       }
     });
 
     document.body.appendChild(overlay);
   },
 
-  _editModule: function(courseId, modIdx) {
+  _editModule: function (courseId, modIdx) {
     const course = window.db.getCourseById(courseId);
     if (!course || !course.modules || !course.modules[modIdx]) return;
     const mod = course.modules[modIdx];
@@ -1662,71 +2018,71 @@ const AdminComponent = {
     overlay.querySelector('#form-edit-module').addEventListener('submit', e => {
       e.preventDefault();
       const newTitle = document.getElementById('edit-m-title').value.trim();
-      if (!newTitle) { window.app.showToast('Title is required','danger'); return; }
-      
+      if (!newTitle) { window.app.showToast('Title is required', 'danger'); return; }
+
       const res = window.db.updateCourseModule(courseId, modIdx, newTitle);
       if (res.success) {
-        window.app.showToast('Module updated!','success');
+        window.app.showToast('Module updated!', 'success');
         overlay.remove();
         AdminComponent._manageModules(courseId);
       } else {
-        window.app.showToast(res.error || 'Failed to update module.','danger');
+        window.app.showToast(res.error || 'Failed to update module.', 'danger');
       }
     });
 
     document.body.appendChild(overlay);
   },
 
-  _suspendUser: function(username) {
+  _suspendUser: function (username) {
     if (!confirm(`Suspend @${username}?`)) return;
     const res = window.db.suspendUser(username);
-    if (res.success) { window.app.showToast(`@${username} suspended.`,'warning'); AdminComponent._nav(AdminComponent._sec); }
+    if (res.success) { window.app.showToast(`@${username} suspended.`, 'warning'); AdminComponent._nav(AdminComponent._sec); }
   },
-  _activateUser: function(username) {
+  _activateUser: function (username) {
     const res = window.db.activateUser(username);
-    if (res.success) { window.app.showToast(`@${username} activated! ✅`,'success'); AdminComponent._nav(AdminComponent._sec); }
+    if (res.success) { window.app.showToast(`@${username} activated! ✅`, 'success'); AdminComponent._nav(AdminComponent._sec); }
   },
-  _deleteUser: function(username, role) {
+  _deleteUser: function (username, role) {
     if (!confirm(`Permanently delete @${username}? This cannot be undone.`)) return;
     const res = window.db.deleteUser(username);
-    if (res.success) { window.app.showToast(`@${username} deleted.`,'success'); AdminComponent._nav(role==='tutor'?'tutors':'students'); }
+    if (res.success) { window.app.showToast(`@${username} deleted.`, 'success'); AdminComponent._nav(role === 'tutor' ? 'tutors' : 'students'); }
   },
 
-  _bulkDeleteUsers: function(type) {
+  _bulkDeleteUsers: function (type) {
     const selector = type === 'tutors' ? '.tut-check:checked' : '.stu-check:checked';
     const checked = [...document.querySelectorAll(selector)].map(cb => cb.getAttribute('data-username'));
     if (checked.length === 0) return;
     const typeLabel = type === 'tutors' ? 'tutors' : 'students';
     if (!confirm(`Are you sure you want to permanently delete the ${checked.length} selected ${typeLabel}? This cannot be undone.`)) return;
-    
+
     let count = 0;
     for (const username of checked) {
       const res = window.db.deleteUser(username);
       if (res.success) count++;
     }
-    
+
     window.app.showToast(`Successfully deleted ${count} ${typeLabel}.`, 'success');
     AdminComponent._nav(type);
   },
 
-  _bulkSuspendUsers: function(type, suspend) {
+  _bulkSuspendUsers: function (type, suspend) {
     const selector = type === 'tutors' ? '.tut-check:checked' : '.stu-check:checked';
     const checked = [...document.querySelectorAll(selector)].map(cb => cb.getAttribute('data-username'));
     if (checked.length === 0) return;
     const actionText = suspend ? 'suspend' : 'activate';
     const typeLabel = type === 'tutors' ? 'tutors' : 'students';
     if (!confirm(`Are you sure you want to ${actionText} the ${checked.length} selected ${typeLabel}?`)) return;
-    
+
     let count = 0;
     for (const username of checked) {
       const res = suspend ? window.db.suspendUser(username) : window.db.activateUser(username);
       if (res.success) count++;
     }
-    
+
     window.app.showToast(`Successfully ${actionText}ed ${count} ${typeLabel}.`, 'success');
     AdminComponent._nav(type);
   },
-  _showProfileModal: function(user, roleLabel) {
+  _showProfileModal: function (user, roleLabel) {
     document.getElementById('adm-profile-modal')?.remove();
 
     const isStudent = user.role === 'student';
@@ -1740,12 +2096,12 @@ const AdminComponent = {
       detailLines = `
         <div style="margin-top:20px;">
           <div style="font-weight:700; font-size:0.75rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:8px; letter-spacing:0.05em;">Enrolled Courses (${enrolled.length})</div>
-          ${enrolled.length === 0 
-            ? `<div style="font-size:0.85rem; color:var(--text-muted); font-style:italic;">No enrolled courses</div>` 
-            : `<div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${enrolled.length === 0
+          ? `<div style="font-size:0.85rem; color:var(--text-muted); font-style:italic;">No enrolled courses</div>`
+          : `<div style="display:flex; flex-wrap:wrap; gap:6px;">
                  ${enrolled.map(c => `<span style="background:var(--bg-primary); border:1.5px solid var(--border-color); color:var(--text-primary); padding:6px 12px; border-radius:20px; font-size:0.75rem; font-weight:600;">${c}</span>`).join('')}
                </div>`
-          }
+        }
         </div>
       `;
     } else {
@@ -1760,12 +2116,12 @@ const AdminComponent = {
         </div>
         <div style="margin-top:20px;">
           <div style="font-weight:700; font-size:0.75rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:8px; letter-spacing:0.05em;">Assigned Courses (${assigned.length})</div>
-          ${assigned.length === 0 
-            ? `<div style="font-size:0.85rem; color:var(--text-muted); font-style:italic;">No assigned courses</div>` 
-            : `<div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${assigned.length === 0
+          ? `<div style="font-size:0.85rem; color:var(--text-muted); font-style:italic;">No assigned courses</div>`
+          : `<div style="display:flex; flex-wrap:wrap; gap:6px;">
                  ${assigned.map(c => `<span style="background:var(--bg-primary); border:1.5px solid var(--border-color); color:var(--text-primary); padding:6px 12px; border-radius:20px; font-size:0.75rem; font-weight:600;">${c}</span>`).join('')}
                </div>`
-          }
+        }
         </div>
       `;
     }
@@ -1806,19 +2162,19 @@ const AdminComponent = {
         <button onclick="document.getElementById('adm-profile-modal').remove()" style="position: absolute; right: 20px; top: 20px; background: none; border: none; font-size: 1.25rem; color: var(--text-secondary); cursor: pointer; transition: color 0.2s;"><i class="fa-solid fa-xmark"></i></button>
         
         <div style="display:flex; gap:20px; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border-color); align-items:flex-start;">
-          ${user.profilePhoto 
-            ? `<div style="width:105px; height:140px; border-radius:12px; border:1.5px solid var(--border-color); background-image:url(${user.profilePhoto}); background-size:cover; background-position:center; background-repeat:no-repeat; box-shadow:var(--shadow-sm); flex-shrink:0;"></div>`
-            : `<div style="width:105px; height:140px; border-radius:12px; border:1.5px solid var(--border-color); background:linear-gradient(135deg, var(--brand-blue), #6366F1); display:flex; align-items:center; justify-content:center; font-size:3rem; font-weight:800; color:#fff; flex-shrink:0; box-shadow:var(--shadow-sm);">${user.name.charAt(0).toUpperCase()}</div>`
-          }
+          ${user.profilePhoto
+        ? `<div style="width:105px; height:140px; border-radius:12px; border:1.5px solid var(--border-color); background-image:url(${user.profilePhoto}); background-size:cover; background-position:center; background-repeat:no-repeat; box-shadow:var(--shadow-sm); flex-shrink:0;"></div>`
+        : `<div style="width:105px; height:140px; border-radius:12px; border:1.5px solid var(--border-color); background:linear-gradient(135deg, var(--brand-blue), #6366F1); display:flex; align-items:center; justify-content:center; font-size:3rem; font-weight:800; color:#fff; flex-shrink:0; box-shadow:var(--shadow-sm);">${user.name.charAt(0).toUpperCase()}</div>`
+      }
           <div style="flex:1; padding-top:4px;">
             <span style="display:inline-block; font-size:0.68rem; font-weight:800; padding:3px 10px; border-radius:20px; text-transform:uppercase; background:rgba(61, 70, 216, 0.1); color:var(--brand-blue); border:1px solid rgba(61, 70, 216, 0.2); margin-bottom:8px;">${roleLabel}</span>
             <h3 style="margin:0 0 6px 0; font-size:1.35rem; font-weight:800; color:var(--text-primary); line-height:1.2; display:block;">${user.name}</h3>
             <div style="font-size:0.85rem; color:var(--text-secondary); font-weight:600; margin-bottom:12px;">@${user.username}</div>
             <div style="display:flex; gap:8px; align-items:center;">
-              ${user.suspended 
-                ? '<span class="status-badge danger" style="padding:4px 10px; font-size:0.72rem; font-weight:700; margin:0;">⚫ Suspended</span>' 
-                : '<span class="status-badge success" style="padding:4px 10px; font-size:0.72rem; font-weight:700; margin:0;">🟢 Active</span>'
-              }
+              ${user.suspended
+        ? '<span class="status-badge danger" style="padding:4px 10px; font-size:0.72rem; font-weight:700; margin:0;">⚫ Suspended</span>'
+        : '<span class="status-badge success" style="padding:4px 10px; font-size:0.72rem; font-weight:700; margin:0;">🟢 Active</span>'
+      }
             </div>
           </div>
         </div>
@@ -1831,10 +2187,10 @@ const AdminComponent = {
           <div>
             <div style="font-weight:700; font-size:0.72rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px; letter-spacing: 0.05em;">WhatsApp Number</div>
             <div style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">
-              ${user.whatsapp 
-                ? `<a href="https://wa.me/${user.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:var(--brand-blue); text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:700;"><i class="fa-brands fa-whatsapp" style="color:#25D366; font-size:1rem;"></i> ${user.whatsapp}</a>` 
-                : '—'
-              }
+              ${user.whatsapp
+        ? `<a href="https://wa.me/${user.whatsapp.replace(/\D/g, '')}" target="_blank" style="color:var(--brand-blue); text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:700;"><i class="fa-brands fa-whatsapp" style="color:#25D366; font-size:1rem;"></i> ${user.whatsapp}</a>`
+        : '—'
+      }
             </div>
           </div>
           <div>
@@ -1865,29 +2221,29 @@ const AdminComponent = {
     });
   },
 
-  _viewStudent: function(username) {
-    const u = window.db.getUsers().find(x=>x.username===username);
+  _viewStudent: function (username) {
+    const u = window.db.getUsers().find(x => x.username === username);
     if (!u) return;
     AdminComponent._showProfileModal(u, 'Student');
   },
 
-  _viewTutor: function(username) {
-    const u = window.db.getUsers().find(x=>x.username===username);
+  _viewTutor: function (username) {
+    const u = window.db.getUsers().find(x => x.username === username);
     if (!u) return;
     AdminComponent._showProfileModal(u, 'Tutor / Mentor');
   },
 
-  _showResetModal: function(username, name) {
+  _showResetModal: function (username, name) {
     const newPass = prompt(`Reset password for ${name} (@${username}).\nEnter new password (min 6 chars):`);
     if (!newPass) return;
-    if (newPass.length < 6) { window.app.showToast('Password must be at least 6 characters.','danger'); return; }
+    if (newPass.length < 6) { window.app.showToast('Password must be at least 6 characters.', 'danger'); return; }
     const res = window.db.resetUserPassword(username, newPass);
-    if (res.success) window.app.showToast(`Password reset for @${username}.`,'success');
+    if (res.success) window.app.showToast(`Password reset for @${username}.`, 'success');
   },
 
-  _showAddTutorForm: function() {
+  _showAddTutorForm: function () {
     document.getElementById('add-tutor-modal')?.remove();
-    
+
     const courses = window.db.getCourses();
     const overlay = document.createElement('div');
     overlay.className = 'adm-modal-overlay';
@@ -1937,14 +2293,14 @@ const AdminComponent = {
       </div>
     `;
 
-    overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
     AdminComponent._bindTutorForm();
   },
 
-  _showAddStudentModal: function() {
+  _showAddStudentModal: function () {
     document.getElementById('add-student-modal')?.remove();
-    
+
     const overlay = document.createElement('div');
     overlay.className = 'adm-modal-overlay';
     overlay.id = 'add-student-modal';
@@ -2008,7 +2364,7 @@ const AdminComponent = {
       </div>
     `;
 
-    overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
 
     overlay.querySelector('#form-create-student').addEventListener('submit', e => {
@@ -2057,10 +2413,10 @@ const AdminComponent = {
     });
   },
 
-  _showEnrollStudentModal: function() {
+  _showEnrollStudentModal: function () {
     const students = window.db.getUsers().filter(u => u.role === 'student');
     const courses = window.db.getCourses();
-    
+
     const overlay = document.createElement('div');
     overlay.className = 'adm-modal-overlay';
     overlay.id = 'enroll-student-modal';
@@ -2097,13 +2453,13 @@ const AdminComponent = {
       </div>
     `;
 
-    overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
 
     // Dynamically show batches when course changes
     const courseSelect = overlay.querySelector('#enroll-student-course');
     const batchSelect = overlay.querySelector('#enroll-student-batch');
-    
+
     courseSelect.addEventListener('change', () => {
       const cid = courseSelect.value;
       if (!cid) {
@@ -2111,7 +2467,7 @@ const AdminComponent = {
         batchSelect.innerHTML = `<option value="">-- Select Batch (Choose course first) --</option>`;
         return;
       }
-      
+
       const batches = window.db.getBatches().filter(b => b.courseId === cid && b.status !== 'Archived');
       batchSelect.disabled = false;
       if (batches.length === 0) {
@@ -2129,12 +2485,12 @@ const AdminComponent = {
       const username = document.getElementById('enroll-student-username').value;
       const courseId = document.getElementById('enroll-student-course').value;
       const batchId = document.getElementById('enroll-student-batch').value;
-      
+
       if (!username || !courseId || !batchId) {
         window.app.showToast('Please fill out all fields.', 'danger');
         return;
       }
-      
+
       const res = window.db.enrollUserInBatch(username, courseId, batchId);
       if (res.success) {
         window.app.showToast('Student enrolled successfully! 🎉', 'success');
@@ -2146,11 +2502,11 @@ const AdminComponent = {
     });
   },
 
-  _showAssignCoursesModal: function(username, name) {
+  _showAssignCoursesModal: function (username, name) {
     const courses = window.db.getCourses();
     const users = window.db.getUsers();
-    const tutor = users.find(u=>u.username===username);
-    const assigned = tutor?.assignedCourses||[];
+    const tutor = users.find(u => u.username === username);
+    const assigned = tutor?.assignedCourses || [];
     const overlay = document.createElement('div');
     overlay.className = 'adm-modal-overlay';
     overlay.id = 'assign-modal';
@@ -2158,11 +2514,11 @@ const AdminComponent = {
       <div class="adm-modal">
         <h3><i class="fa-solid fa-graduation-cap" style="color:#3D46D8;margin-right:8px;"></i>Assign Courses — ${name}</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
-          ${courses.map(c=>`
-            <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${assigned.includes(c.id)?'#6366F1':'#E2E8F0'};border-radius:10px;cursor:pointer;background:${assigned.includes(c.id)?'#EFF2FE':'#F8FAFC'};">
-              <input type="checkbox" class="assign-modal-cb" data-course-id="${c.id}" ${assigned.includes(c.id)?'checked':''} style="accent-color:#3D46D8;width:15px;height:15px;">
+          ${courses.map(c => `
+            <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${assigned.includes(c.id) ? '#6366F1' : '#E2E8F0'};border-radius:10px;cursor:pointer;background:${assigned.includes(c.id) ? '#EFF2FE' : '#F8FAFC'};">
+              <input type="checkbox" class="assign-modal-cb" data-course-id="${c.id}" ${assigned.includes(c.id) ? 'checked' : ''} style="accent-color:#3D46D8;width:15px;height:15px;">
               <img src="${c.image}" style="width:38px;height:26px;object-fit:cover;border-radius:5px;flex-shrink:0;">
-              <span style="font-size:0.78rem;font-weight:600;color:#0F172A;">${c.title.slice(0,24)}${c.title.length>24?'...':''}</span>
+              <span style="font-size:0.78rem;font-weight:600;color:#0F172A;">${c.title.slice(0, 24)}${c.title.length > 24 ? '...' : ''}</span>
             </label>`).join('')}
         </div>
         <div style="display:flex;gap:10px;">
@@ -2170,25 +2526,25 @@ const AdminComponent = {
           <button class="btn btn-outline-white" onclick="document.getElementById('assign-modal').remove()">Cancel</button>
         </div>
       </div>`;
-    overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
   },
 
-  _saveAssignments: function(username) {
-    const ids = [...document.querySelectorAll('.assign-modal-cb:checked')].map(cb=>cb.getAttribute('data-course-id'));
+  _saveAssignments: function (username) {
+    const ids = [...document.querySelectorAll('.assign-modal-cb:checked')].map(cb => cb.getAttribute('data-course-id'));
     const res = window.db.updateTutorCourseAssignments(username, ids);
     if (res.success) {
-      window.app.showToast(`Updated: ${ids.length} course(s) assigned to @${username}.`,'success');
+      window.app.showToast(`Updated: ${ids.length} course(s) assigned to @${username}.`, 'success');
       document.getElementById('assign-modal')?.remove();
       AdminComponent._nav('tutors');
     }
   },
 
-  _showAssignStudentCoursesModal: function(username, name) {
+  _showAssignStudentCoursesModal: function (username, name) {
     const courses = window.db.getCourses();
     const users = window.db.getUsers();
-    const student = users.find(u=>u.username===username);
-    const enrolled = student?.enrolledCourses||[];
+    const student = users.find(u => u.username === username);
+    const enrolled = student?.enrolledCourses || [];
     const overlay = document.createElement('div');
     overlay.className = 'adm-modal-overlay';
     overlay.id = 'assign-student-modal';
@@ -2196,11 +2552,11 @@ const AdminComponent = {
       <div class="adm-modal">
         <h3><i class="fa-solid fa-graduation-cap" style="color:#3D46D8;margin-right:8px;"></i>Assign Courses — ${name}</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
-          ${courses.map(c=>`
-            <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${enrolled.includes(c.id)?'#6366F1':'#E2E8F0'};border-radius:10px;cursor:pointer;background:${enrolled.includes(c.id)?'#EFF2FE':'#F8FAFC'};">
-              <input type="checkbox" class="assign-student-modal-cb" data-course-id="${c.id}" ${enrolled.includes(c.id)?'checked':''} style="accent-color:#3D46D8;width:15px;height:15px;">
+          ${courses.map(c => `
+            <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${enrolled.includes(c.id) ? '#6366F1' : '#E2E8F0'};border-radius:10px;cursor:pointer;background:${enrolled.includes(c.id) ? '#EFF2FE' : '#F8FAFC'};">
+              <input type="checkbox" class="assign-student-modal-cb" data-course-id="${c.id}" ${enrolled.includes(c.id) ? 'checked' : ''} style="accent-color:#3D46D8;width:15px;height:15px;">
               <img src="${c.image}" style="width:38px;height:26px;object-fit:cover;border-radius:5px;flex-shrink:0;">
-              <span style="font-size:0.78rem;font-weight:600;color:#0F172A;">${c.title.slice(0,24)}${c.title.length>24?'...':''}</span>
+              <span style="font-size:0.78rem;font-weight:600;color:#0F172A;">${c.title.slice(0, 24)}${c.title.length > 24 ? '...' : ''}</span>
             </label>`).join('')}
         </div>
         <div style="display:flex;gap:10px;">
@@ -2208,78 +2564,78 @@ const AdminComponent = {
           <button class="btn btn-outline-white" onclick="document.getElementById('assign-student-modal').remove()">Cancel</button>
         </div>
       </div>`;
-    overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
   },
 
-  _saveStudentAssignments: function(username) {
-    const ids = [...document.querySelectorAll('.assign-student-modal-cb:checked')].map(cb=>cb.getAttribute('data-course-id'));
+  _saveStudentAssignments: function (username) {
+    const ids = [...document.querySelectorAll('.assign-student-modal-cb:checked')].map(cb => cb.getAttribute('data-course-id'));
     const res = window.db.updateStudentCourseEnrollments(username, ids);
     if (res.success) {
-      window.app.showToast(`Updated: ${ids.length} course(s) assigned to @${username}.`,'success');
+      window.app.showToast(`Updated: ${ids.length} course(s) assigned to @${username}.`, 'success');
       document.getElementById('assign-student-modal')?.remove();
       AdminComponent._nav('students');
     }
   },
 
-  _approveSub: function(subId) {
+  _approveSub: function (subId) {
     const res = window.db.approveCourse(subId);
-    if (res.success) window.app.showToast('Course approved and published! 🎉','success');
-    else window.app.showToast('Error approving.','danger');
+    if (res.success) window.app.showToast('Course approved and published! 🎉', 'success');
+    else window.app.showToast('Error approving.', 'danger');
     AdminComponent._nav('submissions');
   },
-  _rejectSub: function(subId) {
+  _rejectSub: function (subId) {
     window.db.rejectCourse(subId);
-    window.app.showToast('Submission rejected.','warning');
+    window.app.showToast('Submission rejected.', 'warning');
     AdminComponent._nav('submissions');
   },
 
-  _exportCSV: function(type) {
+  _exportCSV: function (type) {
     let rows = [], headers = [];
     const allCourses = window.db.getCourses();
-    if (type==='students') {
-      headers = ['Name','Username','Enrolled Courses','Status','Joined'];
-      rows = window.db.getUsers().filter(u=>u.role==='student'&&!u.deleted).map(u=>{
-        const enrolledNames = (u.enrolledCourses||[]).map(id => {
+    if (type === 'students') {
+      headers = ['Name', 'Username', 'Enrolled Courses', 'Status', 'Joined'];
+      rows = window.db.getUsers().filter(u => u.role === 'student' && !u.deleted).map(u => {
+        const enrolledNames = (u.enrolledCourses || []).map(id => {
           const c = allCourses.find(x => x.id === id);
           return c ? c.title : id;
         }).join('; ');
-        return [u.name, u.username, enrolledNames, u.suspended?'Suspended':'Active', u.registeredDate||''];
+        return [u.name, u.username, enrolledNames, u.suspended ? 'Suspended' : 'Active', u.registeredDate || ''];
       });
-    } else if (type==='tutors') {
-      headers = ['Name','Username','Assigned Courses','Status','Joined'];
-      rows = window.db.getUsers().filter(u=>u.role==='instructor'&&!u.deleted).map(u=>{
-        const assignedNames = (u.assignedCourses||[]).map(id => {
+    } else if (type === 'tutors') {
+      headers = ['Name', 'Username', 'Assigned Courses', 'Status', 'Joined'];
+      rows = window.db.getUsers().filter(u => u.role === 'instructor' && !u.deleted).map(u => {
+        const assignedNames = (u.assignedCourses || []).map(id => {
           const c = allCourses.find(x => x.id === id);
           return c ? c.title : id;
         }).join('; ');
-        return [u.name, u.username, assignedNames, u.suspended?'Suspended':'Active', u.registeredDate||''];
+        return [u.name, u.username, assignedNames, u.suspended ? 'Suspended' : 'Active', u.registeredDate || ''];
       });
-    } else if (type==='courses') {
-      headers = ['Title','Price','Students','Rating','Status','Updated'];
-      rows = window.db.getCourses().map(c=>[c.title,c.price,c.studentsCount||0,c.rating,c.archived?'Archived':c.published?'Published':'Draft',c.updatedDate||'']);
-    } else if (type==='payments') {
-      headers = ['Invoice','Student','Course','Amount','Method','Status','Date'];
-      rows = window.db.getTransactions().map(t=>[t.invoiceNumber||'',t.username,t.courseTitle,t.amount,t.paymentMethod||'',t.adminStatus||t.status,new Date(t.timestamp).toLocaleDateString('en-IN')]);
-    } else if (type==='live_classes') {
-      headers = ['ID','Course','Tutor','Title','Date','Start Time','End Time','Status'];
-      rows = window.db.getLiveClasses().map(lc=>[lc.id,lc.course_id,lc.tutor_id,lc.title,lc.date,lc.start_time,lc.end_time,lc.status]);
+    } else if (type === 'courses') {
+      headers = ['Title', 'Price', 'Students', 'Rating', 'Status', 'Updated'];
+      rows = window.db.getCourses().map(c => [c.title, c.price, c.studentsCount || 0, c.rating, c.archived ? 'Archived' : c.published ? 'Published' : 'Draft', c.updatedDate || '']);
+    } else if (type === 'payments') {
+      headers = ['Invoice', 'Student', 'Course', 'Amount', 'Method', 'Status', 'Date'];
+      rows = window.db.getTransactions().map(t => [t.invoiceNumber || '', t.username, t.courseTitle, t.amount, t.paymentMethod || '', t.adminStatus || t.status, new Date(t.timestamp).toLocaleDateString('en-IN')]);
+    } else if (type === 'live_classes') {
+      headers = ['ID', 'Course', 'Tutor', 'Title', 'Date', 'Start Time', 'End Time', 'Status'];
+      rows = window.db.getLiveClasses().map(lc => [lc.id, lc.course_id, lc.tutor_id, lc.title, lc.date, lc.start_time, lc.end_time, lc.status]);
     } else {
-      window.app.showToast('CSV export initiated!','success'); return;
+      window.app.showToast('CSV export initiated!', 'success'); return;
     }
-    const csv = [headers.join(','),...rows.map(r=>r.map(v=>`"${v}"`).join(','))].join('\n');
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `cubaze-${type}-${Date.now()}.csv`; a.click();
-    window.app.showToast(`${type} data exported!`,'success');
+    window.app.showToast(`${type} data exported!`, 'success');
   },
 
-  _importCSV: function(event, type) {
+  _importCSV: function (event, type) {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
       const text = e.target.result;
-      
+
       // Quote-aware CSV parser
       function parseCSV(text) {
         const lines = [];
@@ -2320,7 +2676,7 @@ const AdminComponent = {
 
       const headers = lines[0].map(h => h.trim().toLowerCase().replace(/[\s_\-\/]/g, ''));
       const rows = lines.slice(1);
-      
+
       let successCount = 0;
       let skipCount = 0;
       let errorMessages = [];
@@ -2348,7 +2704,7 @@ const AdminComponent = {
 
         if (!name || !username) {
           skipCount++;
-          errorMessages.push(`Row ${i+2}: Missing Name or Username.`);
+          errorMessages.push(`Row ${i + 2}: Missing Name or Username.`);
           continue;
         }
 
@@ -2378,7 +2734,7 @@ const AdminComponent = {
             }
           } else {
             skipCount++;
-            errorMessages.push(`Row ${i+2} (@${username}): ${res.error}`);
+            errorMessages.push(`Row ${i + 2} (@${username}): ${res.error}`);
           }
         } else if (type === 'tutors') {
           const bio = bioIdx !== -1 && row[bioIdx] ? row[bioIdx].trim() : '';
@@ -2387,7 +2743,7 @@ const AdminComponent = {
             successCount++;
           } else {
             skipCount++;
-            errorMessages.push(`Row ${i+2} (@${username}): ${res.error}`);
+            errorMessages.push(`Row ${i + 2} (@${username}): ${res.error}`);
           }
         }
       }
@@ -2463,7 +2819,7 @@ const AdminComponent = {
     `;
   },
 
-  _bindPostersEvents: function() {
+  _bindPostersEvents: function () {
     document.getElementById('btn-add-poster')?.addEventListener('click', () => {
       AdminComponent._openPosterModal();
     });
@@ -2510,13 +2866,13 @@ const AdminComponent = {
     });
   },
 
-  _openPosterModal: function(posterId = null) {
+  _openPosterModal: function (posterId = null) {
     const poster = posterId ? window.db.getPosters().find(p => p.id === posterId) : null;
-    
+
     const overlay = document.createElement('div');
     overlay.className = 'adm-modal-overlay';
     overlay.id = 'poster-modal-overlay';
-    
+
     overlay.innerHTML = `
       <div class="adm-modal" style="max-width:500px; text-align:left;">
         <h3><i class="fa-solid fa-image" style="color:var(--brand-blue); margin-right:8px;"></i>${posterId ? 'Edit Dashboard Poster' : 'Add Dashboard Poster'}</h3>
@@ -2553,7 +2909,7 @@ const AdminComponent = {
 
     const fileInput = overlay.querySelector('#post-file');
     const previewImg = overlay.querySelector('#post-img-preview');
-    
+
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
       if (file) {
@@ -2572,7 +2928,7 @@ const AdminComponent = {
 
     overlay.querySelector('#form-manage-poster').addEventListener('submit', async e => {
       e.preventDefault();
-      
+
       const saveBtn = overlay.querySelector('#btn-save-poster');
       const originalText = saveBtn.innerText;
       saveBtn.disabled = true;
@@ -2582,9 +2938,9 @@ const AdminComponent = {
         const title = overlay.querySelector('#post-title').value.trim();
         const targetUrl = overlay.querySelector('#post-url').value.trim();
         const file = fileInput.files[0];
-        
+
         let imageUrl = poster ? poster.imageUrl : '';
-        
+
         if (file) {
           const uploadRes = await window.db.uploadSupportAttachment(file);
           if (uploadRes && uploadRes.url) {
@@ -2593,7 +2949,7 @@ const AdminComponent = {
             throw new Error("Failed to upload image.");
           }
         }
-        
+
         const posterData = {
           title,
           targetUrl,
@@ -2622,8 +2978,8 @@ const AdminComponent = {
   /* ============================================================
      INIT & BINDING
   ============================================================ */
-  init: function() {
-    window.scrollTo({top:0,behavior:'smooth'});
+  init: function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     AdminComponent._sec = 'dashboard';
     AdminComponent._activeConvId = null;
     AdminComponent._bindSidebar();
@@ -2637,23 +2993,23 @@ const AdminComponent = {
     }
   },
 
-  _bindSidebar: function() {
+  _bindSidebar: function () {
     document.querySelectorAll('.sidebar-nav-item[data-adm-tab]').forEach(item => {
       item.addEventListener('click', () => AdminComponent._nav(item.getAttribute('data-adm-tab')));
     });
   },
 
-  _bindSection: function(sec) {
-    if (sec==='common_meeting') {
+  _bindSection: function (sec) {
+    if (sec === 'common_meeting') {
       AdminComponent._bindCommonMeetingsEvents();
     }
-    if (sec==='students') {
+    if (sec === 'students') {
       document.getElementById('stu-search')?.addEventListener('input', e => {
-        document.getElementById('adm-main').innerHTML = AdminComponent._renderStudents(e.target.value, document.getElementById('stu-filter')?.value||'');
+        document.getElementById('adm-main').innerHTML = AdminComponent._renderStudents(e.target.value, document.getElementById('stu-filter')?.value || '');
         AdminComponent._bindSection('students');
       });
       document.getElementById('stu-filter')?.addEventListener('change', e => {
-        document.getElementById('adm-main').innerHTML = AdminComponent._renderStudents(document.getElementById('stu-search')?.value||'', e.target.value);
+        document.getElementById('adm-main').innerHTML = AdminComponent._renderStudents(document.getElementById('stu-search')?.value || '', e.target.value);
         AdminComponent._bindSection('students');
       });
 
@@ -2687,7 +3043,7 @@ const AdminComponent = {
         });
       });
     }
-    if (sec==='tutors') {
+    if (sec === 'tutors') {
       document.getElementById('tut-search')?.addEventListener('input', e => {
         document.getElementById('adm-main').innerHTML = AdminComponent._renderTutors(e.target.value);
         AdminComponent._bindSection('tutors');
@@ -2724,17 +3080,17 @@ const AdminComponent = {
         });
       });
     }
-    if (sec==='courses') {
+    if (sec === 'courses') {
       document.getElementById('crs-search')?.addEventListener('input', e => {
-        document.getElementById('adm-main').innerHTML = AdminComponent._renderCourses(e.target.value, document.getElementById('crs-filter')?.value||'');
+        document.getElementById('adm-main').innerHTML = AdminComponent._renderCourses(e.target.value, document.getElementById('crs-filter')?.value || '');
         AdminComponent._bindSection('courses');
       });
       document.getElementById('crs-filter')?.addEventListener('change', e => {
-        document.getElementById('adm-main').innerHTML = AdminComponent._renderCourses(document.getElementById('crs-search')?.value||'', e.target.value);
+        document.getElementById('adm-main').innerHTML = AdminComponent._renderCourses(document.getElementById('crs-search')?.value || '', e.target.value);
         AdminComponent._bindSection('courses');
       });
     }
-    if (sec==='batches') {
+    if (sec === 'batches') {
       const reloadBatches = () => {
         const q = document.getElementById('bt-search')?.value || '';
         const course = document.getElementById('bt-course')?.value || '';
@@ -2744,7 +3100,7 @@ const AdminComponent = {
         document.getElementById('adm-main').innerHTML = AdminComponent._renderBatches(q, course, tutor, status, date);
         AdminComponent._bindSection('batches');
       };
-      
+
       document.getElementById('bt-search')?.addEventListener('input', reloadBatches);
       document.getElementById('bt-course')?.addEventListener('change', reloadBatches);
       document.getElementById('bt-tutor')?.addEventListener('change', reloadBatches);
@@ -2752,17 +3108,17 @@ const AdminComponent = {
       document.getElementById('bt-date')?.addEventListener('change', reloadBatches);
       AdminComponent._bindBatchForm();
     }
-    if (sec==='payments') {
+    if (sec === 'payments') {
       document.getElementById('pay-search')?.addEventListener('input', e => {
-        document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments(e.target.value, document.getElementById('pay-filter')?.value||'');
+        document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments(e.target.value, document.getElementById('pay-filter')?.value || '');
         AdminComponent._bindSection('payments');
       });
       document.getElementById('pay-filter')?.addEventListener('change', e => {
-        document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments(document.getElementById('pay-search')?.value||'', e.target.value);
+        document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments(document.getElementById('pay-search')?.value || '', e.target.value);
         AdminComponent._bindSection('payments');
       });
     }
-    if (sec==='coupons') {
+    if (sec === 'coupons') {
       document.getElementById('form-add-coupon')?.addEventListener('submit', e => {
         e.preventDefault();
         const code = document.getElementById('coupon-code').value.trim().toUpperCase();
@@ -2779,7 +3135,7 @@ const AdminComponent = {
         }
       });
     }
-    if (sec==='liveclasses') {
+    if (sec === 'liveclasses') {
       const triggerReload = () => {
         const q = document.getElementById('adm-lc-search')?.value || '';
         const tutor = document.getElementById('adm-lc-tutor')?.value || '';
@@ -2793,31 +3149,31 @@ const AdminComponent = {
       document.getElementById('adm-lc-course')?.addEventListener('change', triggerReload);
       document.getElementById('adm-lc-date')?.addEventListener('change', triggerReload);
     }
-    if (sec==='posters') {
+    if (sec === 'posters') {
       AdminComponent._bindPostersEvents();
     }
   },
 
-  _bindTutorForm: function() {
+  _bindTutorForm: function () {
     document.getElementById('form-create-tutor')?.addEventListener('submit', e => {
       e.preventDefault();
       const name = document.getElementById('t-name').value.trim();
       const username = document.getElementById('t-username').value.trim().toLowerCase();
       const password = document.getElementById('t-password').value;
       const bio = document.getElementById('t-bio').value.trim();
-      const selectedCourses = [...document.querySelectorAll('.new-tutor-cb:checked')].map(cb=>cb.getAttribute('data-course-id'));
-      if (password.length < 6) { window.app.showToast('Password must be at least 6 characters.','danger'); return; }
+      const selectedCourses = [...document.querySelectorAll('.new-tutor-cb:checked')].map(cb => cb.getAttribute('data-course-id'));
+      if (password.length < 6) { window.app.showToast('Password must be at least 6 characters.', 'danger'); return; }
       const res = window.db.addTutor(username, password, name, bio, selectedCourses);
       if (res.success) {
-        window.app.showToast(`Tutor "${name}" registered with ${selectedCourses.length} course(s)! 🎓`,'success');
+        window.app.showToast(`Tutor "${name}" registered with ${selectedCourses.length} course(s)! 🎓`, 'success');
         AdminComponent._nav('tutors');
       } else {
-        window.app.showToast(res.error||'Failed to add tutor.','danger');
+        window.app.showToast(res.error || 'Failed to add tutor.', 'danger');
       }
     });
   },
 
-  _bindBatchForm: function() {
+  _bindBatchForm: function () {
     document.getElementById('form-batch')?.addEventListener('submit', e => {
       e.preventDefault();
       const id = document.getElementById('bf-id').value;
@@ -2831,7 +3187,7 @@ const AdminComponent = {
       const googleDriveFolder = document.getElementById('bf-drive').value.trim();
       const whatsappLink = document.getElementById('bf-whatsapp').value.trim();
       const status = document.getElementById('bf-status').value;
-      
+
       const tutorIds = [...document.querySelectorAll('.bf-tutors-cb:checked')].map(cb => cb.value);
       const classDays = [...document.querySelectorAll('.bf-days-cb:checked')].map(cb => cb.value);
 
@@ -2868,7 +3224,7 @@ const AdminComponent = {
       }
 
       const batchData = {
-        id: id || `B-${courseId.substring(0,4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        id: id || `B-${courseId.substring(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
         name,
         courseId,
         tutorIds,
@@ -2893,7 +3249,7 @@ const AdminComponent = {
     });
   },
 
-  _bindCourseForm: function() {
+  _bindCourseForm: function () {
     document.getElementById('form-course')?.addEventListener('submit', e => {
       e.preventDefault();
       const id = document.getElementById('cf-id').value;
@@ -2906,23 +3262,23 @@ const AdminComponent = {
         author: document.getElementById('cf-tutor').value,
         shortDescription: document.getElementById('cf-sdesc').value,
         description: document.getElementById('cf-desc').value,
-        image: document.getElementById('cf-image').value||'https://images.unsplash.com/photo-1588702547919-26089e690ecc?w=600',
+        image: document.getElementById('cf-image').value || 'https://images.unsplash.com/photo-1588702547919-26089e690ecc?w=600',
         previewVideo: document.getElementById('cf-preview').value
       };
       let res;
       if (id) {
         res = window.db.updateCourse(id, data);
-        if (res.success) window.app.showToast('Course updated! ✅','success');
+        if (res.success) window.app.showToast('Course updated! ✅', 'success');
       } else {
         res = window.db.createAdminCourse(data);
-        if (res.success) window.app.showToast('Course created! 🎉','success');
+        if (res.success) window.app.showToast('Course created! 🎉', 'success');
       }
       if (res && res.success) AdminComponent._nav('courses');
-      else window.app.showToast(res?.error||'Error saving course.','danger');
+      else window.app.showToast(res?.error || 'Error saving course.', 'danger');
     });
   },
 
-  _bindModuleEvents: function(courseId) {
+  _bindModuleEvents: function (courseId) {
 
     document.querySelectorAll('.form-add-lesson').forEach(form => {
       form.addEventListener('submit', e => {
@@ -2933,8 +3289,8 @@ const AdminComponent = {
         const url = form.querySelector('.l-url').value.trim();
         const dur = form.querySelector('.l-duration').value.trim();
         const res = window.db.addLessonToCourseModule(cId, modIdx, title, dur, url, '', 'admin');
-        if (res.success) { window.app.showToast('Lesson added!','success'); AdminComponent._manageModules(courseId); }
-        else window.app.showToast(res.error||'Failed.','danger');
+        if (res.success) { window.app.showToast('Lesson added!', 'success'); AdminComponent._manageModules(courseId); }
+        else window.app.showToast(res.error || 'Failed.', 'danger');
       });
     });
   },
@@ -2942,7 +3298,7 @@ const AdminComponent = {
   /* ============================================================
      ACTION MENU — fixed-position dropdown (escapes overflow:hidden)
   ============================================================ */
-  _showEditCoupon: function(code) {
+  _showEditCoupon: function (code) {
     const coupons = window.db.getCoupons();
     const coupon = coupons.find(c => String(c.code).toUpperCase() === String(code).toUpperCase());
     if (!coupon) return;
@@ -2961,8 +3317,8 @@ const AdminComponent = {
           <div class="form-group" style="margin-bottom:14px;">
             <label>Discount Type</label>
             <select id="edit-c-type" class="form-control">
-              <option value="percentage" ${coupon.type==='percentage'?'selected':''}>percentage</option>
-              <option value="flat" ${coupon.type==='flat'?'selected':''}>flat</option>
+              <option value="percentage" ${coupon.type === 'percentage' ? 'selected' : ''}>percentage</option>
+              <option value="flat" ${coupon.type === 'flat' ? 'selected' : ''}>flat</option>
             </select>
           </div>
           <div class="form-group" style="margin-bottom:14px;">
@@ -2970,7 +3326,7 @@ const AdminComponent = {
             <input type="number" id="edit-c-discount" class="form-control" required value="${coupon.discount}">
           </div>
           <div style="margin-bottom:20px;display:flex;align-items:center;gap:10px;">
-            <input type="checkbox" id="edit-c-active" ${coupon.active?'checked':''} style="width:18px;height:18px;accent-color:#3D46D8;">
+            <input type="checkbox" id="edit-c-active" ${coupon.active ? 'checked' : ''} style="width:18px;height:18px;accent-color:#3D46D8;">
             <label for="edit-c-active" style="margin:0;cursor:pointer;font-weight:600;font-size:0.875rem;">Active</label>
           </div>
           <div style="display:flex;gap:10px;justify-content:flex-end;">
@@ -3008,7 +3364,7 @@ const AdminComponent = {
     document.body.appendChild(overlay);
   },
 
-  _deleteCoupon: function(code) {
+  _deleteCoupon: function (code) {
     if (confirm(`Are you sure you want to delete coupon ${code}?`)) {
       if (window.db.deleteCoupon(code)) {
         window.app.showToast('Coupon deleted successfully.', 'success');
@@ -3019,7 +3375,7 @@ const AdminComponent = {
     }
   },
 
-  _openAdmMenu: function(btn, e) {
+  _openAdmMenu: function (btn, e) {
     if (e) e.stopPropagation();
     const menu = btn.nextElementSibling;
     if (!menu) return;
@@ -3039,9 +3395,9 @@ const AdminComponent = {
   // ============================================================
   // LIVE CLASS MANAGEMENT
   // ============================================================
-  _renderLiveClasses: function(search='', filterTutor='', filterCourse='', filterDate='') {
+  _renderLiveClasses: function (search = '', filterTutor = '', filterCourse = '', filterDate = '') {
     let classes = window.db.getLiveClasses();
-    
+
     if (search) {
       classes = classes.filter(lc => lc.title.toLowerCase().includes(search.toLowerCase()) || (lc.description || '').toLowerCase().includes(search.toLowerCase()));
     }
@@ -3074,12 +3430,12 @@ const AdminComponent = {
             
             <select id="adm-lc-tutor" style="width: 140px; height: 46px;">
               <option value="">All Tutors</option>
-              ${tutors.map(t => `<option value="${t.username}" ${filterTutor===t.username?'selected':''}>${t.name}</option>`).join('')}
+              ${tutors.map(t => `<option value="${t.username}" ${filterTutor === t.username ? 'selected' : ''}>${t.name}</option>`).join('')}
             </select>
 
             <select id="adm-lc-course" style="width: 140px; height: 46px;">
               <option value="">All Courses</option>
-              ${courses.map(c => `<option value="${c.id}" ${filterCourse===c.id?'selected':''}>${c.title}</option>`).join('')}
+              ${courses.map(c => `<option value="${c.id}" ${filterCourse === c.id ? 'selected' : ''}>${c.title}</option>`).join('')}
             </select>
 
             <input type="date" id="adm-lc-date" value="${filterDate}" style="width: 140px; height: 46px; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 0 12px; background:var(--bg-primary); color:var(--text-primary);">
@@ -3104,16 +3460,16 @@ const AdminComponent = {
             ${classes.length === 0 ? `
               <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px;">No live classes match your filters.</td></tr>
             ` : classes.map(lc => {
-              const c = courses.find(x => x.id === lc.course_id);
-              const courseTitle = c ? c.title : lc.course_id;
-              const tutor = tutors.find(t => t.username === lc.tutor_id);
-              const tutorName = tutor ? tutor.name : lc.tutor_id;
+      const c = courses.find(x => x.id === lc.course_id);
+      const courseTitle = c ? c.title : lc.course_id;
+      const tutor = tutors.find(t => t.username === lc.tutor_id);
+      const tutorName = tutor ? tutor.name : lc.tutor_id;
 
-              let statusClass = "success";
-              if (lc.status === 'draft') statusClass = "warning";
-              else if (lc.status === 'cancelled') statusClass = "danger";
+      let statusClass = "success";
+      if (lc.status === 'draft') statusClass = "warning";
+      else if (lc.status === 'cancelled') statusClass = "danger";
 
-              return `
+      return `
                 <tr>
                   <td>
                     <div style="font-weight:700;color:var(--text-primary);font-size:0.85rem;">${courseTitle}</div>
@@ -3145,14 +3501,14 @@ const AdminComponent = {
                   </td>
                 </tr>
               `;
-            }).join('')}
+    }).join('')}
           </tbody>
         </table>
       </div>
     `;
   },
 
-  _cancelLiveClass: function(id) {
+  _cancelLiveClass: function (id) {
     if (!confirm('Are you sure you want to cancel this live class?')) return;
     const lc = window.db.getLiveClassById(id);
     if (!lc) return;
@@ -3165,7 +3521,7 @@ const AdminComponent = {
     }
   },
 
-  _deleteLiveClass: function(id) {
+  _deleteLiveClass: function (id) {
     if (!confirm('Are you sure you want to delete this live class permanently?')) return;
     if (window.db.deleteLiveClass(id)) {
       window.app.showToast('Live class deleted.', 'success');
@@ -3175,7 +3531,7 @@ const AdminComponent = {
     }
   },
 
-  _refreshLiveClasses: function() {
+  _refreshLiveClasses: function () {
     const q = document.getElementById('adm-lc-search')?.value || '';
     const tutor = document.getElementById('adm-lc-tutor')?.value || '';
     const course = document.getElementById('adm-lc-course')?.value || '';
@@ -3184,7 +3540,7 @@ const AdminComponent = {
     AdminComponent._bindSection('liveclasses');
   },
 
-  _showEditLiveClass: function(id) {
+  _showEditLiveClass: function (id) {
     const lc = window.db.getLiveClassById(id);
     if (!lc) return;
 
@@ -3287,7 +3643,7 @@ const AdminComponent = {
     document.body.appendChild(overlay);
   },
 
-  _showAttendanceReport: function(classId) {
+  _showAttendanceReport: function (classId) {
     const report = window.db.getAttendanceReport(classId);
     const lc = window.db.getLiveClassById(classId);
     if (!lc) return;
@@ -3340,11 +3696,11 @@ const AdminComponent = {
               ${report.length === 0 ? `
                 <tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:16px;">No students enrolled in this course.</td></tr>
               ` : report.map(r => {
-                let badgeClass = "success";
-                if (r.status === 'LATE') badgeClass = "warning";
-                else if (r.status === 'ABSENT') badgeClass = "danger";
+      let badgeClass = "success";
+      if (r.status === 'LATE') badgeClass = "warning";
+      else if (r.status === 'ABSENT') badgeClass = "danger";
 
-                return `
+      return `
                   <tr>
                     <td>
                       <div style="font-weight:600; color:var(--text-primary); font-size:0.83rem;">${r.name}</div>
@@ -3356,7 +3712,7 @@ const AdminComponent = {
                     </td>
                   </tr>
                 `;
-              }).join('')}
+    }).join('')}
             </tbody>
           </table>
         </div>
@@ -3371,7 +3727,7 @@ const AdminComponent = {
   // ============================================================
   // STUDENT REQUESTS (ADMIN) MANAGEMENT
   // ============================================================
-  updateAdminBadge: async function() {
+  updateAdminBadge: async function () {
     try {
       const convs = await window.db.getSupportConversations();
       const unreadCount = convs.filter(c => c.unread_by_admin).length;
@@ -3389,7 +3745,7 @@ const AdminComponent = {
     }
   },
 
-  _loadAndRenderRequests: async function() {
+  _loadAndRenderRequests: async function () {
     const main = document.getElementById('adm-main');
     if (!main) return;
 
@@ -3410,12 +3766,12 @@ const AdminComponent = {
       main.innerHTML = AdminComponent._renderRequestsView(convs);
       AdminComponent._bindRequestsEvents(convs);
       AdminComponent.updateAdminBadge();
-    } catch(err) {
+    } catch (err) {
       main.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
     }
   },
 
-  _initRealtime: function() {
+  _initRealtime: function () {
     if (AdminComponent._realtimeChannel) return;
     AdminComponent._realtimeChannel = window.db.subscribeToSupportRealtime((e) => {
       if (AdminComponent._sec === 'requests') {
@@ -3439,7 +3795,7 @@ const AdminComponent = {
     });
   },
 
-  _renderRequestsView: function(convs) {
+  _renderRequestsView: function (convs) {
     const total = convs.length;
     const open = convs.filter(c => c.status === 'Open').length;
     const pending = convs.filter(c => c.status === 'Pending').length;
@@ -3561,9 +3917,9 @@ const AdminComponent = {
             ${filtered.length === 0 ? `
               <tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted);">No student requests found matching these filters.</td></tr>
             ` : filtered.map(c => {
-              const relativeReply = DashboardComponent._getRelativeTime(c.last_reply_at);
-              const createdDateStr = new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-              return `
+      const relativeReply = DashboardComponent._getRelativeTime(c.last_reply_at);
+      const createdDateStr = new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      return `
                 <tr style="${c.unread_by_admin ? 'background: rgba(61, 70, 216, 0.04); font-weight: 600;' : ''}">
                   <td style="font-family: monospace; font-size: 0.8rem; color: var(--text-secondary); max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     ${c.id}
@@ -3597,14 +3953,14 @@ const AdminComponent = {
                   </td>
                 </tr>
               `;
-            }).join('')}
+    }).join('')}
           </tbody>
         </table>
       </div>
     `;
   },
 
-  _renderConversationView: async function(convId) {
+  _renderConversationView: async function (convId) {
     const convs = await window.db.getSupportConversations();
     const conv = convs.find(c => c.id === convId);
     if (!conv) return `<div class="alert alert-danger">Conversation not found.</div>`;
@@ -3642,17 +3998,17 @@ const AdminComponent = {
 
           <div class="support-chat-messages" id="support-chat-thread">
             ${messages.map(m => {
-              const isOwn = m.sender === cu.username;
-              const isStudent = m.sender === conv.student_username;
-              const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-              
-              let attachmentHtml = '';
-              if (m.file_url) {
-                const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-                if (isImg) {
-                  attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-                } else {
-                  attachmentHtml = `
+      const isOwn = m.sender === cu.username;
+      const isStudent = m.sender === conv.student_username;
+      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+      let attachmentHtml = '';
+      if (m.file_url) {
+        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+        if (isImg) {
+          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+        } else {
+          attachmentHtml = `
                     <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
                       <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
                       <div class="support-chat-attachment-info">
@@ -3661,30 +4017,30 @@ const AdminComponent = {
                       </div>
                     </a>
                   `;
-                }
-              }
+        }
+      }
 
-              let linkHtml = '';
-              if (m.external_link) {
-                linkHtml = `
+      let linkHtml = '';
+      if (m.external_link) {
+        linkHtml = `
                   <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
                     <i class="fa-solid fa-cloud"></i>
                     <span>Shared File Link</span>
                     <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
                   </a>
                 `;
-              }
+      }
 
-              let alignClass = 'admin-align';
-              if (m.is_internal) {
-                alignClass = 'internal-note-align';
-              } else if (isStudent) {
-                alignClass = 'admin-align';
-              } else {
-                alignClass = 'student-align';
-              }
+      let alignClass = 'admin-align';
+      if (m.is_internal) {
+        alignClass = 'internal-note-align';
+      } else if (isStudent) {
+        alignClass = 'admin-align';
+      } else {
+        alignClass = 'student-align';
+      }
 
-              return `
+      return `
                 <div class="support-msg-wrapper ${alignClass}">
                   <div class="support-msg-bubble">
                     <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px;">
@@ -3700,7 +4056,7 @@ const AdminComponent = {
                   </div>
                 </div>
               `;
-            }).join('')}
+    }).join('')}
           </div>
 
           <div class="support-chat-input-wrapper">
@@ -3770,7 +4126,7 @@ const AdminComponent = {
     `;
   },
 
-  _refreshChatMessagesOnly: async function(convId) {
+  _refreshChatMessagesOnly: async function (convId) {
     const thread = document.getElementById('support-chat-thread');
     if (!thread) return;
 
@@ -3786,7 +4142,7 @@ const AdminComponent = {
         const isOwn = m.sender === cu.username;
         const isStudent = m.sender === conv.student_username;
         const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        
+
         let attachmentHtml = '';
         if (m.file_url) {
           const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
@@ -3849,7 +4205,7 @@ const AdminComponent = {
     }
   },
 
-  _calculateAvgResponseTime: async function(convs) {
+  _calculateAvgResponseTime: async function (convs) {
     const el = document.getElementById('avg-response-time-val');
     if (!el) return;
 
@@ -3876,13 +4232,13 @@ const AdminComponent = {
       } else {
         el.textContent = `${avgHrs.toFixed(1)}h`;
       }
-    } catch(err) {
+    } catch (err) {
       console.error(err);
       el.textContent = 'Error';
     }
   },
 
-  _bindRequestsEvents: function(convs) {
+  _bindRequestsEvents: function (convs) {
     AdminComponent._calculateAvgResponseTime(convs);
 
     const searchInput = document.getElementById('req-search');
@@ -3927,7 +4283,7 @@ const AdminComponent = {
     });
   },
 
-  _bindConversationEvents: function(convId) {
+  _bindConversationEvents: function (convId) {
     document.getElementById('btn-back-to-requests')?.addEventListener('click', () => {
       AdminComponent._activeConvId = null;
       AdminComponent._loadAndRenderRequests();
@@ -3965,7 +4321,7 @@ const AdminComponent = {
           `;
           chip.className = 'support-file-selected-chip';
           chip.style.display = 'flex';
-          
+
           document.getElementById('chat-remove-attached-file')?.addEventListener('click', () => {
             chatSelectedFile = null;
             fileInput.value = '';
@@ -4008,7 +4364,7 @@ const AdminComponent = {
           chatSelectedFile = null;
           if (fileInput) fileInput.value = '';
           if (chip) chip.style.display = 'none';
-          
+
           AdminComponent._loadAndRenderRequests();
         } else {
           window.app.showToast(res.error || "Failed to send message", "danger");
@@ -4032,11 +4388,11 @@ const AdminComponent = {
     });
   },
 
-  _renderCommonMeetings: function(searchQuery = '') {
+  _renderCommonMeetings: function (searchQuery = '') {
     const meetings = window.db.getCommonMeetings();
     const courses = window.db.getCourses();
     const batches = window.db.getBatches();
-    
+
     const filtered = meetings.filter(m => {
       if (!searchQuery) return true;
       return m.title.toLowerCase().includes(searchQuery.toLowerCase()) || m.hostName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -4072,33 +4428,33 @@ const AdminComponent = {
           </thead>
           <tbody>
             ${filtered.map(m => {
-              let scopeText = '';
-              const scopeType = m.access.type;
-              if (scopeType === 'everyone') scopeText = 'Everyone';
-              else if (scopeType === 'all_students') scopeText = 'All Students';
-              else if (scopeType === 'all_tutors') scopeText = 'All Tutors';
-              else if (scopeType === 'all_students_tutors') scopeText = 'All Students & Tutors';
-              else if (scopeType === 'admission_counselors') scopeText = 'Admission Counselors';
-              else if (scopeType === 'selected_courses') {
-                const cTitles = (m.access.courseIds || []).map(cid => {
-                  const c = courses.find(x => x.id === cid);
-                  return c ? c.title : cid;
-                }).join(', ');
-                scopeText = `<span title="${cTitles}">Selected Courses (${(m.access.courseIds || []).length})</span>`;
-              } else if (scopeType === 'selected_batches') {
-                const bNames = (m.access.batchIds || []).map(bid => {
-                  const b = batches.find(x => x.id === bid);
-                  return b ? b.name : bid;
-                }).join(', ');
-                scopeText = `<span title="${bNames}">Selected Batches (${(m.access.batchIds || []).length})</span>`;
-              }
+      let scopeText = '';
+      const scopeType = m.access.type;
+      if (scopeType === 'everyone') scopeText = 'Everyone';
+      else if (scopeType === 'all_students') scopeText = 'All Students';
+      else if (scopeType === 'all_tutors') scopeText = 'All Tutors';
+      else if (scopeType === 'all_students_tutors') scopeText = 'All Students & Tutors';
+      else if (scopeType === 'admission_counselors') scopeText = 'Admission Counselors';
+      else if (scopeType === 'selected_courses') {
+        const cTitles = (m.access.courseIds || []).map(cid => {
+          const c = courses.find(x => x.id === cid);
+          return c ? c.title : cid;
+        }).join(', ');
+        scopeText = `<span title="${cTitles}">Selected Courses (${(m.access.courseIds || []).length})</span>`;
+      } else if (scopeType === 'selected_batches') {
+        const bNames = (m.access.batchIds || []).map(bid => {
+          const b = batches.find(x => x.id === bid);
+          return b ? b.name : bid;
+        }).join(', ');
+        scopeText = `<span title="${bNames}">Selected Batches (${(m.access.batchIds || []).length})</span>`;
+      }
 
-              let statusClass = 'warning';
-              if (m.status === 'Live Now') statusClass = 'success';
-              else if (m.status === 'Completed') statusClass = 'info';
-              else if (m.status === 'Cancelled') statusClass = 'danger';
+      let statusClass = 'warning';
+      if (m.status === 'Live Now') statusClass = 'success';
+      else if (m.status === 'Completed') statusClass = 'info';
+      else if (m.status === 'Cancelled') statusClass = 'danger';
 
-              return `
+      return `
                 <tr>
                   <td style="text-align:left;">
                     <div style="font-weight:700; color:var(--text-primary);">${m.title}</div>
@@ -4124,7 +4480,7 @@ const AdminComponent = {
                   </td>
                 </tr>
               `;
-            }).join('')}
+    }).join('')}
             ${filtered.length === 0 ? '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:30px;">No common meetings found.</td></tr>' : ''}
           </tbody>
         </table>
@@ -4132,11 +4488,11 @@ const AdminComponent = {
     `;
   },
 
-  _renderCommonMeetingForm: function(meeting = null) {
+  _renderCommonMeetingForm: function (meeting = null) {
     const courses = window.db.getCourses();
     const batches = window.db.getBatches();
     const isEdit = !!meeting;
-    
+
     const scopeType = meeting ? meeting.access.type : 'everyone';
     const selectedCourses = meeting ? (meeting.access.courseIds || []) : [];
     const selectedBatches = meeting ? (meeting.access.batchIds || []) : [];
@@ -4144,7 +4500,7 @@ const AdminComponent = {
     const overlay = document.createElement('div');
     overlay.className = 'adm-modal-overlay';
     overlay.id = 'common-meeting-modal';
-    
+
     overlay.innerHTML = `
       <div class="adm-modal" style="max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 24px; text-align: left; background:var(--bg-card); color:var(--text-primary); border-radius:var(--radius-xl); border:1px solid var(--border-color);">
         <h3 style="margin-top:0; font-weight:800; font-size:1.2rem; margin-bottom:16px;">
@@ -4348,7 +4704,7 @@ const AdminComponent = {
     });
   },
 
-  _bindCommonMeetingsEvents: function() {
+  _bindCommonMeetingsEvents: function () {
     document.getElementById('cm-search-input')?.addEventListener('input', e => {
       document.getElementById('adm-main').innerHTML = AdminComponent._renderCommonMeetings(e.target.value);
       AdminComponent._bindSection('common_meeting');
@@ -4442,7 +4798,7 @@ const AdminComponent = {
 window.AdminComponent = AdminComponent;
 
 // Close all admin action menus when clicking outside
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
   if (!e.target.closest('.adm-action-wrap')) {
     document.querySelectorAll('.adm-action-menu.open').forEach(m => {
       m.classList.remove('open');
@@ -4452,7 +4808,7 @@ document.addEventListener('click', function(e) {
 });
 
 // Close all admin action menus on scroll to prevent floating detached menus
-document.addEventListener('scroll', function() {
+document.addEventListener('scroll', function () {
   document.querySelectorAll('.adm-action-menu.open').forEach(m => {
     m.classList.remove('open');
     m.style.transform = '';

@@ -53,7 +53,7 @@ const DashboardComponent = {
             <div class="sidebar-nav">
               ${navItems.map(([tab, icon, label]) => `
                 <div class="sidebar-nav-item ${DashboardComponent._activeTab === tab ? 'active' : ''}" data-tab="${tab}">
-                  <i class="fa-solid ${icon}"></i>${label}
+                  <span style="display:flex; align-items:center; gap:10px;"><i class="fa-solid ${icon}" style="width:20px; text-align:center;"></i>${label}</span>
                   ${tab === 'wishlist' && wishlist.length > 0 ? `<span class="nav-badge">${wishlist.length}</span>` : ''}
                   ${tab === 'certificates' ? `<span class="nav-badge" style="background:var(--success);">${enrolledCourses.filter(c => { const p = window.db.getUserProgress(cu.username, c.id); return p.certificateEarned; }).length}</span>` : ''}
                   ${tab === 'support' ? `<span class="support-badge" id="support-unread-badge" style="display:none;"></span>` : ''}
