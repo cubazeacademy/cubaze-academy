@@ -904,6 +904,15 @@ class CubazeDB {
 
         localStorage.setItem("cubaze_users", JSON.stringify(mappedUsers));
 
+        // Sync active current user session with latest database data
+        const cu = this.getCurrentUser();
+        if (cu) {
+          const updatedCu = mappedUsers.find(u => u.username.toLowerCase() === cu.username.toLowerCase());
+          if (updatedCu) {
+            localStorage.setItem("cubaze_current_user", JSON.stringify(updatedCu));
+          }
+        }
+
         if (migrated) {
           this.setItemAndSync("cubaze_users", mappedUsers);
         }
@@ -1170,7 +1179,7 @@ class CubazeDB {
     }
   }
 
-  setItemAndSync(key, value) {
+  setItemAndSync(key, value, specificId = null) {
     localStorage.setItem(key, JSON.stringify(value));
 
     // Check if Supabase client is initialized
@@ -1178,7 +1187,8 @@ class CubazeDB {
 
     // Asynchronously push to Supabase based on the key
     if (key === "cubaze_courses") {
-      value.forEach(course => {
+      const itemsToPush = specificId ? value.filter(c => c.id === specificId) : value;
+      itemsToPush.forEach(course => {
         this.pushToSupabase("cubaze_courses", {
           id: course.id,
           title: course.title,
@@ -1211,7 +1221,8 @@ class CubazeDB {
         });
       });
     } else if (key === "cubaze_users") {
-      value.forEach(user => {
+      const itemsToPush = specificId ? value.filter(u => u.username === specificId) : value;
+      itemsToPush.forEach(user => {
         this.pushToSupabase("cubaze_users", {
           username: user.username,
           password: user.password,
@@ -1227,7 +1238,8 @@ class CubazeDB {
         });
       });
     } else if (key === "cubaze_batches") {
-      value.forEach(batch => {
+      const itemsToPush = specificId ? value.filter(b => b.id === specificId) : value;
+      itemsToPush.forEach(batch => {
         this.pushToSupabase("cubaze_batches", {
           id: batch.id,
           name: batch.name,
@@ -1295,7 +1307,8 @@ class CubazeDB {
         });
       });
     } else if (key === "cubaze_transactions") {
-      value.forEach(txn => {
+      const itemsToPush = specificId ? value.filter(t => t.id === specificId) : value;
+      itemsToPush.forEach(txn => {
         this.pushToSupabase("cubaze_transactions", {
           id: txn.id,
           username: txn.username,
@@ -1735,7 +1748,7 @@ class CubazeDB {
     const adminStatus = status === "SUCCESS" ? "APPROVED" : (status === "FAILED" || status === "DENIED" ? "DENIED" : "PENDING");
     const newTxn = { id: txnId, username, courseId, courseTitle: course ? course.title : "Unknown", amount, status, adminStatus, paymentMethod, timestamp: new Date().toISOString() };
     transactions.unshift(newTxn);
-    this.setItemAndSync("cubaze_transactions", transactions);
+    this.setItemAndSync("cubaze_transactions", transactions, txnId);
     if (status === "SUCCESS") {
       this.handleAutomaticEnrollment(username, courseId);
     }
@@ -3226,7 +3239,7 @@ class CubazeDB {
       if (!users[index].enrolledBatches) users[index].enrolledBatches = {};
       users[index].enrolledBatches[courseId] = batchId;
 
-      this.setItemAndSync("cubaze_users", users);
+      this.setItemAndSync("cubaze_users", users, users[index].username);
 
       // Sync currentUser in local storage
       const cu = this.getCurrentUser();
@@ -3241,7 +3254,7 @@ class CubazeDB {
       const bIdx = batches.findIndex(b => b.id === batchId);
       if (bIdx > -1) {
         batches[bIdx].currentEnrollment = users.filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[courseId] === batchId).length;
-        this.setItemAndSync("cubaze_batches", batches);
+        this.setItemAndSync("cubaze_batches", batches, batchId);
       }
 
       return { success: true };
@@ -3259,7 +3272,7 @@ class CubazeDB {
       if (users[index].enrolledBatches) {
         delete users[index].enrolledBatches[courseId];
       }
-      this.setItemAndSync("cubaze_users", users);
+      this.setItemAndSync("cubaze_users", users, users[index].username);
 
       const cu = this.getCurrentUser();
       if (cu && cu.username.toLowerCase() === username.toLowerCase()) {
@@ -3273,7 +3286,7 @@ class CubazeDB {
       const bIdx = batches.findIndex(b => b.id === batchId);
       if (bIdx > -1) {
         batches[bIdx].currentEnrollment = users.filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[courseId] === batchId).length;
-        this.setItemAndSync("cubaze_batches", batches);
+        this.setItemAndSync("cubaze_batches", batches, batchId);
       }
 
       return { success: true };
