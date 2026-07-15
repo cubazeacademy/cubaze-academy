@@ -16,7 +16,13 @@ const PhonePeComponent = {
         <div style="font-size:4rem;margin-bottom:16px;">🎉</div>
         <h2>Already Enrolled!</h2>
         <p style="margin:16px 0;color:var(--text-secondary);">You already have access to <strong>${course.title}</strong>.</p>
-        <a href="#/lesson/${course.id}/${course.modules[0].lessons[0].id}" class="btn btn-primary">Start Learning</a>
+        ${(() => {
+          const hasLes = course.modules && course.modules.length > 0 && course.modules[0].lessons && course.modules[0].lessons.length > 0;
+          if (hasLes) {
+            return `<a href="#/lesson/${course.id}/${course.modules[0].lessons[0].id}" class="btn btn-primary">Start Learning</a>`;
+          }
+          return `<a href="#/course/${course.id}" class="btn btn-primary">View Course Details</a>`;
+        })()}
       </div>
     `;
 
@@ -175,7 +181,13 @@ const PhonePeComponent = {
         </div>
 
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-          <a href="#/lesson/${course.id}/${course.modules[0].lessons[0].id}" class="btn btn-primary btn-lg"><i class="fa-solid fa-play"></i> Start Learning Now</a>
+          ${(() => {
+            const hasLes = course.modules && course.modules.length > 0 && course.modules[0].lessons && course.modules[0].lessons.length > 0;
+            if (hasLes) {
+              return `<a href="#/lesson/${course.id}/${course.modules[0].lessons[0].id}" class="btn btn-primary btn-lg"><i class="fa-solid fa-play"></i> Start Learning Now</a>`;
+            }
+            return `<a href="#/course/${course.id}" class="btn btn-primary btn-lg"><i class="fa-solid fa-book-open"></i> View Course Curriculum</a>`;
+          })()}
           <a href="#/dashboard" class="btn btn-secondary">Go to Dashboard</a>
         </div>
         <p style="margin-top:20px;font-size:0.8rem;color:var(--text-muted);">A confirmation email has been sent to your registered email address.</p>

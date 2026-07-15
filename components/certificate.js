@@ -13,8 +13,13 @@ const CertificateComponent = {
         <div style="font-size:4rem;margin-bottom:16px;">🔒</div>
         <h2>Certificate Not Yet Earned</h2>
         <p style="margin:16px 0;color:var(--text-secondary);">Complete all lessons and pass the quiz to earn your certificate for <strong>${course.title}</strong>.</p>
-        <a href="#/lesson/${course.id}/${course.modules[0].lessons[0].id}" class="btn btn-primary">Continue Learning</a>
-      </div>
+        ${(() => {
+          const hasLes = course.modules && course.modules.length > 0 && course.modules[0].lessons && course.modules[0].lessons.length > 0;
+          if (hasLes) {
+            return `<a href="#/lesson/${course.id}/${course.modules[0].lessons[0].id}" class="btn btn-primary">Continue Learning</a>`;
+          }
+          return `<a href="#/course/${course.id}" class="btn btn-primary">View Course Details</a>`;
+        })()}      </div>
     `;
 
     const enrolledBatches = cu.enrolledBatches || {};

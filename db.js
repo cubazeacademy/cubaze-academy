@@ -815,6 +815,7 @@ const DEFAULT_ATTENDANCE = [
 // ============================================================
 class CubazeDB {
   constructor() {
+    this.supabaseStatus = 'disconnected';
     this.init();
     this.initSupabase();
   }
@@ -835,17 +836,25 @@ class CubazeDB {
       try {
         this.sb = window.supabase.createClient(this.supabaseUrl, this.supabaseKey);
         console.log("⚡ Supabase Client initialized");
+        this.supabaseStatus = 'connecting';
         // Try initial sync in background
         this.syncFromSupabase();
       } catch (err) {
         console.error("Failed to initialize Supabase client:", err);
+        this.supabaseStatus = 'unhealthy';
       }
+    } else {
+      this.supabaseStatus = 'disconnected';
     }
   }
 
   async syncFromSupabase() {
-    if (!this.sb) return { success: false, error: "Supabase not connected." };
+    if (!this.sb) {
+      this.supabaseStatus = 'disconnected';
+      return { success: false, error: "Supabase not connected." };
+    }
     try {
+      this.supabaseStatus = 'connecting';
       console.log("🔄 Syncing data from Supabase...");
 
       // Sync Users — convert Supabase snake_case → JS camelCase
@@ -1051,7 +1060,7 @@ class CubazeDB {
           status: txn.status || "PENDING",
           paymentMethod: txn.payment_method || "",
           timestamp: txn.timestamp || new Date().toISOString(),
-          adminStatus: txn.admin_status || "PENDING",
+          adminStatus: (txn.status === "SUCCESS") ? "APPROVED" : (txn.admin_status || "PENDING"),
           invoiceNumber: txn.invoice_number || ""
         }));
         localStorage.setItem("cubaze_transactions", JSON.stringify(mappedTxns));
@@ -1116,6 +1125,7 @@ class CubazeDB {
       }
 
       console.log("✅ Supabase sync completed.");
+      this.supabaseStatus = 'online';
       // Trigger a view refresh if app is loaded
       if (window.app && typeof window.app.renderRoute === 'function') {
         window.app.renderRoute();
@@ -1123,6 +1133,10 @@ class CubazeDB {
       return { success: true };
     } catch (e) {
       console.error("Supabase sync error:", e);
+      this.supabaseStatus = 'unhealthy';
+      if (window.app && typeof window.app.renderRoute === 'function') {
+        window.app.renderRoute();
+      }
       return { success: false, error: e.message };
     }
   }
@@ -1205,16 +1219,9 @@ class CubazeDB {
           role: user.role || "student",
           registered_date: user.registeredDate || new Date().toISOString().split('T')[0],
           enrolled_courses: user.enrolledCourses || [],
-          enrolled_batches: user.enrolledBatches || {},
-          phone: user.phone || '',
-          dob: user.dob || '',
-          qualification: user.qualification || '',
-          qualification_other: user.qualificationOther || '',
-          whatsapp: user.whatsapp || '',
           wishlist: user.wishlist || [],
           suspended: user.suspended === true,
           deleted: user.deleted === true,
-          profile_photo: user.profilePhoto || '',
           author_bio: user.authorBio || '',
           assigned_courses: user.assignedCourses || []
         });
@@ -1298,7 +1305,7 @@ class CubazeDB {
           status: txn.status || "PENDING",
           payment_method: txn.paymentMethod || "",
           timestamp: txn.timestamp || new Date().toISOString(),
-          admin_status: txn.adminStatus || "PENDING",
+          admin_status: (txn.status === "SUCCESS") ? "APPROVED" : (txn.adminStatus || "PENDING"),
           invoice_number: txn.invoiceNumber || ""
         });
       });
@@ -1725,7 +1732,8 @@ class CubazeDB {
     const transactions = this.getTransactions();
     const course = this.getCourseById(courseId);
     const txnId = "TXN_PHPE_" + Math.floor(100000000 + Math.random() * 900000000);
-    const newTxn = { id: txnId, username, courseId, courseTitle: course ? course.title : "Unknown", amount, status, paymentMethod, timestamp: new Date().toISOString() };
+    const adminStatus = status === "SUCCESS" ? "APPROVED" : (status === "FAILED" || status === "DENIED" ? "DENIED" : "PENDING");
+    const newTxn = { id: txnId, username, courseId, courseTitle: course ? course.title : "Unknown", amount, status, adminStatus, paymentMethod, timestamp: new Date().toISOString() };
     transactions.unshift(newTxn);
     this.setItemAndSync("cubaze_transactions", transactions);
     if (status === "SUCCESS") {
@@ -2115,9 +2123,9 @@ class CubazeDB {
   // ============================================================
   getAdminAnalytics() {
     const allTxns = this.getTransactions();
-    const approvedTxns = allTxns.filter(t => (t.adminStatus || "APPROVED") === "APPROVED" && t.status === "SUCCESS");
-    const pendingTxns = allTxns.filter(t => (t.adminStatus || "APPROVED") === "PENDING" || t.status === "PENDING");
-    const deniedTxns = allTxns.filter(t => (t.adminStatus || "APPROVED") === "DENIED");
+    const approvedTxns = allTxns.filter(t => t.status === "SUCCESS");
+    const pendingTxns = allTxns.filter(t => t.status === "PENDING");
+    const deniedTxns = allTxns.filter(t => t.status === "FAILED" || t.status === "DENIED");
     const users = this.getUsers().filter(u => !u.deleted);
     const today = new Date().toISOString().split('T')[0];
     const todayRevenue = approvedTxns.filter(t => t.timestamp.startsWith(today)).reduce((s, t) => s + t.amount, 0);

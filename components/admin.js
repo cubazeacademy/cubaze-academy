@@ -284,19 +284,31 @@ const AdminComponent = {
           </div>
           <div class="admin-welcome-right">
             <div class="admin-quick-stats-badge"><i class="fa-solid fa-users"></i> <span>${a.totalStudents} Learners</span></div>
-            <div class="admin-quick-stats-badge"><i class="fa-solid fa-server"></i> <span>Sync: OK</span></div>
+            <div class="admin-quick-stats-badge" style="cursor: pointer;" onclick="AdminComponent._nav('settings')" title="Click to view Supabase connection status"><i class="fa-solid fa-server"></i> <span>Sync: ${window.db.supabaseStatus === 'online' ? 'OK' : window.db.supabaseStatus === 'connecting' ? 'Connecting...' : window.db.supabaseStatus === 'disconnected' ? 'Offline' : 'Unhealthy'}</span></div>
             <button class="btn btn-primary btn-sm" onclick="AdminComponent._nav('courses')" style="height: 34px; padding: 0 14px; border-radius: 20px; font-weight: 700; font-size: 0.76rem; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-plus"></i> View Courses</button>
           </div>
         </div>
 
-        <!-- PENDING APPROVAL ALERT BANNER -->
+        <!-- SUPABASE UNHEALTHY BANNER -->
+        ${window.db.supabaseStatus === 'unhealthy' ? `
+          <div class="glass-panel-modern" style="border-color:var(--danger); background:rgba(239, 68, 68, 0.03); flex-direction:row; align-items:center; gap:16px; padding: 14px 20px; border-radius: var(--radius-xl); margin-bottom: 8px;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background:rgba(239, 68, 68, 0.1); color:var(--danger); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <i class="fa-solid fa-circle-exclamation"></i>
+            </div>
+            <div style="flex:1; font-size:0.82rem; font-weight:700; color:var(--danger);">
+              Supabase database connection is Unhealthy. The application is running in offline fallback mode.
+            </div>
+            <button class="btn btn-danger btn-sm" style="border-radius:20px; padding: 8px 16px; font-size: 0.76rem; font-weight:800; cursor:pointer;" onclick="AdminComponent._nav('settings')">Configure Settings</button>
+          </div>` : ''}
+
+        <!-- PENDING PAYMENTS NOTIFICATION BANNER -->
         ${a.pendingPayments > 0 ? `
           <div class="glass-panel-modern" style="border-color:#f59e0b; background:rgba(245, 158, 11, 0.03); flex-direction:row; align-items:center; gap:16px; padding: 14px 20px; border-radius: var(--radius-xl);">
             <div style="width: 32px; height: 32px; border-radius: 50%; background:rgba(245, 158, 11, 0.1); color:#d97706; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
               <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
-            <div style="flex:1; font-size:0.82rem; font-weight:700; color:#d97706;">${a.pendingPayments} subscription approvals pending verification.</div>
-            <button class="btn" style="background:#d97706; border:none; color:#fff; border-radius:20px; padding: 8px 16px; font-size: 0.76rem; font-weight:800; cursor:pointer;" onclick="AdminComponent._nav('payments')">Verify Now</button>
+            <div style="flex:1; font-size:0.82rem; font-weight:700; color:#d97706;">There ${a.pendingPayments > 1 ? 'are' : 'is'} ${a.pendingPayments} incomplete payment transaction${a.pendingPayments > 1 ? 's' : ''} in the payment logs.</div>
+            <button class="btn" style="background:#d97706; border:none; color:#fff; border-radius:20px; padding: 8px 16px; font-size: 0.76rem; font-weight:800; cursor:pointer;" onclick="AdminComponent._nav('payments')">View Payments</button>
           </div>` : ''}
 
         <!-- LARGER KPI CARDS -->
@@ -533,11 +545,25 @@ const AdminComponent = {
                 </div>
               </div>
               <div class="system-health-list">
-                <div class="system-health-item">
+                <div class="system-health-item" style="cursor: pointer;" onclick="AdminComponent._nav('settings')" title="Click to view settings and troubleshoot Supabase connection">
                   <span class="system-health-label">Supabase Sync</span>
                   <span class="system-health-value">
-                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-                    <span>Online</span>
+                    ${(() => {
+                      const status = window.db.supabaseStatus || 'online';
+                      if (status === 'online') {
+                        return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                                <span>Online</span>`;
+                      } else if (status === 'connecting') {
+                        return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
+                                <span>Connecting</span>`;
+                      } else if (status === 'disconnected') {
+                        return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #64748b; display: inline-block;"></span>
+                                <span>Offline</span>`;
+                      } else {
+                        return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block; box-shadow: 0 0 8px #ef4444;"></span>
+                                <span style="color: #ef4444; font-weight: bold;">Unhealthy</span>`;
+                      }
+                    })()}
                   </span>
                 </div>
                 <div class="system-health-item">
@@ -1281,21 +1307,21 @@ const AdminComponent = {
     if (viewingId) return AdminComponent._renderPaymentDetail(viewingId);
     let txns = window.db.getTransactions();
     if (search) txns = txns.filter(t => (t.username + t.courseTitle + t.id).toLowerCase().includes(search.toLowerCase()));
-    if (filter === 'APPROVED') txns = txns.filter(t => (t.adminStatus || t.status) === 'APPROVED' || t.status === 'SUCCESS');
-    else if (filter === 'PENDING') txns = txns.filter(t => (t.adminStatus || t.status) === 'PENDING' || t.status === 'PENDING');
-    else if (filter === 'DENIED') txns = txns.filter(t => (t.adminStatus || t.status) === 'DENIED' || t.status === 'FAILED');
+    if (filter === 'APPROVED') txns = txns.filter(t => t.status === 'SUCCESS');
+    else if (filter === 'PENDING') txns = txns.filter(t => t.status === 'PENDING');
+    else if (filter === 'DENIED') txns = txns.filter(t => t.status === 'FAILED' || t.status === 'DENIED');
 
     return `
       <div class="dashboard-welcome">
         <h1>Payment Management <span style="font-size:1rem;font-weight:500;color:#64748B;">(${txns.length})</span></h1>
-        <p>Manually review and approve/deny student payments. Approving automatically enrolls the student.</p>
+        <p>Monitor student payments and checkout statuses. Successful payments are automatically verified and granted access.</p>
       </div>
       <div class="dashboard-widgets" style="margin-bottom:20px; grid-template-columns: repeat(3, 1fr);">
         ${[['PENDING', 'gold', 'fa-hourglass-half', 'Pending'], ['APPROVED', 'green', 'fa-circle-check', 'Approved'], ['DENIED', 'red', 'fa-circle-xmark', 'Denied']].map(([st, c, ic, lbl]) => `
           <div class="widget-card" style="cursor:pointer; display:flex; gap:16px; align-items:center;" onclick="AdminComponent._filterPayments('${st}')">
             <div class="widget-icon ${c}" style="margin-bottom:0;"><i class="fa-solid ${ic}"></i></div>
             <div>
-              <div class="widget-number">${window.db.getTransactions().filter(t => { const s = t.adminStatus || t.status; return st === 'APPROVED' ? s === 'APPROVED' || t.status === 'SUCCESS' : st === 'PENDING' ? s === 'PENDING' || t.status === 'PENDING' : s === 'DENIED' || t.status === 'FAILED'; }).length}</div>
+              <div class="widget-number">${window.db.getTransactions().filter(t => st === 'APPROVED' ? t.status === 'SUCCESS' : st === 'PENDING' ? t.status === 'PENDING' : t.status === 'FAILED' || t.status === 'DENIED').length}</div>
               <div class="widget-label">${lbl}</div>
             </div>
           </div>`).join('')}
@@ -1333,11 +1359,9 @@ const AdminComponent = {
                 <td style="font-family:monospace;font-size:0.68rem;color:#64748B;">${t.id.slice(0, 14)}...</td>
                 <td style="font-size:0.78rem;color:#94A3B8;">${new Date(t.timestamp).toLocaleDateString('en-IN')}</td>
                 <td>
-                  <select class="pay-status-select pss-${adminSt.toLowerCase()}" data-txn-id="${t.id}" onchange="AdminComponent._changePaymentStatus('${t.id}',this.value,this)">
-                    <option value="PENDING" ${adminSt === 'PENDING' ? 'selected' : ''}>🟡 Pending</option>
-                    <option value="APPROVED" ${adminSt === 'APPROVED' ? 'selected' : ''}>🟢 Approved</option>
-                    <option value="DENIED" ${adminSt === 'DENIED' ? 'selected' : ''}>🔴 Denied</option>
-                  </select>
+                  ${t.status === 'SUCCESS' ? '<span class="status-badge badge-success" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block;">🟢 Success</span>' :
+                    t.status === 'PENDING' ? '<span class="status-badge badge-pending" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block;">🟡 Pending</span>' :
+                    '<span class="status-badge danger" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block;">🔴 Failed</span>'}
                 </td>
                 <td>
                   <div style="display:flex;gap:6px;">
@@ -1413,10 +1437,6 @@ const AdminComponent = {
           <div class="glass-panel">
             <div class="glass-panel-header"><div class="glass-panel-title">Actions</div></div>
             <div style="padding:20px;display:flex;flex-direction:column;gap:10px;">
-              <button class="btn btn-success" style="justify-content:center;" onclick="AdminComponent._changePaymentStatus('${t.id}','APPROVED')"><i class="fa-solid fa-circle-check"></i> Approve Payment</button>
-              <button class="btn" style="background:#FFFBEB;color:#D97706;border:1.5px solid #FDE68A;justify-content:center;" onclick="AdminComponent._changePaymentStatus('${t.id}','PENDING')"><i class="fa-solid fa-hourglass-half"></i> Mark as Pending</button>
-              <button class="btn btn-danger" style="justify-content:center;" onclick="AdminComponent._changePaymentStatus('${t.id}','DENIED')"><i class="fa-solid fa-circle-xmark"></i> Deny Payment</button>
-              <div style="height:1px;background:#F1F5F9;margin:4px 0;"></div>
               <button class="btn btn-outline-white" style="justify-content:center;" onclick="window.app.showToast('Invoice download available in full backend version.','info')"><i class="fa-solid fa-file-invoice"></i> Download Invoice</button>
             </div>
             ${course ? `
@@ -2401,7 +2421,7 @@ const AdminComponent = {
           user.dob = dob;
           user.qualification = qualification;
           if (qualification === 'other') user.qualificationOther = qualificationOther;
-          localStorage.setItem('cubaze_users', JSON.stringify(users));
+          window.db.setItemAndSync('cubaze_users', users);
         }
 
         window.app.showToast(`Student "${name}" registered successfully! 🎓`, 'success');

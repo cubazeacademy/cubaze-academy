@@ -15,8 +15,12 @@ const HomeComponent = {
       const isWishlisted = wishlistList.includes(c.id);
       const badgeColor = c.badgeColor || '#3D46D8';
       const stars = HomeComponent._renderStars(c.rating);
+      const hasLessons = c.modules && c.modules.length > 0 && c.modules[0].lessons && c.modules[0].lessons.length > 0;
       const actionBtn = isEnrolled
-        ? `<a href="#/lesson/${c.id}/${c.modules[0].lessons[0].id}" class="btn btn-success btn-sm"><i class="fa-solid fa-play"></i> Continue</a>`
+        ? (hasLessons
+            ? `<a href="#/lesson/${c.id}/${c.modules[0].lessons[0].id}" class="btn btn-success btn-sm"><i class="fa-solid fa-play"></i> Continue</a>`
+            : `<a href="#/course/${c.id}" class="btn btn-outline-white btn-sm">No Lessons Yet</a>`
+          )
         : `<a href="#/course/${c.id}" class="btn btn-primary btn-sm">Enroll Now</a>`;
       const priceSection = isEnrolled
         ? `<div class="course-price enrolled"><i class="fa-solid fa-circle-check"></i> Enrolled</div>`

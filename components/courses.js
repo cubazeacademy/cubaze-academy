@@ -24,8 +24,12 @@ const CoursesComponent = {
       const priceHtml = isEnrolled
         ? `<div class="course-price enrolled"><i class="fa-solid fa-circle-check"></i> Enrolled</div>`
         : `<div class="course-price-group"><div class="course-price">₹${c.price.toLocaleString('en-IN')}</div><div class="course-price-original">₹${Math.floor(c.price * 2.5).toLocaleString('en-IN')}</div></div>`;
+      const hasLessons = c.modules && c.modules.length > 0 && c.modules[0].lessons && c.modules[0].lessons.length > 0;
       const actionBtn = isEnrolled
-        ? `<a href="#/lesson/${c.id}/${c.modules[0].lessons[0].id}" class="btn btn-success btn-sm"><i class="fa-solid fa-play"></i> Continue</a>`
+        ? (hasLessons
+            ? `<a href="#/lesson/${c.id}/${c.modules[0].lessons[0].id}" class="btn btn-success btn-sm"><i class="fa-solid fa-play"></i> Continue</a>`
+            : `<a href="#/course/${c.id}" class="btn btn-outline-white btn-sm">No Lessons Yet</a>`
+          )
         : `<a href="#/course/${c.id}" class="btn btn-primary btn-sm">View Course</a>`;
 
       return `
@@ -111,8 +115,8 @@ const CoursesComponent = {
     const reviews = course.reviews || [];
 
     // Curriculum HTML
-    const modulesHtml = course.modules.map((mod, idx) => {
-      const lessonsHtml = mod.lessons.map(les => `
+    const modulesHtml = (course.modules || []).map((mod, idx) => {
+      const lessonsHtml = (mod.lessons || []).map(les => `
         <div class="lesson-row">
           <div class="lesson-left"><i class="fa-regular fa-circle-play"></i><span>${les.title}</span></div>
           <span class="lesson-duration">${les.duration}</span>
@@ -166,8 +170,12 @@ const CoursesComponent = {
       `;
     }).join('');
 
+    const hasLessons = course.modules && course.modules.length > 0 && course.modules[0].lessons && course.modules[0].lessons.length > 0;
     const buyBtnHtml = isEnrolled
-      ? `<a href="#/lesson/${course.id}/${course.modules[0].lessons[0].id}" class="btn btn-success btn-block btn-lg"><i class="fa-solid fa-play"></i> Continue Learning</a>`
+      ? (hasLessons
+          ? `<a href="#/lesson/${course.id}/${course.modules[0].lessons[0].id}" class="btn btn-success btn-block btn-lg"><i class="fa-solid fa-play"></i> Continue Learning</a>`
+          : `<button class="btn btn-outline-white btn-block btn-lg" disabled><i class="fa-solid fa-ban"></i> No Lessons Available</button>`
+        )
       : `<button id="btn-enroll-course" class="btn btn-primary btn-block btn-lg"><i class="fa-solid fa-lock-open"></i> Enroll Now — ₹${course.price.toLocaleString('en-IN')}</button>`;
 
     const wishBtn = cu
@@ -244,7 +252,7 @@ const CoursesComponent = {
             <!-- Curriculum -->
             <div style="margin-bottom:28px;">
               <h3 style="margin-bottom:4px;"><i class="fa-solid fa-list" style="color:var(--brand-blue);margin-right:8px;"></i>Course Curriculum</h3>
-              <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">${course.modules.length} modules · ${course.modules.reduce((a, m) => a + m.lessons.length, 0)} lessons · ${course.duration} total</p>
+              <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">${(course.modules || []).length} modules · ${(course.modules || []).reduce((a, m) => a + (m.lessons || []).length, 0)} lessons · ${course.duration} total</p>
               ${modulesHtml}
             </div>
 
@@ -306,7 +314,7 @@ const CoursesComponent = {
                 <div class="course-includes">
                   <div class="course-include-item"><i class="fa-solid fa-infinity"></i><span>Lifetime access</span></div>
                   <div class="course-include-item"><i class="fa-solid fa-clock"></i><span>${course.duration} of HD content</span></div>
-                  <div class="course-include-item"><i class="fa-solid fa-book-open"></i><span>${course.modules.reduce((a, m) => a + m.lessons.length, 0)} lessons across ${course.modules.length} modules</span></div>
+                  <div class="course-include-item"><i class="fa-solid fa-book-open"></i><span>${(course.modules || []).reduce((a, m) => a + (m.lessons || []).length, 0)} lessons across ${(course.modules || []).length} modules</span></div>
                   <div class="course-include-item"><i class="fa-solid fa-mobile-screen"></i><span>Access on mobile & desktop</span></div>
                   <div class="course-include-item"><i class="fa-solid fa-certificate"></i><span>Completion certificate</span></div>
                   <div class="course-include-item"><i class="fa-solid fa-file-download"></i><span>Downloadable resources</span></div>

@@ -84,7 +84,14 @@ const QuizComponent = {
           ` : `
             <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
               <button onclick="window.app.renderRoute()" class="btn btn-primary btn-lg"><i class="fa-solid fa-redo"></i> Retry Quiz</button>
-              <a href="#/lesson/${courseId}/${window.db.getCourseById(courseId).modules[0].lessons[0].id}" class="btn btn-secondary">Review Lessons</a>
+              ${(() => {
+                const c = window.db.getCourseById(courseId);
+                const hasLes = c && c.modules && c.modules.length > 0 && c.modules[0].lessons && c.modules[0].lessons.length > 0;
+                if (hasLes) {
+                  return `<a href="#/lesson/${courseId}/${c.modules[0].lessons[0].id}" class="btn btn-secondary">Review Lessons</a>`;
+                }
+                return `<a href="#/course/${courseId}" class="btn btn-secondary">Review Course</a>`;
+              })()}
             </div>
           `}
         </div>

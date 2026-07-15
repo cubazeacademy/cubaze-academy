@@ -34,7 +34,7 @@ const DashboardComponent = {
     const totalProgress = enrolledCourses.length > 0
       ? Math.round(enrolledCourses.reduce((sum, c) => {
           const p = window.db.getUserProgress(cu.username, c.id);
-          const total = c.modules.reduce((a, m) => a + m.lessons.length, 0);
+          const total = (c.modules || []).reduce((a, m) => a + (m.lessons || []).length, 0);
           const done = (p.completedLessons || []).length;
           return sum + (total > 0 ? (done / total) * 100 : 0);
         }, 0) / enrolledCourses.length)
@@ -97,7 +97,7 @@ const DashboardComponent = {
     const certsEarned = enrolledCourses.filter(c => window.db.getUserProgress(cu.username, c.id).certificateEarned).length;
     const totalHoursLearned = enrolledCourses.reduce((sum, c) => {
       const p = window.db.getUserProgress(cu.username, c.id);
-      const total = c.modules.reduce((a, m) => a + m.lessons.length, 0);
+      const total = (c.modules || []).reduce((a, m) => a + (m.lessons || []).length, 0);
       const done = (p.completedLessons || []).length;
       return sum + (total > 0 ? (done / total) * parseFloat(c.duration) : 0);
     }, 0);
@@ -177,10 +177,11 @@ const DashboardComponent = {
 
   _renderEnrolledCard: function (cu, c) {
     const p = window.db.getUserProgress(cu.username, c.id);
-    const total = c.modules.reduce((a, m) => a + m.lessons.length, 0);
+    const total = (c.modules || []).reduce((a, m) => a + (m.lessons || []).length, 0);
     const done = (p.completedLessons || []).length;
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-    const firstLesson = c.modules[0].lessons[0];
+    const hasLessons = c.modules && c.modules.length > 0 && c.modules[0].lessons && c.modules[0].lessons.length > 0;
+    const firstLesson = hasLessons ? c.modules[0].lessons[0] : null;
     
     // Batch details
     const enrolledBatches = cu.enrolledBatches || {};
@@ -265,7 +266,7 @@ const DashboardComponent = {
           <div style="font-size:0.78rem;color:var(--brand-blue);font-weight:600;margin-top:4px;margin-bottom:8px;">${pct}% Complete</div>
           ${batchHtml}
           <div class="enrolled-course-actions">
-            <a href="#/lesson/${c.id}/${firstLesson.id}" class="btn btn-primary btn-sm"><i class="fa-solid fa-play"></i> Continue</a>
+            ${firstLesson ? `<a href="#/lesson/${c.id}/${firstLesson.id}" class="btn btn-primary btn-sm"><i class="fa-solid fa-play"></i> Continue</a>` : `<button class="btn btn-outline-white btn-sm" disabled><i class="fa-solid fa-ban"></i> No Lessons</button>`}
             <a href="#/quiz/${c.id}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-trophy"></i> Take Quiz</a>
             ${p.certificateEarned ? `<a href="#/certificate/${c.id}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-certificate" style="color:var(--warning);"></i> Certificate</a>` : ''}
           </div>
@@ -337,7 +338,15 @@ const DashboardComponent = {
             <div style="font-size:3rem;margin-bottom:16px;">🎓</div>
             <h3>No certificates yet</h3>
             <p style="margin:12px 0;color:var(--text-secondary);">Complete a course and pass the quiz to earn your first certificate!</p>
-            ${enrolledCourses.length > 0 ? `<a href="#/lesson/${enrolledCourses[0].id}/${enrolledCourses[0].modules[0].lessons[0].id}" class="btn btn-primary" style="margin-top:8px;">Continue Learning</a>` : ''}
+            ${(() => {
+              if (enrolledCourses.length === 0) return '';
+              const firstC = enrolledCourses[0];
+              const hasLes = firstC.modules && firstC.modules.length > 0 && firstC.modules[0].lessons && firstC.modules[0].lessons.length > 0;
+              if (hasLes) {
+                return `<a href="#/lesson/${firstC.id}/${firstC.modules[0].lessons[0].id}" class="btn btn-primary" style="margin-top:8px;">Continue Learning</a>`;
+              }
+              return `<a href="#/course/${firstC.id}" class="btn btn-primary" style="margin-top:8px;">View Course</a>`;
+            })()}
           </div>
         ` : `
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;">
@@ -526,7 +535,7 @@ const DashboardComponent = {
           const totalProgress = enrolledCourses.length > 0
             ? Math.round(enrolledCourses.reduce((sum, c) => {
                 const p = window.db.getUserProgress(cu.username, c.id);
-                const total = c.modules.reduce((a, m) => a + m.lessons.length, 0);
+                const total = (c.modules || []).reduce((a, m) => a + (m.lessons || []).length, 0);
                 const done = (p.completedLessons || []).length;
                 return sum + (total > 0 ? (done / total) * 100 : 0);
               }, 0) / enrolledCourses.length)
