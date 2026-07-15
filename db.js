@@ -1073,6 +1073,95 @@ class CubazeDB {
           invoiceNumber: txn.invoice_number || ""
         }));
         localStorage.setItem("cubaze_transactions", JSON.stringify(mappedTxns));
+
+        // Self-heal/Reconcile enrollments based on successful transactions
+        let usersUpdated = false;
+        const localUsers = JSON.parse(localStorage.getItem("cubaze_users")) || [];
+        const localBatches = JSON.parse(localStorage.getItem("cubaze_batches")) || [];
+
+        mappedTxns.forEach(t => {
+          if (t.status === "SUCCESS") {
+            const uIdx = localUsers.findIndex(u => u.username.toLowerCase() === t.username.toLowerCase());
+            if (uIdx > -1) {
+              let userModified = false;
+              if (!localUsers[uIdx].enrolledCourses) {
+                localUsers[uIdx].enrolledCourses = [];
+                userModified = true;
+              }
+              if (!localUsers[uIdx].enrolledCourses.includes(t.courseId)) {
+                localUsers[uIdx].enrolledCourses.push(t.courseId);
+                userModified = true;
+              }
+              if (!localUsers[uIdx].enrolledBatches) {
+                localUsers[uIdx].enrolledBatches = {};
+                userModified = true;
+              }
+              if (!localUsers[uIdx].enrolledBatches[t.courseId]) {
+                // Find or create batch
+                let openBatch = localBatches.find(b => b.courseId === t.courseId && b.status === "Enrollment Open");
+                if (!openBatch) {
+                  const nextNumber = localBatches.filter(b => b.courseId === t.courseId).length + 1;
+                  const course = this.getCourseById(t.courseId);
+                  const courseTitle = course ? course.title : t.courseId;
+                  openBatch = {
+                    id: `B-${t.courseId.substring(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+                    name: `${courseTitle} - Batch ${nextNumber}`,
+                    courseId: t.courseId,
+                    tutorIds: [],
+                    maxStudents: 50,
+                    currentEnrollment: 0,
+                    startDate: "",
+                    endDate: "",
+                    classDays: [],
+                    classTime: "",
+                    googleMeetLink: "",
+                    googleDriveFolder: "",
+                    whatsappLink: "",
+                    status: "Enrollment Open"
+                  };
+                  localBatches.push(openBatch);
+                  localStorage.setItem("cubaze_batches", JSON.stringify(localBatches));
+                  this.pushToSupabase("cubaze_batches", openBatch);
+                }
+                localUsers[uIdx].enrolledBatches[t.courseId] = openBatch.id;
+                // Update batch enrollment count
+                openBatch.currentEnrollment = localUsers.filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[t.courseId] === openBatch.id).length;
+                localStorage.setItem("cubaze_batches", JSON.stringify(localBatches));
+                this.pushToSupabase("cubaze_batches", openBatch);
+                userModified = true;
+              }
+
+              if (userModified) {
+                usersUpdated = true;
+                this.pushToSupabase("cubaze_users", {
+                  username: localUsers[uIdx].username,
+                  password: localUsers[uIdx].password,
+                  name: localUsers[uIdx].name,
+                  role: localUsers[uIdx].role || "student",
+                  registered_date: localUsers[uIdx].registeredDate || new Date().toISOString().split('T')[0],
+                  enrolled_courses: localUsers[uIdx].enrolledCourses || [],
+                  wishlist: localUsers[uIdx].wishlist || [],
+                  suspended: localUsers[uIdx].suspended === true,
+                  deleted: localUsers[uIdx].deleted === true,
+                  author_bio: localUsers[uIdx].authorBio || '',
+                  assigned_courses: localUsers[uIdx].assignedCourses || []
+                });
+              }
+            }
+          }
+        });
+
+        if (usersUpdated) {
+          localStorage.setItem("cubaze_users", JSON.stringify(localUsers));
+          // Refresh active current user session
+          const cu = this.getCurrentUser();
+          if (cu) {
+            const updatedCu = localUsers.find(u => u.username.toLowerCase() === cu.username.toLowerCase());
+            if (updatedCu) {
+              localStorage.setItem("cubaze_current_user", JSON.stringify(updatedCu));
+            }
+          }
+        }
       }
 
       // Sync Progress
