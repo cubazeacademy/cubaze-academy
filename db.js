@@ -3162,7 +3162,6 @@ class CubazeDB {
           batchData.status = 'Enrollment Open';
         }
       }
-      const oldBatch = batches[index];
       batches[index] = { ...batches[index], ...batchData };
       if (oldBatch.status === 'Enrollment Open' && (batchData.status === 'Active' || batchData.status === 'Completed' || batchData.status === 'Archived')) {
         const hasOtherOpen = batches.some(b => b.courseId === batchData.courseId && b.status === 'Enrollment Open' && b.id !== batchData.id);
