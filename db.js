@@ -3162,7 +3162,51 @@ class CubazeDB {
           batchData.status = 'Enrollment Open';
         }
       }
+      const oldBatch = batches[index];
       batches[index] = { ...batches[index], ...batchData };
+      if (oldBatch.status === 'Enrollment Open' && (batchData.status === 'Active' || batchData.status === 'Completed' || batchData.status === 'Archived')) {
+        const hasOtherOpen = batches.some(b => b.courseId === batchData.courseId && b.status === 'Enrollment Open' && b.id !== batchData.id);
+        if (!hasOtherOpen) {
+          const courseBatches = batches.filter(b => b.courseId === batchData.courseId);
+          const nextNumber = courseBatches.length + 1;
+          const course = this.getCourseById(batchData.courseId);
+          const courseTitle = course ? course.title : batchData.courseId;
+          const newOpenBatch = {
+            id: `B-${batchData.courseId.substring(0, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+            name: `${courseTitle} - Batch ${nextNumber}`,
+            courseId: batchData.courseId,
+            tutorIds: [],
+            maxStudents: 50,
+            currentEnrollment: 0,
+            startDate: "",
+            endDate: "",
+            classDays: [],
+            classTime: "",
+            googleMeetLink: "",
+            googleDriveFolder: "",
+            whatsappLink: "",
+            status: "Enrollment Open"
+          };
+          batches.push(newOpenBatch);
+          setTimeout(() => {
+            this.pushToSupabase("cubaze_batches", {
+              id: newOpenBatch.id,
+              name: newOpenBatch.name,
+              course_id: newOpenBatch.courseId,
+              tutor_ids: newOpenBatch.tutorIds || [],
+              max_students: newOpenBatch.maxStudents || 50,
+              current_enrollment: newOpenBatch.currentEnrollment || 0,
+              start_date: newOpenBatch.startDate || null,
+              end_date: newOpenBatch.endDate || null,
+              class_days: newOpenBatch.classDays || [],
+              class_time: newOpenBatch.classTime || '',
+              google_meet_link: newOpenBatch.googleMeetLink || '',
+              google_drive_folder: `${newOpenBatch.googleDriveFolder || ''}||${newOpenBatch.whatsappLink || ''}`,
+              status: newOpenBatch.status || 'Upcoming'
+            });
+          }, 0);
+        }
+      }
     } else {
       batches.push(batchData);
     }
@@ -3341,6 +3385,11 @@ class CubazeDB {
     const users = this.getUsers();
     const index = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
     if (index > -1) {
+      const batch = this.getBatchById(batchId);
+      if (batch && batch.status !== 'Enrollment Open') {
+        return { success: false, error: "Cannot enroll students in Active, Completed, or Archived batches." };
+      }
+
       // Enroll in course if not already
       if (!users[index].enrolledCourses) users[index].enrolledCourses = [];
       if (!users[index].enrolledCourses.includes(courseId)) {

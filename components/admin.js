@@ -2560,7 +2560,7 @@ const AdminComponent = {
         return;
       }
 
-      const batches = window.db.getBatches().filter(b => b.courseId === cid && b.status !== 'Archived');
+      const batches = window.db.getBatches().filter(b => b.courseId === cid && b.status === 'Enrollment Open');
       batchSelect.disabled = false;
       if (batches.length === 0) {
         batchSelect.innerHTML = `<option value="">No active batches for this course</option>`;
