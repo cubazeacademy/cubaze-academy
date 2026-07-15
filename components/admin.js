@@ -947,6 +947,7 @@ const AdminComponent = {
                     <div class="adm-action-wrap">
                       <button class="btn btn-outline-white btn-sm btn-icon" onclick="AdminComponent._openAdmMenu(this, event)"><i class="fa-solid fa-ellipsis"></i></button>
                       <div class="adm-action-menu">
+                        <button onclick="AdminComponent._showBatchStudents('${b.id}')"><i class="fa-solid fa-graduation-cap" style="color:#6366F1;"></i> View Students</button>
                         <button onclick="AdminComponent._showEditBatch('${b.id}')"><i class="fa-solid fa-pen-to-square" style="color:#D97706;"></i> Edit</button>
                         <button onclick="AdminComponent._duplicateBatch('${b.id}')"><i class="fa-solid fa-copy" style="color:#64748B;"></i> Duplicate</button>
                         <button onclick="AdminComponent._archiveBatch('${b.id}')"><i class="fa-solid fa-box-archive" style="color:#64748B;"></i> Archive</button>
@@ -1093,6 +1094,76 @@ const AdminComponent = {
     }
   },
 
+  _showBatchStudents: function (batchId) {
+    const batch = window.db.getBatchById(batchId);
+    if (!batch) return;
+    const courseId = batch.courseId;
+    const users = window.db.getUsers();
+    const students = users.filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[courseId] === batchId);
+    AdminComponent._renderStudentsModal(batch.name, students);
+  },
+
+  _showCourseStudents: function (courseId) {
+    const course = window.db.getCourseById(courseId);
+    if (!course) return;
+    const users = window.db.getUsers();
+    const students = users.filter(u => u.role === 'student' && u.enrolledCourses && u.enrolledCourses.includes(courseId));
+    AdminComponent._renderStudentsModal(course.title, students);
+  },
+
+  _renderStudentsModal: function (title, students) {
+    const modal = document.createElement('div');
+    modal.className = 'adm-modal-overlay';
+    modal.id = 'view-students-modal';
+    modal.innerHTML = `
+      <div class="adm-modal" style="max-width: 600px; width: 100%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1.5px solid var(--border-color); padding-bottom:12px;">
+          <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#0F172A;"><i class="fa-solid fa-graduation-cap" style="color:#6366F1; margin-right:8px;"></i>Enrolled Students: ${title}</h3>
+          <button onclick="document.getElementById('view-students-modal').remove()" style="background:none; border:none; color:#64748B; font-size:1.2rem; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div style="max-height: 400px; overflow-y: auto; text-align: left; margin-bottom: 20px;">
+          ${students.length === 0 ? `
+            <div style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+              <i class="fa-solid fa-users-slash" style="font-size:2.5rem; margin-bottom:12px; color:#CBD5E1;"></i>
+              <p style="margin:0; font-size:0.88rem;">No students are currently enrolled.</p>
+            </div>
+          ` : `
+            <table class="data-table" style="width:100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom:2px solid var(--border-color);">
+                  <th style="text-align:left; padding:10px;">Name</th>
+                  <th style="text-align:left; padding:10px;">Username</th>
+                  <th style="text-align:left; padding:10px;">Phone</th>
+                  <th style="text-align:left; padding:10px;">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${students.map(s => `
+                  <tr style="border-bottom:1px solid var(--border-color);">
+                    <td style="padding:10px; font-weight:700; color:#0F172A; display:flex; align-items:center; gap:8px;">
+                      <div class="profile-avatar" style="width:28px; height:28px; font-size:0.75rem; border-radius:50%; background:var(--brand-blue-light); color:var(--brand-blue); display:flex; align-items:center; justify-content:center; font-weight:700; ${s.profilePhoto ? `background-image:url(${s.profilePhoto}); background-size:cover;` : ''}">
+                        ${s.profilePhoto ? '' : s.name.charAt(0).toUpperCase()}
+                      </div>
+                      ${s.name}
+                    </td>
+                    <td style="padding:10px; font-family:monospace; font-size:0.8rem; color:#6366F1;">@${s.username}</td>
+                    <td style="padding:10px; font-size:0.8rem; color:#475569;">${s.phone || '—'}</td>
+                    <td style="padding:10px; font-size:0.8rem; color:#94A3B8;">${s.registeredDate ? new Date(s.registeredDate).toLocaleDateString('en-IN') : '—'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `}
+        </div>
+        <div style="display:flex; justify-content:flex-end;">
+          <button class="btn btn-primary" onclick="document.getElementById('view-students-modal').remove()">Close</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  },
+
   _archiveBatch: function (id) {
     if (!confirm('Archive this batch?')) return;
     const res = window.db.archiveBatch(id);
@@ -1176,6 +1247,7 @@ const AdminComponent = {
                   <div class="adm-action-wrap">
                     <button class="btn btn-outline-white btn-sm btn-icon" onclick="AdminComponent._openAdmMenu(this, event)"><i class="fa-solid fa-ellipsis"></i></button>
                     <div class="adm-action-menu">
+                      <button onclick="AdminComponent._showCourseStudents('${c.id}')"><i class="fa-solid fa-graduation-cap" style="color:#6366F1;"></i> View Students</button>
                       <button onclick="window.location.hash='/course/${c.id}'"><i class="fa-solid fa-eye" style="color:#3D46D8;"></i> View</button>
                       <button onclick="AdminComponent._showEditCourse('${c.id}')"><i class="fa-solid fa-pen-to-square" style="color:#D97706;"></i> Edit</button>
                       <button onclick="AdminComponent._manageModules('${c.id}')"><i class="fa-solid fa-list-check" style="color:#7C3AED;"></i> Manage Lessons</button>
