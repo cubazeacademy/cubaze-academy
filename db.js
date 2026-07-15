@@ -866,8 +866,17 @@ class CubazeDB {
           name: u.name,
           role: u.role || 'student',
           registeredDate: u.registered_date || '',
-          enrolledCourses: u.enrolled_courses || [],
-          enrolledBatches: u.enrolled_batches || {},
+          enrolledCourses: (u.enrolled_courses || []).map(item => item.includes(':') ? item.split(':')[0] : item),
+          enrolledBatches: (() => {
+            const eb = {};
+            (u.enrolled_courses || []).forEach(item => {
+              if (item.includes(':')) {
+                const parts = item.split(':');
+                eb[parts[0]] = parts[1];
+              }
+            });
+            return eb;
+          })(),
           wishlist: u.wishlist || [],
           authorBio: u.author_bio || '',
           assignedCourses: u.assigned_courses || [],
@@ -983,8 +992,20 @@ class CubazeDB {
             classDays: b.class_days || [],
             classTime: b.class_time || '',
             googleMeetLink: b.google_meet_link || '',
-            googleDriveFolder: b.google_drive_folder || '',
-            whatsappLink: b.whatsapp_link || '',
+            googleDriveFolder: (() => {
+              let gdrive = b.google_drive_folder || '';
+              if (gdrive.includes('||')) {
+                return gdrive.split('||')[0];
+              }
+              return gdrive;
+            })(),
+            whatsappLink: (() => {
+              let gdrive = b.google_drive_folder || '';
+              if (gdrive.includes('||')) {
+                return gdrive.split('||')[1] || '';
+              }
+              return b.whatsapp_link || '';
+            })(),
             status: b.status || 'Upcoming'
           };
         });
@@ -1318,7 +1339,10 @@ class CubazeDB {
           name: user.name,
           role: user.role || "student",
           registered_date: user.registeredDate || new Date().toISOString().split('T')[0],
-          enrolled_courses: user.enrolledCourses || [],
+          enrolled_courses: (user.enrolledCourses || []).map(cid => {
+            const bid = user.enrolledBatches ? user.enrolledBatches[cid] : null;
+            return bid ? `${cid}:${bid}` : cid;
+          }),
           wishlist: user.wishlist || [],
           suspended: user.suspended === true,
           deleted: user.deleted === true,
@@ -1341,8 +1365,7 @@ class CubazeDB {
           class_days: batch.classDays || [],
           class_time: batch.classTime || '',
           google_meet_link: batch.googleMeetLink || '',
-          google_drive_folder: batch.googleDriveFolder || '',
-          whatsapp_link: batch.whatsappLink || '',
+          google_drive_folder: `${batch.googleDriveFolder || ''}||${batch.whatsappLink || ''}`,
           status: batch.status || 'Upcoming'
         });
       });
