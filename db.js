@@ -124,16 +124,16 @@ const DEFAULT_COURSES = [
   {
     id: "blender-basics",
     title: "Basics of Blender",
-    shortDescription: "Perfect for beginners to learn Blender interface, navigation, simple modeling, materials, camera, and rendering.",
-    description: "New to 3D? This is the perfect starting point. The Basics of Blender course is designed for complete beginners who want to understand the fundamentals of Blender without feeling overwhelmed.\n\nYou'll get comfortable with the Blender interface, learn to navigate the 3D viewport, create your first 3D models, apply basic materials and colors, set up cameras and lighting for a clean render, and export your work for sharing.",
+    shortDescription: "Unlock your creativity and dive into the exciting world of 3D animation with Blender. Perfect for beginners to master interface, modeling, and lighting.",
+    description: "Unlock your creativity and dive into the exciting world of 3D animation with Blender, a powerful open-source software used by professionals and hobbyists alike. This beginner-friendly course is designed to introduce you to the fundamentals of 3D animation using Blender.\n\nThrough hands-on projects and step-by-step guidance, you'll learn the essentials of Basics of Blender, interface explanations, Rendering, lighting, Colouring, Cloth Simulation, lighting, and animating. Whether you’re an aspiring animator, game developer, or digital artist, this course provides the perfect starting point to bring your ideas to life.\n\nBy the end of the course, you’ll be able to create simple animated scenes and have a strong foundation to explore more advanced 3D animation techniques.\n\nWhat You’ll Learn:\n• Advanced Blender interface customization and workflow optimization\n• Object Downloading and Importing techniques\n• Basics Navigation tools and Keyboard Shortcuts animation\n• Practical Session of A Product ads\n• Lighting and rendering using Eevee and Cycles\n• Physics simulations (cloth, Wind)\n• Basics Tutorial of Text\n• Logo 3D Design and Intro Making\n• Rigid Body\n• Basics of Modelling",
     price: 499,
     badge: "Beginner",
     badgeColor: "#10b981",
     level: "Beginner",
     language: "Malayalam",
     studentsCount: 8620,
-    duration: "8 Hours",
-    lessonsCount: 5,
+    duration: "3 Months",
+    lessonsCount: 11,
     rating: 4.8,
     author: "admin",
     authorName: "Cubaze Academy",
@@ -141,14 +141,15 @@ const DEFAULT_COURSES = [
     image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&auto=format&fit=crop&q=80",
     previewVideo: "https://www.youtube.com/embed/dQw4w9WgXcQ",
     requirements: [
-      "A computer with Blender installed (free at blender.org)",
-      "No 3D experience needed — this is a beginner course",
-      "Curiosity and patience"
+      "Beginners with no prior experience in 3D animation",
+      "Students, artists, or hobbyists interested in digital animation",
+      "Anyone curious about creating animated content using Blender",
+      "A computer with Blender installed (free at blender.org)"
     ],
     projects: [
-      "Simple 3D Donut (classic Blender project)",
-      "Room Interior with Basic Furniture",
-      "Simple Character — Beginner Sculpt"
+      "Logo 3D Design and Intro Making",
+      "Practical Session of A Product Ad",
+      "Cloth & Wind Physics Simulation"
     ],
     reviews: [
       { username: "priya_begin", name: "Priya Menon", rating: 5, comment: "As a complete beginner I was nervous about 3D but this course made it so approachable. The instructor is patient and explains every step. I made my first render within the first week!", date: "2026-06-20" },
@@ -158,43 +159,37 @@ const DEFAULT_COURSES = [
     modules: [
       {
         id: "blender-b-m1",
-        title: "Module 1: Getting Started with Blender",
+        title: "Module 1: Set up the Blender",
         lessons: [
-          { id: "blb-m1-l1", title: "What is Blender & Why Learn It?", duration: "08:15" },
-          { id: "blb-m1-l2", title: "Downloading & Installing Blender", duration: "06:30" },
-          { id: "blb-m1-l3", title: "Understanding the Interface", duration: "16:45" }
+          { id: "blb-m1-l1", title: "Blender Downloading", duration: "02:05", videoUrl: "https://youtu.be/6yMrVEzjYhI" }
         ]
       },
       {
         id: "blender-b-m2",
-        title: "Module 2: Basic 3D Modeling",
+        title: "Module 2: Interface Explanation",
         lessons: [
-          { id: "blb-m2-l1", title: "Adding Objects & Basic Transforms", duration: "14:20" },
-          { id: "blb-m2-l2", title: "Edit Mode — Simple Shape Creation", duration: "18:35" }
+          { id: "blb-m2-l1", title: "Part 1", duration: "11:39", videoUrl: "https://youtu.be/_ITi_GJaaio" },
+          { id: "blb-m2-l2", title: "Part 2", duration: "11:01", videoUrl: "https://youtu.be/91wPwfLRK-g" },
+          { id: "blb-m2-l3", title: "Part 3 (Navigation)", duration: "12:10", videoUrl: "https://youtu.be/0joPOCrJ5Ik" }
         ]
       },
       {
         id: "blender-b-m3",
-        title: "Module 3: Materials & Colors",
+        title: "Module 3: Object Downloading",
         lessons: [
-          { id: "blb-m3-l1", title: "Applying Materials & Colors", duration: "12:10" },
-          { id: "blb-m3-l2", title: "Basic Shaders & Textures", duration: "15:40" }
+          { id: "blb-m3-l1", title: "Blender Kit", duration: "14:12", videoUrl: "https://youtu.be/HHvUeZXWbyg" },
+          { id: "blb-m3-l2", title: "Sketchfab website", duration: "09:39", videoUrl: "https://youtu.be/05_P8FK54xE" }
         ]
       },
       {
         id: "blender-b-m4",
-        title: "Module 4: Camera & Lighting",
+        title: "Module 4: Practical Session",
         lessons: [
-          { id: "blb-m4-l1", title: "Setting Up Camera & Composition", duration: "11:25" },
-          { id: "blb-m4-l2", title: "Basic Lighting for Beginners", duration: "13:50" }
-        ]
-      },
-      {
-        id: "blender-b-m5",
-        title: "Module 5: Rendering & Exporting",
-        lessons: [
-          { id: "blb-m5-l1", title: "Rendering Your First Image", duration: "10:30" },
-          { id: "blb-m5-l2", title: "Exporting & Sharing Your Work", duration: "08:45" }
+          { id: "blb-m4-l1", title: "Basic Set up Part 1", duration: "10:30", videoUrl: "https://youtu.be/bRnPy5XK4nM" },
+          { id: "blb-m4-l2", title: "Lighting & Coloring", duration: "11:10", videoUrl: "https://youtu.be/IqFTYdjePAE" },
+          { id: "blb-m4-l3", title: "Camera Set up", duration: "11:33", videoUrl: "https://youtu.be/EROHwMnP9Vs" },
+          { id: "blb-m4-l4", title: "Key Frame", duration: "12:26", videoUrl: "https://youtu.be/iqvzvkaG0SU" },
+          { id: "blb-m4-l5", title: "Rendering and Exporting", duration: "11:52", videoUrl: "https://youtu.be/1xqd7Mt9Ohk" }
         ]
       }
     ],
@@ -1484,7 +1479,7 @@ class CubazeDB {
 
   init() {
     // ── App version stamp: bump this string any time you want a forced clean reset ──
-    const APP_VERSION = "v4.4-admin-revamp";
+    const APP_VERSION = "v4.5-blender-basics";
     const storedVersion = localStorage.getItem("cubaze_app_version");
 
     // Force reset if course IDs have changed OR version mismatch
