@@ -2745,6 +2745,7 @@ class CubazeDB {
     const student = this.getUsers().find(u => u.username === studentUsername);
     if (!student || !student.enrolledCourses || student.enrolledCourses.length === 0) return [];
 
+    const enrolledBatches = student.enrolledBatches || {};
     const allTutors = this.getUsers().filter(u => u.role === 'instructor');
     const result = [];
 
@@ -2759,39 +2760,36 @@ class CubazeDB {
       const course = this.getCourseById(courseId);
       if (!course) continue;
 
-      const batchId = student.enrolledBatches ? student.enrolledBatches[courseId] : null;
-      let assignedTutors = [];
-      if (batchId) {
-        const batch = this.getBatchById(batchId);
-        if (batch && batch.tutorIds && batch.tutorIds.length > 0) {
-          assignedTutors = allTutors.filter(t => batch.tutorIds.includes(t.username));
-        }
-      }
+      const batchId = enrolledBatches[courseId];
+      if (!batchId) continue;
 
-      if (assignedTutors.length === 0) {
-        assignedTutors = allTutors.filter(t => t.assignedCourses && t.assignedCourses.includes(courseId));
-      }
+      const batch = this.getBatchById(batchId);
+      // Only display tutors for active or completed batches
+      if (!batch || (batch.status !== 'Active' && batch.status !== 'Completed')) continue;
 
-      for (const tutor of assignedTutors) {
-        const existing = result.find(r => r.username === tutor.username);
-        if (existing) {
-          if (!existing.courses.includes(course.title)) {
-            existing.courses.push(course.title);
+      if (batch.tutorIds && batch.tutorIds.length > 0) {
+        const assignedTutors = allTutors.filter(t => batch.tutorIds.includes(t.username));
+        for (const tutor of assignedTutors) {
+          const existing = result.find(r => r.username === tutor.username);
+          if (existing) {
+            if (!existing.courses.includes(course.title)) {
+              existing.courses.push(course.title);
+            }
+          } else {
+            const hash = tutor.username.charCodeAt(0) % mockStatuses.length;
+            const status = mockStatuses[hash];
+
+            result.push({
+              username: tutor.username,
+              name: tutor.name,
+              bio: tutor.authorBio || 'Expert Instructor',
+              photo: tutor.profilePhoto || null,
+              online: status.online,
+              lastActive: status.active,
+              courses: [course.title],
+              courseId: courseId
+            });
           }
-        } else {
-          const hash = tutor.username.charCodeAt(0) % mockStatuses.length;
-          const status = mockStatuses[hash];
-
-          result.push({
-            username: tutor.username,
-            name: tutor.name,
-            bio: tutor.authorBio || 'Expert Instructor',
-            photo: null,
-            online: status.online,
-            lastActive: status.active,
-            courses: [course.title],
-            courseId: courseId
-          });
         }
       }
     }
@@ -2802,6 +2800,7 @@ class CubazeDB {
     const cu = this.getCurrentUser();
     if (!cu) return [];
 
+    let rawConvs = [];
     if (this.sb) {
       try {
         let query = this.sb.from('cubaze_tutor_conversations').select('*');
@@ -2811,25 +2810,62 @@ class CubazeDB {
           query = query.eq('tutor_username', cu.username);
         }
         const { data, error } = await query.order('last_reply_at', { ascending: false });
-        if (!error && data) return data;
+        if (!error && data) rawConvs = data;
       } catch (err) {
         console.warn("Supabase tutor conversations query error, using fallback:", err);
+        rawConvs = this._getLocalTutorConversations(cu);
       }
+    } else {
+      rawConvs = this._getLocalTutorConversations(cu);
     }
 
+    // Secure filtering based on active batch assignments
+    if (cu.role === 'student') {
+      const enrolledBatches = cu.enrolledBatches || {};
+      return rawConvs.filter(c => {
+        const batchId = enrolledBatches[c.course_id];
+        if (!batchId) return false;
+        const batch = this.getBatchById(batchId);
+        if (!batch || (batch.status !== 'Active' && batch.status !== 'Completed')) return false;
+        return batch.tutorIds && batch.tutorIds.includes(c.tutor_username);
+      }).sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+    }
+
+    if (cu.role === 'instructor') {
+      const tutorBatches = this.getBatches().filter(b => b.tutorIds && b.tutorIds.includes(cu.username));
+      const users = this.getUsers();
+      return rawConvs.filter(c => {
+        const matchingBatch = tutorBatches.find(b => b.courseId === c.course_id);
+        if (!matchingBatch) return false;
+        const student = users.find(u => u.username === c.student_username);
+        if (!student || !student.enrolledBatches) return false;
+        return student.enrolledBatches[c.course_id] === matchingBatch.id;
+      }).sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+    }
+
+    return rawConvs.sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+  }
+
+  _getLocalTutorConversations(cu) {
     const list = JSON.parse(localStorage.getItem("cubaze_tutor_conversations") || "[]");
     if (cu.role === 'student') {
-      return list.filter(c => c.student_username === cu.username).sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+      return list.filter(c => c.student_username === cu.username);
     } else if (cu.role === 'instructor') {
-      return list.filter(c => c.tutor_username === cu.username).sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
-    } else {
-      return list.sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
+      return list.filter(c => c.tutor_username === cu.username);
     }
+    return list;
   }
 
   async getTutorMessages(convId) {
     const cu = this.getCurrentUser();
     if (!cu) return [];
+
+    // Verify conversation access before fetching messages
+    const conversations = await this.getTutorConversations();
+    const hasAccess = conversations.some(c => c.id === convId);
+    if (!hasAccess) {
+      return [];
+    }
 
     if (this.sb) {
       try {
@@ -2859,6 +2895,15 @@ class CubazeDB {
   async createTutorConversation(tutorUsername, courseId, subject, category) {
     const cu = this.getCurrentUser();
     if (!cu) return { success: false, error: "Not logged in" };
+
+    // Verify that the student is allowed to chat with this tutor for this course based on their batch
+    if (cu.role === 'student') {
+      const allowedTutors = this.getTutorsForStudent(cu.username);
+      const isAllowed = allowedTutors.some(t => t.username === tutorUsername && t.courseId === courseId);
+      if (!isAllowed) {
+        return { success: false, error: "Access Denied: Tutor not assigned to your active batch." };
+      }
+    }
 
     const convId = 'tconv_' + Math.random().toString(36).substring(2, 11);
     const newConv = {
@@ -2895,6 +2940,13 @@ class CubazeDB {
   async sendTutorMessage(convId, messageText, fileData = null, externalLink = '', isInternal = false) {
     const cu = this.getCurrentUser();
     if (!cu) return { success: false, error: "Not logged in" };
+
+    // Verify conversation access before sending message
+    const conversations = await this.getTutorConversations();
+    const hasAccess = conversations.some(c => c.id === convId);
+    if (!hasAccess) {
+      return { success: false, error: "Access Denied: Unauthorized conversation." };
+    }
 
     const msgId = 'tmsg_' + Math.random().toString(36).substring(2, 11);
     const newMsg = {
@@ -2939,14 +2991,14 @@ class CubazeDB {
     list.push(newMsg);
     localStorage.setItem("cubaze_tutor_messages", JSON.stringify(list));
 
-    const conversations = JSON.parse(localStorage.getItem("cubaze_tutor_conversations") || "[]");
-    const convIdx = conversations.findIndex(c => c.id === convId);
+    const conversationsList = JSON.parse(localStorage.getItem("cubaze_tutor_conversations") || "[]");
+    const convIdx = conversationsList.findIndex(c => c.id === convId);
     if (convIdx > -1) {
-      conversations[convIdx] = {
-        ...conversations[convIdx],
+      conversationsList[convIdx] = {
+        ...conversationsList[convIdx],
         ...convUpdates
       };
-      localStorage.setItem("cubaze_tutor_conversations", JSON.stringify(conversations));
+      localStorage.setItem("cubaze_tutor_conversations", JSON.stringify(conversationsList));
     }
 
     return { success: true, message: newMsg };

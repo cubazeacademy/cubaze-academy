@@ -1649,8 +1649,8 @@ const DashboardComponent = {
         ${tutors.length === 0 ? `
           <div class="glass-panel" style="text-align:center; padding:48px;">
             <div style="font-size:3rem; margin-bottom:16px;">🎓</div>
-            <h3>No Tutors Available</h3>
-            <p style="color:var(--text-secondary); margin-top:8px;">You will be able to message tutors once you enroll in courses that have assigned instructors.</p>
+            <h3>No Tutors Assigned</h3>
+            <p style="color:var(--text-secondary); margin-top:8px;">No tutor has been assigned to your batch yet.</p>
           </div>
         ` : `
           <div class="tutors-grid">
@@ -1659,7 +1659,11 @@ const DashboardComponent = {
       return `
                 <div class="tutor-card-chat">
                   <div class="tutor-avatar-wrapper">
-                    <div class="tutor-card-chat-avatar">${t.name.charAt(0).toUpperCase()}</div>
+                    ${t.photo ? `
+                      <img src="${t.photo}" class="tutor-card-chat-avatar" style="object-fit: cover; border: 2px solid var(--brand-blue-pale);" alt="${t.name}">
+                    ` : `
+                      <div class="tutor-card-chat-avatar">${t.name.charAt(0).toUpperCase()}</div>
+                    `}
                     <span class="tutor-status-indicator ${t.online ? 'online' : 'offline'}"></span>
                   </div>
                   <div style="text-align:center;">
