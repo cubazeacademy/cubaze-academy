@@ -1040,29 +1040,51 @@ const DashboardComponent = {
     const hasBeenRated = conv.rating !== null && conv.rating !== undefined;
 
     return `
-      <div style="display:flex; flex-direction:column; gap:20px; height:100%;">
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-          <div style="display:flex; align-items:center; gap:12px;">
-            <button class="btn btn-outline-white btn-sm" id="btn-back-to-list-chat" style="width:36px; height:36px; padding:0; border-radius:50%;"><i class="fa-solid fa-arrow-left"></i></button>
-            <div>
-              <h3 style="margin:0; font-weight:800; font-size:1.15rem; color:var(--text-primary);">${conv.subject}</h3>
-              <div style="display:flex; gap:6px; align-items:center; margin-top:4px; flex-wrap:wrap;">
-                <span class="support-cat-badge">${conv.category}</span>
-                <span class="support-prio-badge ${conv.priority.toLowerCase()}">${conv.priority}</span>
-              </div>
-            </div>
-          </div>
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span class="status-badge ${conv.status === 'Resolved' ? 'success' : conv.status === 'Pending' ? 'pending' : 'danger'}">${conv.status}</span>
-          </div>
-        </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0; height:100%;">
 
         <div class="support-chat-phone-frame">
         <div class="support-chat-container">
+
+
+          <!-- Status Bar -->
+          <div class="support-chat-statusbar">
+            <span class="support-chat-statusbar-time">12:00</span>
+            <div class="support-chat-statusbar-icons">
+              <i class="fa-solid fa-signal"></i>
+              <i class="fa-solid fa-wifi"></i>
+              <i class="fa-solid fa-battery-full"></i>
+            </div>
+          </div>
+
+          <!-- Contact Header Bar -->
+          <div class="support-chat-header">
+            <button class="support-chat-header-back" id="btn-back-to-list-chat">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="support-chat-header-avatar">
+              <i class="fa-solid fa-headset" style="font-size:1rem;"></i>
+            </div>
+            <div class="support-chat-header-info">
+              <div class="support-chat-title">Cubaze Support</div>
+              <div class="support-chat-subtitle">${conv.category} · <span style="color:${conv.status==='Resolved'?'#a8f0c6':conv.status==='Pending'?'#fde68a':'#fca5a5'};">${conv.status}</span></div>
+            </div>
+            <div class="support-chat-header-actions">
+              <button title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+              <button title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            </div>
+          </div>
+
+          <!-- Messages -->
           <div class="support-chat-messages" id="support-chat-thread">
+            <div class="support-chat-date-label">Today</div>
+            <div class="support-chat-encrypt-notice">
+              <i class="fa-solid fa-lock" style="margin-right:4px; font-size:0.65rem;"></i>
+              Messages and calls are secured with end-to-end encryption. Your admin will respond shortly.
+            </div>
             ${messages.map(m => {
       const isOwn = m.sender === cu.username;
       const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
 
       let attachmentHtml = '';
       if (m.file_url) {
@@ -1136,23 +1158,16 @@ const DashboardComponent = {
             </div>
           ` : `
             <div class="support-chat-input-wrapper">
-              <div class="support-chat-attachments-row">
+              <div class="support-chat-input-row">
+                <button class="support-chat-emoji-btn" title="Emoji">😊</button>
+                <textarea class="support-chat-input-textarea" id="chat-message-text" placeholder="Message" rows="1"></textarea>
                 <div class="support-chat-attach-btn" title="Attach file">
                   <i class="fa-solid fa-paperclip"></i>
                   <input type="file" id="chat-upload-file">
                 </div>
-                <div id="chat-file-selected-chip" style="display:none;"></div>
-
-                <div class="support-link-input-wrapper">
-                  <i class="fa-solid fa-link"></i>
-                  <input type="url" id="chat-external-link" placeholder="Cloud Storage File Link">
-                </div>
+                <button class="btn btn-primary" id="btn-send-message"><i class="fa-solid fa-microphone" style="font-size:1rem;"></i></button>
               </div>
-
-              <div class="support-chat-input-row">
-                <textarea class="support-chat-input-textarea" id="chat-message-text" placeholder="Type a message..."></textarea>
-                <button class="btn btn-primary" id="btn-send-message" style="height:48px; width:48px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-lg); flex-shrink:0;"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
-              </div>
+              <div id="chat-file-selected-chip" style="display:none; padding:4px 0 0 8px; font-size:0.72rem; color:#00a884;"></div>
             </div>
           `}
         </div>
@@ -1864,34 +1879,53 @@ const DashboardComponent = {
     const cu = window.db.getCurrentUser();
 
     return `
-      <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-        <button class="btn btn-outline-white btn-sm" id="btn-tutor-chat-back" style="width:36px; height:36px; padding:0; border-radius:50%;"><i class="fa-solid fa-arrow-left"></i></button>
-        <div>
-          <h2 style="margin:0; font-weight:800; font-size:1.3rem;">Instructor Conversation</h2>
-          <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">Talking with tutor: <strong>@${conv.tutor_username}</strong></p>
-        </div>
-      </div>
-
       <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px; align-items: start;">
         <div class="support-chat-phone-frame">
         <div class="support-chat-container">
-          <div class="support-chat-header">
-            <div class="support-chat-header-info">
-              <h3 class="support-chat-title">${conv.subject}</h3>
-              <div class="support-chat-meta">
-                <span class="support-cat-badge">${conv.category}</span>
-                <span class="status-badge ${conv.status === 'Resolved' ? 'success' : 'danger'}">${conv.status}</span>
-              </div>
+
+          <!-- Status Bar -->
+          <div class="support-chat-statusbar">
+            <span class="support-chat-statusbar-time">12:00</span>
+            <div class="support-chat-statusbar-icons">
+              <i class="fa-solid fa-signal"></i>
+              <i class="fa-solid fa-wifi"></i>
+              <i class="fa-solid fa-battery-full"></i>
             </div>
           </div>
 
+          <!-- Tutor Contact Header -->
+          <div class="support-chat-header">
+            <button class="support-chat-header-back" id="btn-tutor-chat-back">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="support-chat-header-avatar">
+              ${conv.tutor_username ? conv.tutor_username.charAt(0).toUpperCase() : 'T'}
+            </div>
+            <div class="support-chat-header-info">
+              <div class="support-chat-title">@${conv.tutor_username}</div>
+              <div class="support-chat-subtitle"><span style="color:#a8f0c6;">Online</span> · ${conv.category}</div>
+            </div>
+            <div class="support-chat-header-actions">
+              <button title="Video Call"><i class="fa-solid fa-video"></i></button>
+              <button title="Voice Call"><i class="fa-solid fa-phone"></i></button>
+              <button title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            </div>
+          </div>
+
+          <!-- Messages -->
           <div class="support-chat-messages" id="tutor-chat-thread">
+            <div class="support-chat-date-label">Today</div>
+            <div class="support-chat-encrypt-notice">
+              <i class="fa-solid fa-lock" style="margin-right:4px; font-size:0.65rem;"></i>
+              Messages with your instructor are end-to-end secured. Only you and your tutor can read them.
+            </div>
             ${messages.map(m => {
       const isOwn = m.sender === cu.username;
       const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
       let attachmentHtml = '';
       if (m.file_url) {
+
         const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
         if (isImg) {
           attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
@@ -1941,22 +1975,17 @@ const DashboardComponent = {
             </div>
           ` : `
             <div class="support-chat-input-wrapper">
-              <div class="support-chat-attachments-row">
+              <div class="support-chat-input-row">
+                <button class="support-chat-emoji-btn" title="Emoji">😊</button>
+                <textarea class="support-chat-input-textarea" id="tutor-chat-message-text" placeholder="Message" rows="1"></textarea>
                 <div class="support-chat-attach-btn" title="Attach file">
                   <i class="fa-solid fa-paperclip"></i>
                   <input type="file" id="tutor-chat-upload-file">
                 </div>
-                <div id="tutor-chat-file-selected-chip" style="display:none;"></div>
-
-                <div class="support-link-input-wrapper">
-                  <i class="fa-solid fa-link"></i>
-                  <input type="url" id="tutor-chat-external-link" placeholder="Cloud Storage File Link">
-                </div>
+                <button class="btn btn-primary" id="btn-tutor-send-message"><i class="fa-solid fa-microphone" style="font-size:1rem;"></i></button>
               </div>
-
-              <div class="support-chat-input-row">
-                <textarea class="support-chat-input-textarea" id="tutor-chat-message-text" placeholder="Type response to instructor..."></textarea>
-                <button class="btn btn-primary" id="btn-tutor-send-message" style="height:48px; width:48px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-lg); flex-shrink:0;"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
+              <div id="tutor-chat-file-selected-chip" style="display:none; padding:4px 0 0 8px; font-size:0.72rem; color:#00a884;"></div>
+            </div>
               </div>
             </div>
           `}
