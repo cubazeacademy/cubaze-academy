@@ -4902,12 +4902,12 @@ body.dark-mode .page-hero {
 .support-chat-container {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  height: 550px;
+  height: 580px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   position: relative;
 }
 
@@ -4915,7 +4915,7 @@ body.dark-mode .page-hero {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 14px 20px;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
 }
@@ -4927,8 +4927,8 @@ body.dark-mode .page-hero {
 }
 
 .support-chat-title {
-  font-weight: 700;
-  font-size: 1.05rem;
+  font-weight: 800;
+  font-size: 1.1rem;
   color: var(--text-primary);
   margin: 0;
 }
@@ -4942,20 +4942,34 @@ body.dark-mode .page-hero {
 }
 
 .support-chat-messages {
-  padding: 24px;
+  padding: 24px 20px;
   overflow-y: auto;
-  background: var(--bg-primary);
+  /* WhatsApp theme grid wallpaper pattern */
+  background-color: #efeae2;
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   scroll-behavior: smooth;
 }
 
-/* Chat Message Bubbles (WhatsApp style) */
+body.dark-mode .support-chat-messages {
+  background-color: #0b141a;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+}
+
+/* Chat Message Wrappers */
 .support-msg-wrapper {
+  position: relative;
   display: flex;
   flex-direction: column;
-  max-width: 75%;
+  max-width: 65%;
+  margin-bottom: 2px;
 }
 
 .support-msg-wrapper.student-align {
@@ -4968,28 +4982,71 @@ body.dark-mode .page-hero {
   align-items: flex-start;
 }
 
+/* WhatsApp style Bubbles */
 .support-msg-bubble {
-  padding: 12px 16px;
-  border-radius: 16px;
+  padding: 8px 12px 24px 12px; /* Bottom padding for absolute meta positioning */
   font-size: 0.88rem;
-  line-height: 1.5;
+  line-height: 1.45;
   position: relative;
   word-break: break-word;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
 }
 
-/* Message Bubble Roles */
+/* Message Bubble Roles & Tails */
 .support-msg-wrapper.student-align .support-msg-bubble {
-  background: var(--brand-blue);
-  color: #fff;
-  border-bottom-right-radius: 4px;
+  background: #d9fdd3;
+  color: #111b21;
+  border-radius: 8px 0px 8px 8px;
+}
+
+body.dark-mode .support-msg-wrapper.student-align .support-msg-bubble {
+  background: #005c4b;
+  color: #e9edef;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.support-msg-wrapper.student-align .support-msg-bubble::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-top: 8px solid #d9fdd3;
+  border-right: 6px solid transparent;
+  border-left: 0px solid transparent;
+}
+
+body.dark-mode .support-msg-wrapper.student-align .support-msg-bubble::after {
+  border-top-color: #005c4b;
 }
 
 .support-msg-wrapper.admin-align .support-msg-bubble {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-bottom-left-radius: 4px;
+  background: #ffffff;
+  color: #111b21;
+  border-radius: 0px 8px 8px 8px;
+}
+
+body.dark-mode .support-msg-wrapper.admin-align .support-msg-bubble {
+  background: #202c33;
+  color: #e9edef;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.support-msg-wrapper.admin-align .support-msg-bubble::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-top: 8px solid #ffffff;
+  border-left: 6px solid transparent;
+  border-right: 0px solid transparent;
+}
+
+body.dark-mode .support-msg-wrapper.admin-align .support-msg-bubble::after {
+  border-top-color: #202c33;
 }
 
 /* Internal Admin Notes Bubble */
@@ -5012,35 +5069,39 @@ body.dark-mode .support-msg-wrapper.internal-note-align .support-msg-bubble {
   color: #fcd34d;
 }
 
-/* Bubble Meta: Timestamp, Sender name, Read status */
+/* Bubble Meta: absolute-positioned at the bottom right inside the bubble */
 .support-msg-meta {
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-top: 4px;
+  gap: 4px;
+  font-size: 0.65rem;
+  color: #667781;
+  margin: 0;
+  pointer-events: none;
 }
 
-.support-msg-wrapper.student-align .support-msg-meta {
-  justify-content: flex-end;
+body.dark-mode .support-msg-meta {
+  color: #8696a0;
 }
 
 .support-msg-sender {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
 }
 
 .support-msg-seen-icon {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 
 .support-msg-seen-icon.seen {
-  color: var(--brand-blue);
+  color: #53bdeb; /* WhatsApp blue ticks */
 }
 
 .support-msg-seen-icon.unseen {
-  color: var(--text-muted);
+  color: #8696a0;
 }
 
 /* Attachments inside Chat Bubbles */
@@ -5132,40 +5193,73 @@ body.dark-mode .support-msg-wrapper.internal-note-align .support-msg-bubble {
 
 /* Chat Input Footer Area */
 .support-chat-input-wrapper {
-  padding: 16px 24px;
-  background: var(--bg-card);
+  padding: 12px 16px;
+  background: #f0f2f5;
   border-top: 1px solid var(--border-color);
+}
+
+body.dark-mode .support-chat-input-wrapper {
+  background: #1f2c34;
 }
 
 .support-chat-input-row {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
 }
 
 .support-chat-input-textarea {
   flex: 1;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 12px 16px;
-  color: var(--text-primary);
+  background: #ffffff;
+  border: none !important;
+  border-radius: 24px;
+  padding: 12px 20px;
+  color: #111b21;
   font-size: 0.88rem;
   resize: none;
-  height: 48px;
+  height: 44px;
   box-sizing: border-box;
   font-family: inherit;
+  box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.08);
+}
+
+body.dark-mode .support-chat-input-textarea {
+  background: #2a3942;
+  color: #e9edef;
 }
 
 .support-chat-input-textarea:focus {
-  border-color: var(--brand-blue);
   outline: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+/* Custom Circular Send Button */
+#btn-send-message, #btn-tutor-send-message, .support-chat-input-row button.btn-primary {
+  height: 44px !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  background: #00a884 !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  transition: transform 0.2s, background-color 0.2s !important;
+  cursor: pointer;
+}
+
+#btn-send-message:hover, #btn-tutor-send-message:hover, .support-chat-input-row button.btn-primary:hover {
+  background: #008f72 !important;
+  transform: scale(1.08);
 }
 
 .support-chat-attachments-row {
   display: flex;
-  gap: 16px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
   align-items: center;
 }
@@ -5175,9 +5269,9 @@ body.dark-mode .support-msg-wrapper.internal-note-align .support-msg-bubble {
   overflow: hidden;
   cursor: pointer;
   font-size: 1.15rem;
-  color: var(--text-muted);
-  width: 40px;
-  height: 40px;
+  color: #54656f;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5185,9 +5279,17 @@ body.dark-mode .support-msg-wrapper.internal-note-align .support-msg-bubble {
   transition: background 0.2s, color 0.2s;
 }
 
+body.dark-mode .support-chat-attach-btn {
+  color: #8696a0;
+}
+
 .support-chat-attach-btn:hover {
-  background: var(--bg-primary);
-  color: var(--brand-blue);
+  background: rgba(0, 0, 0, 0.05);
+  color: #00a884;
+}
+
+body.dark-mode .support-chat-attach-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .support-chat-attach-btn input[type="file"] {
@@ -5203,12 +5305,16 @@ body.dark-mode .support-msg-wrapper.internal-note-align .support-msg-bubble {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--bg-primary);
+  background: #ffffff;
   border: 1px solid var(--border-color);
   padding: 4px 12px;
   border-radius: var(--radius-pill);
   font-size: 0.78rem;
   color: var(--text-secondary);
+}
+
+body.dark-mode .support-file-selected-chip {
+  background: #2a3942;
 }
 
 .support-file-selected-chip i.remove-file {
