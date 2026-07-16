@@ -2759,7 +2759,19 @@ class CubazeDB {
       const course = this.getCourseById(courseId);
       if (!course) continue;
 
-      const assignedTutors = allTutors.filter(t => t.assignedCourses && t.assignedCourses.includes(courseId));
+      const batchId = student.enrolledBatches ? student.enrolledBatches[courseId] : null;
+      let assignedTutors = [];
+      if (batchId) {
+        const batch = this.getBatchById(batchId);
+        if (batch && batch.tutorIds && batch.tutorIds.length > 0) {
+          assignedTutors = allTutors.filter(t => batch.tutorIds.includes(t.username));
+        }
+      }
+
+      if (assignedTutors.length === 0) {
+        assignedTutors = allTutors.filter(t => t.assignedCourses && t.assignedCourses.includes(courseId));
+      }
+
       for (const tutor of assignedTutors) {
         const existing = result.find(r => r.username === tutor.username);
         if (existing) {
