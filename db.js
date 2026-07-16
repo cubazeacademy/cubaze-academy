@@ -3542,10 +3542,25 @@ class CubazeDB {
 
   // --- POSTERS CRUD ---
   getPosters() {
-    return JSON.parse(localStorage.getItem("cubaze_posters")) || [];
+    let posters = JSON.parse(localStorage.getItem("cubaze_posters")) || [];
+    let updated = false;
+    posters = posters.map((p, idx) => {
+      if (!p.id) {
+        p.id = 'PST-' + (Date.now() + idx);
+        updated = true;
+      }
+      return p;
+    });
+    if (updated) {
+      localStorage.setItem("cubaze_posters", JSON.stringify(posters));
+    }
+    return posters;
   }
 
   savePoster(posterData) {
+    if (!posterData.id) {
+      posterData.id = 'PST-' + Date.now();
+    }
     const posters = this.getPosters();
     const index = posters.findIndex(p => p.id === posterData.id);
     posterData.updatedAt = new Date().toISOString();

@@ -311,7 +311,7 @@ const DashboardRightPanel = {
   },
 
   _getFilteredPosters: function (cu) {
-    const allPosters = window.db.getPosters().filter(p => p.status === 'Published');
+    const allPosters = window.db.getPosters().filter(p => p.status === 'Published' || p.isActive === true);
     const now = new Date().getTime();
 
     // Filter by dates
@@ -403,9 +403,9 @@ const DashboardRightPanel = {
           </div>
         ` : ''}
         
-        ${p.buttonText && p.buttonLink ? `
-          <a href="${p.buttonLink}" target="_blank" class="btn btn-primary btn-sm" style="margin: 0; padding: 6px 14px; font-size: 0.78rem; font-weight: 700; width: fit-content;">
-            ${p.buttonText} <i class="fa-solid fa-arrow-up-right-from-square" style="margin-left: 4px; font-size: 0.7rem;"></i>
+        ${p.buttonLink || p.targetUrl ? `
+          <a href="${p.buttonLink || p.targetUrl}" target="_blank" class="btn btn-primary btn-sm" style="margin: 0; padding: 6px 14px; font-size: 0.78rem; font-weight: 700; width: fit-content;">
+            ${p.buttonText || 'Learn More'} <i class="fa-solid fa-arrow-up-right-from-square" style="margin-left: 4px; font-size: 0.7rem;"></i>
           </a>
         ` : ''}
       </div>
@@ -766,9 +766,9 @@ const DashboardRightPanel = {
           <img src="${poster.image}" style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px;">
           <h3 style="margin: 16px 0 8px 0; font-size: 1.1rem;">${poster.title}</h3>
           ${poster.shortDescription ? `<p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">${poster.shortDescription}</p>` : ''}
-          ${poster.buttonText && poster.buttonLink ? `
-            <a href="${poster.buttonLink}" target="_blank" class="btn btn-primary" style="margin-top: 8px;">
-              ${poster.buttonText} <i class="fa-solid fa-arrow-up-right-from-square" style="margin-left: 6px;"></i>
+          ${poster.buttonLink || poster.targetUrl ? `
+            <a href="${poster.buttonLink || poster.targetUrl}" target="_blank" class="btn btn-primary" style="margin-top: 8px;">
+              ${poster.buttonText || 'Learn More'} <i class="fa-solid fa-arrow-up-right-from-square" style="margin-left: 6px;"></i>
             </a>
           ` : ''}
         </div>

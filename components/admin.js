@@ -170,6 +170,7 @@ const AdminComponent = {
      DASHBOARD
      ============================================================ */
   _renderDashboard: function () {
+    const cu = window.db.getCurrentUser();
     const a = window.db.getAdminAnalytics();
     const acts = window.db.getActivities().slice(0, 6);
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -413,14 +414,22 @@ const AdminComponent = {
 
           <!-- Column (Right - Spans 4) -->
           <div class="col-4" style="display:flex; flex-direction:column; gap:24px;">
-            <!-- Announcements -->
-            <div class="glass-panel-modern" style="text-align:center; padding: 22px; justify-content: center; align-items: center;">
-              <div style="width: 42px; height: 42px; border-radius: 50%; background: #FCE7F3; color: #DB2777; display: inline-flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:1.1rem;">
-                <i class="fa-solid fa-bullhorn"></i>
-              </div>
-              <h4 style="font-size:0.85rem; font-weight:800; color:var(--text-primary); margin:0 0 4px 0;">No Announcements</h4>
-              <p style="font-size:0.74rem; color:var(--text-muted); margin:0;">Check back later for academy updates.</p>
-            </div>
+            <!-- Announcements / Posters -->
+            ${(() => {
+              if (window.DashboardRightPanel && cu) {
+                const posters = window.DashboardRightPanel._getFilteredPosters(cu);
+                return window.DashboardRightPanel._renderPosterCard(posters);
+              }
+              return `
+                <div class="glass-panel-modern" style="text-align:center; padding: 22px; justify-content: center; align-items: center;">
+                  <div style="width: 42px; height: 42px; border-radius: 50%; background: #FCE7F3; color: #DB2777; display: inline-flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:1.1rem;">
+                    <i class="fa-solid fa-bullhorn"></i>
+                  </div>
+                  <h4 style="font-size:0.85rem; font-weight:800; color:var(--text-primary); margin:0 0 4px 0;">No Announcements</h4>
+                  <p style="font-size:0.74rem; color:var(--text-muted); margin:0;">Check back later for academy updates.</p>
+                </div>
+              `;
+            })()}
 
             <!-- Upcoming Activities -->
             <div class="glass-panel-modern">
@@ -2880,31 +2889,36 @@ const AdminComponent = {
             </tr>
           </thead>
           <tbody>
-            ${posters.map(p => `
-              <tr>
-                <td>
-                  <img src="${p.imageUrl}" alt="${p.title}" style="width:100px; height:50px; border-radius:6px; border:1px solid var(--border-color); object-fit:cover; display:block;">
-                </td>
-                <td style="font-weight:700; color:var(--text-primary); text-align:left; vertical-align:middle;">
-                  ${p.title}
-                </td>
-                <td style="text-align:left; vertical-align:middle;">
-                  ${p.targetUrl ? `<a href="${p.targetUrl}" target="_blank" style="color:var(--brand-blue); text-decoration:none; font-weight:600;"><i class="fa-solid fa-link"></i> Target Link</a>` : '<span style="color:var(--text-muted); font-style:italic;">None</span>'}
-                </td>
-                <td style="vertical-align:middle;">
-                  <label style="position:relative; display:inline-block; width:44px; height:24px; margin:0; cursor:pointer;">
-                    <input type="checkbox" class="poster-toggle-status" data-id="${p.id}" ${p.isActive ? 'checked' : ''} style="opacity:0; width:0; height:0;">
-                    <span class="poster-slider" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:${p.isActive ? 'var(--brand-blue)' : '#ccc'}; transition:.3s; border-radius:24px;">
-                      <span style="position:absolute; height:18px; width:18px; left:3px; bottom:3px; background-color:white; transition:.3s; border-radius:50%; transform:${p.isActive ? 'translateX(20px)' : 'none'};"></span>
-                    </span>
-                  </label>
-                </td>
-                <td style="text-align:center; vertical-align:middle;">
-                  <button class="btn btn-outline-white btn-xs btn-edit-poster" data-id="${p.id}" style="margin:0 4px 0 0;"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
-                  <button class="btn btn-danger btn-xs btn-del-poster" data-id="${p.id}" style="margin:0;"><i class="fa-solid fa-trash-can"></i> Delete</button>
-                </td>
-              </tr>
-            `).join('')}
+            ${posters.map(p => {
+              const imgUrl = p.image || p.imageUrl || '';
+              const linkUrl = p.buttonLink || p.targetUrl || '';
+              const isPublished = p.status === 'Published' || p.isActive === true;
+              return `
+                <tr>
+                  <td>
+                    <img src="${imgUrl}" alt="${p.title}" style="width:100px; height:50px; border-radius:6px; border:1px solid var(--border-color); object-fit:cover; display:block;">
+                  </td>
+                  <td style="font-weight:700; color:var(--text-primary); text-align:left; vertical-align:middle;">
+                    ${p.title}
+                  </td>
+                  <td style="text-align:left; vertical-align:middle;">
+                    ${linkUrl ? `<a href="${linkUrl}" target="_blank" style="color:var(--brand-blue); text-decoration:none; font-weight:600;"><i class="fa-solid fa-link"></i> Target Link</a>` : '<span style="color:var(--text-muted); font-style:italic;">None</span>'}
+                  </td>
+                  <td style="vertical-align:middle;">
+                    <label style="position:relative; display:inline-block; width:44px; height:24px; margin:0; cursor:pointer;">
+                      <input type="checkbox" class="poster-toggle-status" data-id="${p.id}" ${isPublished ? 'checked' : ''} style="opacity:0; width:0; height:0;">
+                      <span class="poster-slider" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:${isPublished ? 'var(--brand-blue)' : '#ccc'}; transition:.3s; border-radius:24px;">
+                        <span style="position:absolute; height:18px; width:18px; left:3px; bottom:3px; background-color:white; transition:.3s; border-radius:50%; transform:${isPublished ? 'translateX(20px)' : 'none'};"></span>
+                      </span>
+                    </label>
+                  </td>
+                  <td style="text-align:center; vertical-align:middle;">
+                    <button class="btn btn-outline-white btn-xs btn-edit-poster" data-id="${p.id}" style="margin:0 4px 0 0;"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                    <button class="btn btn-danger btn-xs btn-del-poster" data-id="${p.id}" style="margin:0;"><i class="fa-solid fa-trash-can"></i> Delete</button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
             ${posters.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:32px; font-style:italic;">No posters uploaded yet. Banners on dashboards will show default messages.</td></tr>' : ''}
           </tbody>
         </table>
@@ -2925,11 +2939,11 @@ const AdminComponent = {
     });
 
     document.querySelectorAll('.btn-del-poster').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         if (confirm('Are you sure you want to delete this poster? This action cannot be undone.')) {
-          const res = window.db.deletePoster(id);
-          if (res) {
+          const res = await window.db.deletePoster(id);
+          if (res && res.success) {
             window.app.showToast('Poster deleted successfully! 🗑️', 'success');
             AdminComponent._nav('posters');
           } else {
@@ -2946,6 +2960,7 @@ const AdminComponent = {
         const p = posters.find(x => x.id === id);
         if (p) {
           p.isActive = input.checked;
+          p.status = input.checked ? 'Published' : 'Draft';
           const res = window.db.savePoster(p);
           if (res) {
             window.app.showToast(`Poster status updated!`, 'success');
@@ -2969,51 +2984,55 @@ const AdminComponent = {
     overlay.innerHTML = `
       <div class="adm-modal" style="max-width:500px; text-align:left;">
         <h3><i class="fa-solid fa-image" style="color:var(--brand-blue); margin-right:8px;"></i>${posterId ? 'Edit Dashboard Poster' : 'Add Dashboard Poster'}</h3>
-        <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:20px;">Upload an image banner to be featured in the sliding dashboard carousels.</p>
+        <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:20px;">Paste a link of the poster image and set up target links or event countdowns.</p>
         
         <form id="form-manage-poster">
           <div class="form-group" style="margin-bottom:14px;">
             <label>Poster Title *</label>
             <input type="text" id="post-title" required value="${poster ? poster.title : ''}" placeholder="e.g. 50% Off sculpting masterclass" style="font-family:inherit;">
           </div>
+          
           <div class="form-group" style="margin-bottom:14px;">
-            <label>Target URL (Optional)</label>
-            <input type="url" id="post-url" value="${poster ? (poster.targetUrl || '') : ''}" placeholder="https://cubaze.in/..." style="font-family:inherit;">
+            <label>Poster Image Link (URL) *</label>
+            <input type="url" id="post-image-url" required value="${poster ? (poster.image || poster.imageUrl || '') : ''}" placeholder="https://example.com/poster.jpg" style="font-family:inherit;">
+            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">Paste the direct link to the image poster (PNG, JPG, WEBP).</div>
           </div>
           
-          <div class="form-group" style="margin-bottom:16px;">
-            <label>Poster Image *</label>
-            <div style="display:flex; flex-direction:column; gap:10px;">
-              ${poster ? `<img id="post-img-preview" src="${poster.imageUrl}" style="width:100%; height:120px; object-fit:cover; border-radius:8px; border:1px solid var(--border-color);">` : `<img id="post-img-preview" style="width:100%; height:120px; object-fit:cover; border-radius:8px; border:1px solid var(--border-color); display:none;">`}
-              <input type="file" id="post-file" accept="image/*" style="font-size:0.85rem;" ${poster ? '' : 'required'}>
-              <div style="font-size:0.75rem; color:var(--text-secondary);">Recommended aspect ratio: 16:9 (e.g. 800x450). Max size 10MB.</div>
-            </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>Short Description (Optional)</label>
+            <textarea id="post-desc" placeholder="Brief details about the announcement..." style="font-family:inherit; width:100%; height:60px; padding:8px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); resize:none;">${poster ? (poster.shortDescription || '') : ''}</textarea>
+          </div>
+
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>Button Link / Target URL (Optional)</label>
+            <input type="url" id="post-url" value="${poster ? (poster.buttonLink || poster.targetUrl || '') : ''}" placeholder="https://cubaze.in/..." style="font-family:inherit;">
+          </div>
+
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>Button Text (Optional)</label>
+            <input type="text" id="post-btn-text" value="${poster ? (poster.buttonText || '') : 'Learn More'}" placeholder="e.g. Learn More" style="font-family:inherit;">
+          </div>
+
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>Countdown Expire Date & Time (Optional)</label>
+            <input type="datetime-local" id="post-event-date" value="${poster && poster.eventDate ? poster.eventDate.substring(0, 16) : ''}" style="font-family:inherit;">
+            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">Displays a live countdown timer at the bottom of the card.</div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="post-status-toggle" ${(!poster || poster.status === 'Published' || poster.isActive === true) ? 'checked' : ''} style="width:16px; height:16px; margin:0; cursor:pointer;">
+            <label for="post-status-toggle" style="margin:0; font-size:0.85rem; font-weight:600; cursor:pointer;">Publish Poster immediately</label>
           </div>
 
           <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
             <button type="button" class="btn btn-secondary" onclick="document.getElementById('poster-modal-overlay').remove()" style="margin:0; padding:10px 20px;">Cancel</button>
-            <button type="submit" class="btn btn-primary" id="btn-save-poster" style="margin:0; padding:10px 20px;">${posterId ? 'Save Changes' : 'Upload & Create'}</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-poster" style="margin:0; padding:10px 20px;">${posterId ? 'Save Changes' : 'Create Poster'}</button>
           </div>
         </form>
       </div>
     `;
 
     document.body.appendChild(overlay);
-
-    const fileInput = overlay.querySelector('#post-file');
-    const previewImg = overlay.querySelector('#post-img-preview');
-
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = e => {
-          previewImg.src = e.target.result;
-          previewImg.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-      }
-    });
 
     overlay.addEventListener('click', e => {
       if (e.target === overlay) overlay.remove();
@@ -3025,35 +3044,51 @@ const AdminComponent = {
       const saveBtn = overlay.querySelector('#btn-save-poster');
       const originalText = saveBtn.innerText;
       saveBtn.disabled = true;
-      saveBtn.innerText = 'Uploading...';
+      saveBtn.innerText = 'Saving...';
 
       try {
         const title = overlay.querySelector('#post-title').value.trim();
-        const targetUrl = overlay.querySelector('#post-url').value.trim();
-        const file = fileInput.files[0];
+        const image = overlay.querySelector('#post-image-url').value.trim();
+        const shortDescription = overlay.querySelector('#post-desc').value.trim();
+        const buttonLink = overlay.querySelector('#post-url').value.trim();
+        const buttonText = overlay.querySelector('#post-btn-text').value.trim();
+        const eventDate = overlay.querySelector('#post-event-date').value;
+        const isPublished = overlay.querySelector('#post-status-toggle').checked;
 
-        let imageUrl = poster ? poster.imageUrl : '';
+        let formattedButtonLink = buttonLink;
+        if (formattedButtonLink && !/^https?:\/\//i.test(formattedButtonLink)) {
+          formattedButtonLink = 'https://' + formattedButtonLink;
+        }
 
-        if (file) {
-          const uploadRes = await window.db.uploadSupportAttachment(file);
-          if (uploadRes && uploadRes.url) {
-            imageUrl = uploadRes.url;
-          } else {
-            throw new Error("Failed to upload image.");
-          }
+        let formattedImage = image;
+        if (formattedImage && !/^https?:\/\//i.test(formattedImage)) {
+          formattedImage = 'https://' + formattedImage;
         }
 
         const posterData = {
           title,
-          targetUrl,
-          imageUrl,
-          isActive: poster ? poster.isActive : true
+          image: formattedImage,
+          shortDescription,
+          buttonLink: formattedButtonLink,
+          buttonText: formattedButtonLink ? buttonText || 'Learn More' : '',
+          eventDate: eventDate || '',
+          status: isPublished ? 'Published' : 'Draft',
+          isActive: isPublished,
+          targetAudience: 'Everyone',
+          type: 'General'
         };
-        if (posterId) posterData.id = posterId;
+
+        if (posterId) {
+          posterData.id = posterId;
+          const oldPoster = window.db.getPosters().find(p => p.id === posterId);
+          if (oldPoster) {
+            posterData.createdAt = oldPoster.createdAt;
+          }
+        }
 
         const res = window.db.savePoster(posterData);
         if (res) {
-          window.app.showToast(posterId ? 'Poster updated! ✅' : 'Poster uploaded and created! 🚀', 'success');
+          window.app.showToast(posterId ? 'Poster updated! ✅' : 'Poster created! 🚀', 'success');
           overlay.remove();
           AdminComponent._nav('posters');
         } else {

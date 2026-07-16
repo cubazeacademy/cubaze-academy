@@ -5685,7 +5685,7 @@ body.dark-mode .support-star-rating i {
 .poster-slider-container {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 3 / 4;
   background: #0f172a;
   overflow: hidden;
   cursor: pointer;
@@ -5694,7 +5694,7 @@ body.dark-mode .support-star-rating i {
 .poster-slide-img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   transition: opacity 0.4s ease;
 }
 
