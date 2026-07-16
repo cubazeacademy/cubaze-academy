@@ -1057,6 +1057,7 @@ const DashboardComponent = {
           </div>
         </div>
 
+        <div class="support-chat-phone-frame">
         <div class="support-chat-container">
           <div class="support-chat-messages" id="support-chat-thread">
             ${messages.map(m => {
@@ -1154,6 +1155,7 @@ const DashboardComponent = {
               </div>
             </div>
           `}
+        </div>
         </div>
       </div>
     `;
@@ -1871,6 +1873,7 @@ const DashboardComponent = {
       </div>
 
       <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px; align-items: start;">
+        <div class="support-chat-phone-frame">
         <div class="support-chat-container">
           <div class="support-chat-header">
             <div class="support-chat-header-info">
@@ -1957,6 +1960,7 @@ const DashboardComponent = {
               </div>
             </div>
           `}
+        </div>
         </div>
 
         <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px;">
