@@ -482,18 +482,18 @@ const AdminComponent = {
                 <div class="calendar-grid-modern">
                   ${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(w => `<div class="calendar-weekday">${w}</div>`).join('')}
                   ${Array.from({ length: 31 }, (_, i) => {
-                    const d = i + 1;
-                    let prepend = '';
-                    if (d === 1) {
-                      prepend = `<div class="calendar-day-modern" style="opacity:0; pointer-events:none;"></div>`.repeat(2);
-                    }
-                    const todayDate = new Date();
-                    const isJuly2026 = todayDate.getMonth() === 6 && todayDate.getFullYear() === 2026;
-                    const currentTodayDay = isJuly2026 ? todayDate.getDate() : 14;
-                    const isToday = d === currentTodayDay;
-                    const hasEvent = [currentTodayDay, 15, 20].includes(d);
-                    return `${prepend}<div class="calendar-day-modern ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}" title="${hasEvent ? 'Event Scheduled' : ''}">${d}</div>`;
-                  }).join('')}
+          const d = i + 1;
+          let prepend = '';
+          if (d === 1) {
+            prepend = `<div class="calendar-day-modern" style="opacity:0; pointer-events:none;"></div>`.repeat(2);
+          }
+          const todayDate = new Date();
+          const isJuly2026 = todayDate.getMonth() === 6 && todayDate.getFullYear() === 2026;
+          const currentTodayDay = isJuly2026 ? todayDate.getDate() : 14;
+          const isToday = d === currentTodayDay;
+          const hasEvent = [currentTodayDay, 15, 20].includes(d);
+          return `${prepend}<div class="calendar-day-modern ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}" title="${hasEvent ? 'Event Scheduled' : ''}">${d}</div>`;
+        }).join('')}
                 </div>
                 <div style="margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
                   <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem;">
@@ -549,21 +549,21 @@ const AdminComponent = {
                   <span class="system-health-label">Supabase Sync</span>
                   <span class="system-health-value">
                     ${(() => {
-                      const status = window.db.supabaseStatus || 'online';
-                      if (status === 'online') {
-                        return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+        const status = window.db.supabaseStatus || 'online';
+        if (status === 'online') {
+          return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
                                 <span>Online</span>`;
-                      } else if (status === 'connecting') {
-                        return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
+        } else if (status === 'connecting') {
+          return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
                                 <span>Connecting</span>`;
-                      } else if (status === 'disconnected') {
-                        return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #64748b; display: inline-block;"></span>
+        } else if (status === 'disconnected') {
+          return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #64748b; display: inline-block;"></span>
                                 <span>Offline</span>`;
-                      } else {
-                        return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block; box-shadow: 0 0 8px #ef4444;"></span>
+        } else {
+          return `<span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block; box-shadow: 0 0 8px #ef4444;"></span>
                                 <span style="color: #ef4444; font-weight: bold;">Unhealthy</span>`;
-                      }
-                    })()}
+        }
+      })()}
                   </span>
                 </div>
                 <div class="system-health-item">
@@ -1432,8 +1432,8 @@ const AdminComponent = {
                 <td style="font-size:0.78rem;color:#94A3B8;">${new Date(t.timestamp).toLocaleDateString('en-IN')}</td>
                 <td>
                   ${t.status === 'SUCCESS' ? '<span class="status-badge badge-success" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block;">🟢 Success</span>' :
-                    t.status === 'PENDING' ? '<span class="status-badge badge-pending" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block;">🟡 Pending</span>' :
-                    '<span class="status-badge danger" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block;">🔴 Failed</span>'}
+          t.status === 'PENDING' ? '<span class="status-badge badge-pending" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block;">🟡 Pending</span>' :
+            '<span class="status-badge danger" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block;">🔴 Failed</span>'}
                 </td>
                 <td>
                   <div style="display:flex;gap:6px;">

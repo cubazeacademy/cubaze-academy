@@ -20,24 +20,24 @@ const DashboardComponent = {
     const txns = window.db.getTransactions().filter(t => t.username === cu.username);
 
     const navItems = [
-      ['overview','fa-gauge','Overview'],
-      ['mycourses','fa-book-open','My Courses'],
-      ['liveclasses','fa-video','Live Classes'],
-      ['common_meeting','fa-calendar-days','Common Meeting'],
-      ['wishlist','fa-heart','Wishlist'],
-      ['certificates','fa-certificate','Certificates'],
-      ['orders','fa-receipt','Orders'],
-      ['support','fa-comments','Talk with Admin'],
-      ['tutor_chat','fa-chalkboard-user','Talk with Tutor'],
-      ['profile','fa-user','Profile']
+      ['overview', 'fa-gauge', 'Overview'],
+      ['mycourses', 'fa-book-open', 'My Courses'],
+      ['liveclasses', 'fa-video', 'Live Classes'],
+      ['common_meeting', 'fa-calendar-days', 'Common Meeting'],
+      ['wishlist', 'fa-heart', 'Wishlist'],
+      ['certificates', 'fa-certificate', 'Certificates'],
+      ['orders', 'fa-receipt', 'Orders'],
+      ['support', 'fa-comments', 'Talk with Admin'],
+      ['tutor_chat', 'fa-chalkboard-user', 'Talk with Tutor'],
+      ['profile', 'fa-user', 'Profile']
     ];
     const totalProgress = enrolledCourses.length > 0
       ? Math.round(enrolledCourses.reduce((sum, c) => {
-          const p = window.db.getUserProgress(cu.username, c.id);
-          const total = (c.modules || []).reduce((a, m) => a + (m.lessons || []).length, 0);
-          const done = (p.completedLessons || []).length;
-          return sum + (total > 0 ? (done / total) * 100 : 0);
-        }, 0) / enrolledCourses.length)
+        const p = window.db.getUserProgress(cu.username, c.id);
+        const total = (c.modules || []).reduce((a, m) => a + (m.lessons || []).length, 0);
+        const done = (p.completedLessons || []).length;
+        return sum + (total > 0 ? (done / total) * 100 : 0);
+      }, 0) / enrolledCourses.length)
       : 0;
 
     return `
@@ -118,18 +118,18 @@ const DashboardComponent = {
           </div>
 
           ${(() => {
-            const nextMeeting = window.db.getCommonMeetingsForUser(cu.username)
-              .filter(m => m.status === 'Live Now' || m.status === 'Upcoming')
-              .sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`))[0];
+        const nextMeeting = window.db.getCommonMeetingsForUser(cu.username)
+          .filter(m => m.status === 'Live Now' || m.status === 'Upcoming')
+          .sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`))[0];
 
-            if (nextMeeting) {
-              const isLive = nextMeeting.status === 'Live Now';
-              
-              setTimeout(() => {
-                DashboardComponent._startCommonMeetingTimers();
-              }, 100);
+        if (nextMeeting) {
+          const isLive = nextMeeting.status === 'Live Now';
 
-              return `
+          setTimeout(() => {
+            DashboardComponent._startCommonMeetingTimers();
+          }, 100);
+
+          return `
                 <div class="glass-panel" style="padding:20px; border:1px solid ${isLive ? '#10B981' : 'var(--border-color)'}; background:${isLive ? 'var(--bg-secondary)' : 'var(--bg-card)'}; border-radius:var(--radius-xl); text-align:left; position:relative; overflow:hidden;">
                   ${isLive ? `<span style="position:absolute; right:16px; top:16px; background:#ef4444; color:#fff; font-size:0.7rem; font-weight:800; padding:4px 10px; border-radius:20px; text-transform:uppercase; animation: pulse 1.5s infinite;"><i class="fa-solid fa-signal" style="margin-right:4px;"></i> LIVE NOW</span>` : ''}
                   <div style="font-size:0.75rem; font-weight:700; color:${isLive ? '#10B981' : 'var(--brand-blue)'}; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Next Common Meeting</div>
@@ -143,16 +143,16 @@ const DashboardComponent = {
                       <span><i class="fa-regular fa-user" style="margin-right:4px;"></i> Host: ${nextMeeting.hostName}</span>
                     </div>
                     
-                    ${isLive 
-                      ? `<a href="${nextMeeting.meetLink}" target="_blank" class="btn btn-success btn-sm" style="margin:0; background:#10B981; border-color:#10B981; color:#fff; font-weight:700;"><i class="fa-solid fa-video"></i> Join Meeting</a>`
-                      : `<div class="cm-countdown-box" data-date="${nextMeeting.date}T${nextMeeting.startTime}" style="font-size:0.85rem; font-weight:700; color:var(--brand-blue);"><i class="fa-solid fa-hourglass-start" style="margin-right:4px;"></i>Starts in: <span class="cm-timer">Calculating...</span></div>`
-                    }
+                    ${isLive
+              ? `<a href="${nextMeeting.meetLink}" target="_blank" class="btn btn-success btn-sm" style="margin:0; background:#10B981; border-color:#10B981; color:#fff; font-weight:700;"><i class="fa-solid fa-video"></i> Join Meeting</a>`
+              : `<div class="cm-countdown-box" data-date="${nextMeeting.date}T${nextMeeting.startTime}" style="font-size:0.85rem; font-weight:700; color:var(--brand-blue);"><i class="fa-solid fa-hourglass-start" style="margin-right:4px;"></i>Starts in: <span class="cm-timer">Calculating...</span></div>`
+            }
                   </div>
                 </div>
               `;
-            }
-            return '';
-          })()}
+        }
+        return '';
+      })()}
 
           ${enrolledCourses.length === 0 ? `
             <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-xl);padding:48px;text-align:center;">
@@ -182,15 +182,15 @@ const DashboardComponent = {
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
     const hasLessons = c.modules && c.modules.length > 0 && c.modules[0].lessons && c.modules[0].lessons.length > 0;
     const firstLesson = hasLessons ? c.modules[0].lessons[0] : null;
-    
+
     // Batch details
     const enrolledBatches = cu.enrolledBatches || {};
     const batchId = enrolledBatches[c.id];
     const batch = batchId ? window.db.getBatchById(batchId) : null;
-    
+
     let batchHtml = '';
     if (batch) {
-      const tutors = window.db.getUsers().filter(u => u.role==='instructor');
+      const tutors = window.db.getUsers().filter(u => u.role === 'instructor');
       const tutorNames = batch.tutorIds.map(tid => {
         const t = tutors.find(x => x.username === tid);
         return t ? t.name : tid;
@@ -202,9 +202,9 @@ const DashboardComponent = {
         // Find next live class for this batch
         const nextClass = window.db.getLiveClasses()
           .filter(lc => lc.status === 'published' && lc.batch_id === batch.id && new Date(`${lc.date}T${lc.start_time}`) > new Date())
-          .sort((a,b) => new Date(`${a.date}T${a.start_time}`) - new Date(`${b.date}T${b.start_time}`))[0];
-        
-        const nextClassText = nextClass 
+          .sort((a, b) => new Date(`${a.date}T${a.start_time}`) - new Date(`${b.date}T${b.start_time}`))[0];
+
+        const nextClassText = nextClass
           ? `${nextClass.date} at ${nextClass.start_time} (${nextClass.title})`
           : 'None scheduled';
 
@@ -214,7 +214,7 @@ const DashboardComponent = {
         const totalAtt = studentAtt.length;
         const attPct = totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 100;
 
-        const whatsappButton = batch.whatsappLink 
+        const whatsappButton = batch.whatsappLink
           ? `<a href="${batch.whatsappLink}" target="_blank" class="btn btn-success btn-xs" style="margin-top:8px; display:inline-flex; align-items:center; gap:6px; background:#25D366; border-color:#25D366; color:#fff;"><i class="fa-brands fa-whatsapp" style="font-size:0.9rem;"></i> Join WhatsApp Group</a>`
           : '';
 
@@ -258,12 +258,16 @@ const DashboardComponent = {
 
     return `
       <div class="enrolled-course-card">
-        <div class="enrolled-course-thumb"><img src="${c.image}" alt="${c.title}" loading="lazy"></div>
+        <div class="enrolled-course-left">
+          <div class="enrolled-course-thumb"><img src="${c.image}" alt="${c.title}" loading="lazy"></div>
+          <div style="margin-top: 8px;">
+            <div class="progress-bar-wrapper"><div class="progress-bar" style="width:${pct}%;"></div></div>
+            <div style="font-size:0.78rem;color:var(--brand-blue);font-weight:600;margin-top:6px;margin-bottom:0;text-align:center;">${pct}% Complete</div>
+          </div>
+        </div>
         <div class="enrolled-course-body">
           <div class="enrolled-course-title">${c.title}</div>
           <div class="enrolled-course-meta">${done} of ${total} lessons completed · ${c.duration}</div>
-          <div class="progress-bar-wrapper"><div class="progress-bar" style="width:${pct}%;"></div></div>
-          <div style="font-size:0.78rem;color:var(--brand-blue);font-weight:600;margin-top:4px;margin-bottom:8px;">${pct}% Complete</div>
           ${batchHtml}
           <div class="enrolled-course-actions">
             ${firstLesson ? `<a href="#/lesson/${c.id}/${firstLesson.id}" class="btn btn-primary btn-sm"><i class="fa-solid fa-play"></i> Continue</a>` : `<button class="btn btn-outline-white btn-sm" disabled><i class="fa-solid fa-ban"></i> No Lessons</button>`}
@@ -339,14 +343,14 @@ const DashboardComponent = {
             <h3>No certificates yet</h3>
             <p style="margin:12px 0;color:var(--text-secondary);">Complete a course and pass the quiz to earn your first certificate!</p>
             ${(() => {
-              if (enrolledCourses.length === 0) return '';
-              const firstC = enrolledCourses[0];
-              const hasLes = firstC.modules && firstC.modules.length > 0 && firstC.modules[0].lessons && firstC.modules[0].lessons.length > 0;
-              if (hasLes) {
-                return `<a href="#/lesson/${firstC.id}/${firstC.modules[0].lessons[0].id}" class="btn btn-primary" style="margin-top:8px;">Continue Learning</a>`;
-              }
-              return `<a href="#/course/${firstC.id}" class="btn btn-primary" style="margin-top:8px;">View Course</a>`;
-            })()}
+          if (enrolledCourses.length === 0) return '';
+          const firstC = enrolledCourses[0];
+          const hasLes = firstC.modules && firstC.modules.length > 0 && firstC.modules[0].lessons && firstC.modules[0].lessons.length > 0;
+          if (hasLes) {
+            return `<a href="#/lesson/${firstC.id}/${firstC.modules[0].lessons[0].id}" class="btn btn-primary" style="margin-top:8px;">Continue Learning</a>`;
+          }
+          return `<a href="#/course/${firstC.id}" class="btn btn-primary" style="margin-top:8px;">View Course</a>`;
+        })()}
           </div>
         ` : `
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;">
@@ -470,7 +474,7 @@ const DashboardComponent = {
     const newName = document.getElementById('profile-name')?.value;
     const newPwd = document.getElementById('profile-password')?.value;
     const newPhone = document.getElementById('profile-phone')?.value || '';
-    
+
     const newWhatsapp = document.getElementById('profile-whatsapp')?.value || '';
     const newDob = document.getElementById('profile-dob')?.value || '';
     const newQual = document.getElementById('profile-qualification')?.value || '';
@@ -488,10 +492,10 @@ const DashboardComponent = {
 
     const users = window.db.getUsers();
     const idx = users.findIndex(u => u.username === cu.username);
-    if (idx !== -1) { 
-      users[idx] = cu; 
-      window.db.setItemAndSync('cubaze_users', users); 
-      localStorage.setItem('cubaze_current_user', JSON.stringify(cu)); 
+    if (idx !== -1) {
+      users[idx] = cu;
+      window.db.setItemAndSync('cubaze_users', users);
+      localStorage.setItem('cubaze_current_user', JSON.stringify(cu));
     }
     window.app.showToast('Profile updated successfully!', 'success');
     window.app.updateNavbarAuth();
@@ -516,7 +520,7 @@ const DashboardComponent = {
         DashboardComponent._activeTab = item.getAttribute('data-tab');
         document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('active'));
         item.classList.add('active');
-        
+
         if (DashboardComponent._activeTab === 'support') {
           DashboardComponent._loadAndRenderSupport();
         } else if (DashboardComponent._activeTab === 'tutor_chat') {
@@ -534,11 +538,11 @@ const DashboardComponent = {
           const txns = window.db.getTransactions().filter(t => t.username === cu.username);
           const totalProgress = enrolledCourses.length > 0
             ? Math.round(enrolledCourses.reduce((sum, c) => {
-                const p = window.db.getUserProgress(cu.username, c.id);
-                const total = (c.modules || []).reduce((a, m) => a + (m.lessons || []).length, 0);
-                const done = (p.completedLessons || []).length;
-                return sum + (total > 0 ? (done / total) * 100 : 0);
-              }, 0) / enrolledCourses.length)
+              const p = window.db.getUserProgress(cu.username, c.id);
+              const total = (c.modules || []).reduce((a, m) => a + (m.lessons || []).length, 0);
+              const done = (p.completedLessons || []).length;
+              return sum + (total > 0 ? (done / total) * 100 : 0);
+            }, 0) / enrolledCourses.length)
             : 0;
           document.getElementById('student-tab-content').innerHTML = DashboardComponent._renderTab(DashboardComponent._activeTab, cu, enrolledCourses, wishlist, txns, totalProgress);
           if (DashboardComponent._activeTab === 'overview') {
@@ -587,8 +591,8 @@ const DashboardComponent = {
     const courses = window.db.getCourses();
     const enrolledCourseIds = enrolledCourses.map(c => c.id);
     const enrolledBatchIds = Object.values(enrolledBatches);
-    const liveClasses = window.db.getLiveClasses().filter(lc => 
-      lc.status === 'published' && 
+    const liveClasses = window.db.getLiveClasses().filter(lc =>
+      lc.status === 'published' &&
       (lc.batch_id ? enrolledBatchIds.includes(lc.batch_id) : enrolledCourseIds.includes(lc.course_id))
     );
 
@@ -600,7 +604,7 @@ const DashboardComponent = {
       const [year, month, day] = lc.date.split('-');
       const [endH, endM] = lc.end_time.split(':');
       const classEnd = new Date(year, month - 1, day, endH, endM);
-      
+
       if (classEnd > now) {
         upcoming.push(lc);
       } else {
@@ -608,8 +612,8 @@ const DashboardComponent = {
       }
     });
 
-    upcoming.sort((a,b) => new Date(`${a.date}T${a.start_time}`) - new Date(`${b.date}T${b.start_time}`));
-    past.sort((a,b) => new Date(`${b.date}T${b.start_time}`) - new Date(`${a.date}T${a.start_time}`));
+    upcoming.sort((a, b) => new Date(`${a.date}T${a.start_time}`) - new Date(`${b.date}T${b.start_time}`));
+    past.sort((a, b) => new Date(`${b.date}T${b.start_time}`) - new Date(`${a.date}T${a.start_time}`));
 
     setTimeout(() => {
       DashboardComponent._startCountdowns();
@@ -632,8 +636,8 @@ const DashboardComponent = {
           ` : `
             <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
               ${upcoming.map(lc => {
-                const course = courses.find(c => c.id === lc.course_id);
-                return `
+      const course = courses.find(c => c.id === lc.course_id);
+      return `
                   <div class="meet-card widget-card" data-class-date="${lc.date}T${lc.start_time}" data-meet-link="${lc.meet_link}">
                     <div style="font-size:0.75rem; font-weight:700; color:var(--brand-blue); text-transform:uppercase; margin-bottom:8px;">${course ? course.title : lc.course_id}</div>
                     <h4 style="font-size:1.05rem; font-weight:700; margin-bottom:8px; color:var(--text-primary);">${lc.title}</h4>
@@ -674,7 +678,7 @@ const DashboardComponent = {
                     </div>
                   </div>
                 `;
-              }).join('')}
+    }).join('')}
             </div>
           `}
         </div>
@@ -700,8 +704,8 @@ const DashboardComponent = {
                 </thead>
                 <tbody>
                   ${past.map(lc => {
-                    const course = courses.find(c => c.id === lc.course_id);
-                    return `
+      const course = courses.find(c => c.id === lc.course_id);
+      return `
                       <tr>
                         <td>
                           <div style="font-weight:700; color:var(--text-primary); font-size:0.85rem;">${course ? course.title : lc.course_id}</div>
@@ -720,7 +724,7 @@ const DashboardComponent = {
                         </td>
                       </tr>
                     `;
-                  }).join('')}
+    }).join('')}
                 </tbody>
               </table>
             </div>
@@ -744,7 +748,7 @@ const DashboardComponent = {
         const classId = idAttr.replace('cd-', '');
         const targetDateStr = card.getAttribute('data-class-date');
         const meetLink = card.getAttribute('data-meet-link');
-        
+
         const [datePart, timePart] = targetDateStr.split('T');
         const [y, m, d] = datePart.split('-');
         const [hr, min] = timePart.split(':');
@@ -814,7 +818,7 @@ const DashboardComponent = {
     DashboardComponent._countdownInterval = setInterval(updateTimer, 1000);
   },
 
-  _showRecording: function(title, url) {
+  _showRecording: function (title, url) {
     const overlay = document.createElement('div');
     overlay.className = 'tutor-modal-overlay';
     overlay.style.zIndex = '1100';
@@ -837,7 +841,7 @@ const DashboardComponent = {
   // =====================================================
   // SUPPORT MESSAGING PORTAL METHODS
   // =====================================================
-  updateSupportBadge: async function() {
+  updateSupportBadge: async function () {
     try {
       const cu = window.db.getCurrentUser();
       if (!cu) return;
@@ -857,11 +861,11 @@ const DashboardComponent = {
     }
   },
 
-  _loadAndRenderSupport: async function() {
+  _loadAndRenderSupport: async function () {
     const container = document.getElementById('student-tab-content');
     if (!container) return;
     container.innerHTML = `<div style="text-align:center;padding:48px;"><div class="spinner"></div><p style="margin-top:12px;color:var(--text-muted);">Loading conversations...</p></div>`;
-    
+
     DashboardComponent._initRealtime();
 
     try {
@@ -883,7 +887,7 @@ const DashboardComponent = {
     }
   },
 
-  _initRealtime: function() {
+  _initRealtime: function () {
     if (DashboardComponent._realtimeChannel) return;
     DashboardComponent._realtimeChannel = window.db.subscribeToSupportRealtime((e) => {
       if (DashboardComponent._activeTab === 'support') {
@@ -905,7 +909,7 @@ const DashboardComponent = {
     });
   },
 
-  _renderSupportList: function(convs) {
+  _renderSupportList: function (convs) {
     const activeFilter = DashboardComponent._supportFilter || 'all';
     let filtered = convs;
     if (activeFilter !== 'all') {
@@ -936,8 +940,8 @@ const DashboardComponent = {
               <p>No conversations found under this filter.</p>
             </div>
           ` : filtered.map(c => {
-            const relativeTime = DashboardComponent._getRelativeTime(c.last_reply_at);
-            return `
+      const relativeTime = DashboardComponent._getRelativeTime(c.last_reply_at);
+      return `
               <div class="glass-panel support-conv-card" data-conv-id="${c.id}" style="padding:20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; gap:16px; transition:border-color 0.2s; border: 1.5px solid ${c.unread_by_student ? 'var(--brand-blue)' : 'var(--border-color)'};">
                 <div style="display:flex; flex-direction:column; gap:8px; flex:1;">
                   <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -956,13 +960,13 @@ const DashboardComponent = {
                 </div>
               </div>
             `;
-          }).join('')}
+    }).join('')}
         </div>
       </div>
     `;
   },
 
-  _renderNewFormView: function() {
+  _renderNewFormView: function () {
     return `
       <div style="display:flex; flex-direction:column; gap:20px;">
         <div style="display:flex; align-items:center; gap:12px;">
@@ -1026,7 +1030,7 @@ const DashboardComponent = {
     `;
   },
 
-  _renderChatView: async function(convId) {
+  _renderChatView: async function (convId) {
     const convs = await window.db.getSupportConversations();
     const conv = convs.find(c => c.id === convId);
     if (!conv) return `<div class="alert alert-danger">Conversation not found.</div>`;
@@ -1056,16 +1060,16 @@ const DashboardComponent = {
         <div class="support-chat-container">
           <div class="support-chat-messages" id="support-chat-thread">
             ${messages.map(m => {
-              const isOwn = m.sender === cu.username;
-              const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-              
-              let attachmentHtml = '';
-              if (m.file_url) {
-                const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-                if (isImg) {
-                  attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-                } else {
-                  attachmentHtml = `
+      const isOwn = m.sender === cu.username;
+      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+      let attachmentHtml = '';
+      if (m.file_url) {
+        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+        if (isImg) {
+          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+        } else {
+          attachmentHtml = `
                     <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
                       <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
                       <div class="support-chat-attachment-info">
@@ -1074,21 +1078,21 @@ const DashboardComponent = {
                       </div>
                     </a>
                   `;
-                }
-              }
+        }
+      }
 
-              let linkHtml = '';
-              if (m.external_link) {
-                linkHtml = `
+      let linkHtml = '';
+      if (m.external_link) {
+        linkHtml = `
                   <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
                     <i class="fa-solid fa-cloud"></i>
                     <span>Shared File Link</span>
                     <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
                   </a>
                 `;
-              }
+      }
 
-              return `
+      return `
                 <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
                   <div class="support-msg-bubble">
                     <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px;">${isOwn ? 'You' : 'Cubaze Admin'}</div>
@@ -1102,7 +1106,7 @@ const DashboardComponent = {
                   </div>
                 </div>
               `;
-            }).join('')}
+    }).join('')}
           </div>
 
           ${conv.status === 'Resolved' ? `
@@ -1155,7 +1159,7 @@ const DashboardComponent = {
     `;
   },
 
-  _refreshChatMessagesOnly: async function(convId) {
+  _refreshChatMessagesOnly: async function (convId) {
     const thread = document.getElementById('support-chat-thread');
     if (!thread) return;
 
@@ -1166,7 +1170,7 @@ const DashboardComponent = {
       thread.innerHTML = messages.map(m => {
         const isOwn = m.sender === cu.username;
         const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        
+
         let attachmentHtml = '';
         if (m.file_url) {
           const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
@@ -1218,7 +1222,7 @@ const DashboardComponent = {
     }
   },
 
-  _bindSupportListEvents: function() {
+  _bindSupportListEvents: function () {
     document.querySelectorAll('.support-filter-tab').forEach(btn => {
       btn.addEventListener('click', () => {
         DashboardComponent._supportFilter = btn.getAttribute('data-filter');
@@ -1239,7 +1243,7 @@ const DashboardComponent = {
     });
   },
 
-  _bindNewFormEvents: function() {
+  _bindNewFormEvents: function () {
     document.getElementById('btn-back-to-list')?.addEventListener('click', () => {
       DashboardComponent._showNewForm = false;
       DashboardComponent._loadAndRenderSupport();
@@ -1255,7 +1259,7 @@ const DashboardComponent = {
 
     document.getElementById('form-new-support')?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
+
       const submitBtn = document.getElementById('new-support-submit-btn');
       if (submitBtn) {
         submitBtn.disabled = true;
@@ -1297,7 +1301,7 @@ const DashboardComponent = {
     });
   },
 
-  _bindChatViewEvents: function(convId) {
+  _bindChatViewEvents: function (convId) {
     document.getElementById('btn-back-to-list-chat')?.addEventListener('click', () => {
       DashboardComponent._activeConvId = null;
       DashboardComponent._loadAndRenderSupport();
@@ -1324,7 +1328,7 @@ const DashboardComponent = {
           `;
           chip.className = 'support-file-selected-chip';
           chip.style.display = 'flex';
-          
+
           document.getElementById('chat-remove-attached-file')?.addEventListener('click', () => {
             chatSelectedFile = null;
             fileInput.value = '';
@@ -1364,7 +1368,7 @@ const DashboardComponent = {
           chatSelectedFile = null;
           if (fileInput) fileInput.value = '';
           if (chip) chip.style.display = 'none';
-          
+
           DashboardComponent._loadAndRenderSupport();
         } else {
           window.app.showToast(res.error || "Failed to send message", "danger");
@@ -1435,7 +1439,7 @@ const DashboardComponent = {
     });
   },
 
-  _getRelativeTime: function(isoString) {
+  _getRelativeTime: function (isoString) {
     const date = new Date(isoString);
     const now = new Date();
     const diffMs = now - date;
@@ -1454,7 +1458,7 @@ const DashboardComponent = {
   // ============================================================
   // STUDENT-TUTOR MESSAGING
   // ============================================================
-  updateTutorChatBadge: async function() {
+  updateTutorChatBadge: async function () {
     try {
       const convs = await window.db.getTutorConversations();
       const unreadCount = convs.filter(c => c.unread_by_student).length;
@@ -1472,7 +1476,7 @@ const DashboardComponent = {
     }
   },
 
-  _loadAndRenderTutorChat: async function() {
+  _loadAndRenderTutorChat: async function () {
     const content = document.getElementById('student-tab-content');
     if (!content) return;
 
@@ -1529,12 +1533,12 @@ const DashboardComponent = {
       content.innerHTML = DashboardComponent._renderTutorChatPortal(tutors, convs);
       DashboardComponent._bindTutorChatPortalEvents(tutors, convs);
       DashboardComponent.updateTutorChatBadge();
-    } catch(err) {
+    } catch (err) {
       content.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
     }
   },
 
-  _initTutorRealtime: function() {
+  _initTutorRealtime: function () {
     if (DashboardComponent._tutorRealtimeChannel) return;
     DashboardComponent._tutorRealtimeChannel = window.db.subscribeToTutorRealtime((e) => {
       if (DashboardComponent._activeTab === 'tutor_chat') {
@@ -1558,7 +1562,7 @@ const DashboardComponent = {
     });
   },
 
-  _refreshTutorChatMessagesOnly: async function(convId) {
+  _refreshTutorChatMessagesOnly: async function (convId) {
     const thread = document.getElementById('tutor-chat-thread');
     if (!thread) return;
 
@@ -1569,7 +1573,7 @@ const DashboardComponent = {
       thread.innerHTML = messages.map(m => {
         const isOwn = m.sender === cu.username;
         const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        
+
         let attachmentHtml = '';
         if (m.file_url) {
           const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
@@ -1620,7 +1624,7 @@ const DashboardComponent = {
     }
   },
 
-  _renderTutorChatPortal: function(tutors, convs) {
+  _renderTutorChatPortal: function (tutors, convs) {
     const activeSubTab = DashboardComponent._tutorSubTab || 'tutors';
 
     return `
@@ -1651,8 +1655,8 @@ const DashboardComponent = {
         ` : `
           <div class="tutors-grid">
             ${tutors.map(t => {
-              const coursesStr = t.courses.join(', ');
-              return `
+      const coursesStr = t.courses.join(', ');
+      return `
                 <div class="tutor-card-chat">
                   <div class="tutor-avatar-wrapper">
                     <div class="tutor-card-chat-avatar">${t.name.charAt(0).toUpperCase()}</div>
@@ -1668,7 +1672,7 @@ const DashboardComponent = {
                   </button>
                 </div>
               `;
-            }).join('')}
+    }).join('')}
           </div>
         `}
       ` : `
@@ -1689,9 +1693,9 @@ const DashboardComponent = {
               </thead>
               <tbody>
                 ${convs.map(c => {
-                  const lastActiveStr = DashboardComponent._getRelativeTime(c.last_reply_at);
-                  const isUnread = c.unread_by_student;
-                  return `
+      const lastActiveStr = DashboardComponent._getRelativeTime(c.last_reply_at);
+      const isUnread = c.unread_by_student;
+      return `
                     <tr style="${isUnread ? 'background: rgba(61, 70, 216, 0.04); font-weight: 600;' : ''}">
                       <td>
                         <div style="font-weight:700; color:var(--text-primary);">@${c.tutor_username}</div>
@@ -1710,7 +1714,7 @@ const DashboardComponent = {
                       </td>
                     </tr>
                   `;
-                }).join('')}
+    }).join('')}
               </tbody>
             </table>
           `}
@@ -1719,7 +1723,7 @@ const DashboardComponent = {
     `;
   },
 
-  _bindTutorChatPortalEvents: function(tutors, convs) {
+  _bindTutorChatPortalEvents: function (tutors, convs) {
     document.getElementById('tab-tutor-list')?.addEventListener('click', () => {
       DashboardComponent._tutorSubTab = 'tutors';
       DashboardComponent._loadAndRenderTutorChat();
@@ -1734,7 +1738,7 @@ const DashboardComponent = {
       btn.addEventListener('click', () => {
         const tutorUsername = btn.getAttribute('data-tutor-username');
         const courseId = btn.getAttribute('data-course-id');
-        
+
         const existing = convs.find(c => c.tutor_username === tutorUsername);
         if (existing) {
           DashboardComponent._activeTutorConvId = existing.id;
@@ -1755,7 +1759,7 @@ const DashboardComponent = {
     });
   },
 
-  _renderNewTutorConvForm: function() {
+  _renderNewTutorConvForm: function () {
     const data = DashboardComponent._newTutorChatData;
     return `
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
@@ -1801,7 +1805,7 @@ const DashboardComponent = {
     `;
   },
 
-  _bindNewTutorFormEvents: function() {
+  _bindNewTutorFormEvents: function () {
     const handleCancel = () => {
       DashboardComponent._showNewTutorForm = false;
       DashboardComponent._newTutorChatData = null;
@@ -1830,7 +1834,7 @@ const DashboardComponent = {
         const res = await window.db.createTutorConversation(data.tutorUsername, data.courseId, subject, category);
         if (res.success) {
           await window.db.sendTutorMessage(res.conversation.id, text);
-          
+
           DashboardComponent._showNewTutorForm = false;
           DashboardComponent._newTutorChatData = null;
           DashboardComponent._activeTutorConvId = res.conversation.id;
@@ -1845,7 +1849,7 @@ const DashboardComponent = {
     });
   },
 
-  _renderTutorConversationView: async function(convId) {
+  _renderTutorConversationView: async function (convId) {
     const convs = await window.db.getTutorConversations();
     const conv = convs.find(c => c.id === convId);
     if (!conv) return `<div class="alert alert-danger">Conversation not found.</div>`;
@@ -1876,16 +1880,16 @@ const DashboardComponent = {
 
           <div class="support-chat-messages" id="tutor-chat-thread">
             ${messages.map(m => {
-              const isOwn = m.sender === cu.username;
-              const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-              
-              let attachmentHtml = '';
-              if (m.file_url) {
-                const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-                if (isImg) {
-                  attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-                } else {
-                  attachmentHtml = `
+      const isOwn = m.sender === cu.username;
+      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+      let attachmentHtml = '';
+      if (m.file_url) {
+        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+        if (isImg) {
+          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+        } else {
+          attachmentHtml = `
                     <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
                       <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
                       <div class="support-chat-attachment-info">
@@ -1894,21 +1898,21 @@ const DashboardComponent = {
                       </div>
                     </a>
                   `;
-                }
-              }
+        }
+      }
 
-              let linkHtml = '';
-              if (m.external_link) {
-                linkHtml = `
+      let linkHtml = '';
+      if (m.external_link) {
+        linkHtml = `
                   <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
                     <i class="fa-solid fa-cloud"></i>
                     <span>Shared File Link</span>
                     <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
                   </a>
                 `;
-              }
+      }
 
-              return `
+      return `
                 <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
                   <div class="support-msg-bubble">
                     <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
@@ -1921,7 +1925,7 @@ const DashboardComponent = {
                   </div>
                 </div>
               `;
-            }).join('')}
+    }).join('')}
           </div>
 
           ${conv.status === 'Resolved' ? `
@@ -1974,7 +1978,7 @@ const DashboardComponent = {
     `;
   },
 
-  _bindTutorConversationEvents: function(convId) {
+  _bindTutorConversationEvents: function (convId) {
     document.getElementById('btn-tutor-chat-back')?.addEventListener('click', () => {
       DashboardComponent._activeTutorConvId = null;
       DashboardComponent._loadAndRenderTutorChat();
@@ -2001,7 +2005,7 @@ const DashboardComponent = {
           `;
           chip.className = 'support-file-selected-chip';
           chip.style.display = 'flex';
-          
+
           document.getElementById('tutor-remove-attached-file')?.addEventListener('click', () => {
             tutorSelectedFile = null;
             fileInput.value = '';
@@ -2041,7 +2045,7 @@ const DashboardComponent = {
           tutorSelectedFile = null;
           if (fileInput) fileInput.value = '';
           if (chip) chip.style.display = 'none';
-          
+
           DashboardComponent._loadAndRenderTutorChat();
         } else {
           window.app.showToast(res.error || "Failed to send message", "danger");
@@ -2065,9 +2069,9 @@ const DashboardComponent = {
     });
   },
 
-  _renderCommonMeetings: function(cu) {
+  _renderCommonMeetings: function (cu) {
     const meetings = window.db.getCommonMeetingsForUser(cu.username);
-    
+
     // Group by status
     const live = meetings.filter(m => m.status === 'Live Now');
     const upcoming = meetings.filter(m => m.status === 'Upcoming');
@@ -2089,7 +2093,7 @@ const DashboardComponent = {
           </div>
         `;
       } else if (m.status === 'Completed') {
-        actionHtml = m.recordingLink 
+        actionHtml = m.recordingLink
           ? `<a href="${m.recordingLink}" target="_blank" class="btn btn-outline btn-block" style="margin-top:16px; display:flex; align-items:center; justify-content:center; gap:8px;">
                <i class="fa-solid fa-play"></i> Watch Recording
              </a>`
@@ -2184,7 +2188,7 @@ const DashboardComponent = {
     `;
   },
 
-  _startCommonMeetingTimers: function() {
+  _startCommonMeetingTimers: function () {
     if (DashboardComponent._cmIntervalId) clearInterval(DashboardComponent._cmIntervalId);
 
     const updateTimers = () => {
@@ -2202,7 +2206,7 @@ const DashboardComponent = {
           const hours = Math.floor(diff / (1000 * 60 * 60));
           const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
           const secs = Math.floor((diff % (1000 * 60)) / 1000);
-          
+
           let display = '';
           if (hours > 0) display += `${hours}h `;
           display += `${mins}m ${secs}s`;

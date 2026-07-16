@@ -2549,6 +2549,23 @@ p {
   box-shadow: var(--shadow-lg);
 }
 
+.enrolled-course-left {
+  width: 240px;
+  flex-shrink: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-right: 1px solid var(--border-color);
+}
+
+.enrolled-course-left .enrolled-course-thumb {
+  width: 100%;
+  aspect-ratio: 4/3;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
 .enrolled-course-thumb {
   width: 140px;
   flex-shrink: 0;
@@ -4176,6 +4193,23 @@ body.dark-mode .page-hero {
 
   .enrolled-course-card {
     flex-direction: column;
+  }
+
+  .enrolled-course-left {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 20px 20px 10px 20px;
+  }
+
+  .enrolled-course-left .enrolled-course-thumb {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4/3;
+  }
+
+  .enrolled-course-body {
+    padding: 10px 20px 20px 20px;
   }
 
   .enrolled-course-thumb {

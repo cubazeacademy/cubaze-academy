@@ -970,9 +970,9 @@ class CubazeDB {
         let batchInfoChanged = false;
 
         const mappedBatches = batches.map(b => {
-          const enrollmentCount = localUsers.filter(u => 
-            u.role === 'student' && 
-            u.enrolledBatches && 
+          const enrollmentCount = localUsers.filter(u =>
+            u.role === 'student' &&
+            u.enrolledBatches &&
             Object.values(u.enrolledBatches).includes(b.id)
           ).length;
 

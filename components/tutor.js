@@ -29,33 +29,33 @@ const TutorComponent = {
           <div class="sidebar-nav">
             <div class="admin-nav-section-title">Main</div>
             ${[
-              ['dashboard', 'fa-gauge-simple-high', 'Dashboard'],
-              ['courses', 'fa-book-open', 'My Assigned Courses'],
-              ['batches', 'fa-cubes', 'My Batches'],
-              ['common_meeting', 'fa-calendar-days', 'Common Meeting'],
-              ['lessons', 'fa-list-check', 'Lesson Manager'],
-              ['liveclasses', 'fa-video', 'Live Classes'],
-              ['upload', 'fa-cloud-arrow-up', 'Upload Content'],
-            ].map(([tab, icon, label]) =>
-              `<div class="sidebar-nav-item ${TutorComponent._activeTab === tab ? 'active' : ''}" data-tutor-tab="${tab}">
+        ['dashboard', 'fa-gauge-simple-high', 'Dashboard'],
+        ['courses', 'fa-book-open', 'My Assigned Courses'],
+        ['batches', 'fa-cubes', 'My Batches'],
+        ['common_meeting', 'fa-calendar-days', 'Common Meeting'],
+        ['lessons', 'fa-list-check', 'Lesson Manager'],
+        ['liveclasses', 'fa-video', 'Live Classes'],
+        ['upload', 'fa-cloud-arrow-up', 'Upload Content'],
+      ].map(([tab, icon, label]) =>
+        `<div class="sidebar-nav-item ${TutorComponent._activeTab === tab ? 'active' : ''}" data-tutor-tab="${tab}">
                 <span style="display:flex; align-items:center; gap:10px;"><i class="fa-solid ${icon}" style="width:20px; text-align:center;"></i>${label}</span>
               </div>`
-            ).join('')}
+      ).join('')}
           </div>
 
           <div class="sidebar-nav">
             <div class="admin-nav-section-title">Account</div>
             ${[
-              ['messages', 'fa-comments', 'Student Messages'],
-              ['notifications', 'fa-bell', 'Notifications'],
-              ['profile', 'fa-circle-user', 'Profile'],
-              ['settings', 'fa-gear', 'Settings'],
-            ].map(([tab, icon, label]) =>
-              `<div class="sidebar-nav-item ${TutorComponent._activeTab === tab ? 'active' : ''}" data-tutor-tab="${tab}">
+        ['messages', 'fa-comments', 'Student Messages'],
+        ['notifications', 'fa-bell', 'Notifications'],
+        ['profile', 'fa-circle-user', 'Profile'],
+        ['settings', 'fa-gear', 'Settings'],
+      ].map(([tab, icon, label]) =>
+        `<div class="sidebar-nav-item ${TutorComponent._activeTab === tab ? 'active' : ''}" data-tutor-tab="${tab}">
                 <span style="display:flex; align-items:center; gap:10px;"><i class="fa-solid ${icon}" style="width:20px; text-align:center;"></i>${label}</span>
                 ${tab === 'messages' ? `<span class="support-badge" id="tutor-unread-badge" style="display:none;"></span>` : ''}
               </div>`
-            ).join('')}
+      ).join('')}
           </div>
 
           <div class="sidebar-nav" style="border-top:1px solid var(--border-color); padding: 16px;">
@@ -78,24 +78,24 @@ const TutorComponent = {
 
   _renderTab: function (tab, cu, assignedCourses) {
     switch (tab) {
-      case 'dashboard':      return TutorComponent._renderDashboard(cu, assignedCourses);
-      case 'courses':        return TutorComponent._renderCourses(assignedCourses);
-      case 'batches':        return TutorComponent._renderBatches(cu);
+      case 'dashboard': return TutorComponent._renderDashboard(cu, assignedCourses);
+      case 'courses': return TutorComponent._renderCourses(assignedCourses);
+      case 'batches': return TutorComponent._renderBatches(cu);
       case 'common_meeting': return TutorComponent._renderCommonMeetings(cu);
       case 'lessons':
         if (TutorComponent._openCourseId) {
           const c = assignedCourses.find(x => x.id === TutorComponent._openCourseId)
-                 || window.db.getCourseById(TutorComponent._openCourseId);
+            || window.db.getCourseById(TutorComponent._openCourseId);
           return TutorComponent._renderLessonManager(c, cu);
         }
         return TutorComponent._renderCourses(assignedCourses);
-      case 'liveclasses':    return TutorComponent._renderLiveClasses(assignedCourses, cu);
-      case 'upload':         return TutorComponent._renderUpload(assignedCourses, cu);
-      case 'messages':       return `<div id="tutor-messages-loading"><div class="spinner"></div></div>`;
-      case 'notifications':  return TutorComponent._renderNotifications();
-      case 'profile':        return TutorComponent._renderProfile(cu);
-      case 'settings':       return TutorComponent._renderSettings(cu);
-      default:               return TutorComponent._renderDashboard(cu, assignedCourses);
+      case 'liveclasses': return TutorComponent._renderLiveClasses(assignedCourses, cu);
+      case 'upload': return TutorComponent._renderUpload(assignedCourses, cu);
+      case 'messages': return `<div id="tutor-messages-loading"><div class="spinner"></div></div>`;
+      case 'notifications': return TutorComponent._renderNotifications();
+      case 'profile': return TutorComponent._renderProfile(cu);
+      case 'settings': return TutorComponent._renderSettings(cu);
+      default: return TutorComponent._renderDashboard(cu, assignedCourses);
     }
   },
 
@@ -140,7 +140,7 @@ const TutorComponent = {
             <div class="widget-card">
               <div class="widget-icon purple"><i class="fa-solid fa-star"></i></div>
               <div>
-                <div class="widget-number">${assignedCourses.length > 0 ? (assignedCourses.reduce((s,c)=>s+c.rating,0)/assignedCourses.length).toFixed(1) : '—'}</div>
+                <div class="widget-number">${assignedCourses.length > 0 ? (assignedCourses.reduce((s, c) => s + c.rating, 0) / assignedCourses.length).toFixed(1) : '—'}</div>
                 <div class="widget-label">Avg. Rating</div>
               </div>
             </div>
@@ -148,18 +148,18 @@ const TutorComponent = {
 
           <!-- Next Common Meeting Widget -->
           ${(() => {
-            const nextMeeting = window.db.getCommonMeetingsForUser(cu.username)
-              .filter(m => m.status === 'Live Now' || m.status === 'Upcoming')
-              .sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`))[0];
+        const nextMeeting = window.db.getCommonMeetingsForUser(cu.username)
+          .filter(m => m.status === 'Live Now' || m.status === 'Upcoming')
+          .sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`))[0];
 
-            if (nextMeeting) {
-              const isLive = nextMeeting.status === 'Live Now';
-              
-              setTimeout(() => {
-                TutorComponent._startCommonMeetingTimers();
-              }, 100);
+        if (nextMeeting) {
+          const isLive = nextMeeting.status === 'Live Now';
 
-              return `
+          setTimeout(() => {
+            TutorComponent._startCommonMeetingTimers();
+          }, 100);
+
+          return `
                 <div class="glass-panel" style="padding:20px; border:1px solid ${isLive ? '#10B981' : 'var(--border-color)'}; background:${isLive ? 'var(--bg-secondary)' : 'var(--bg-card)'}; border-radius:var(--radius-xl); text-align:left; position:relative; overflow:hidden; margin-bottom:28px;">
                   ${isLive ? `<span style="position:absolute; right:16px; top:16px; background:#ef4444; color:#fff; font-size:0.7rem; font-weight:800; padding:4px 10px; border-radius:20px; text-transform:uppercase; animation: pulse 1.5s infinite;"><i class="fa-solid fa-signal" style="margin-right:4px;"></i> LIVE NOW</span>` : ''}
                   <div style="font-size:0.75rem; font-weight:700; color:${isLive ? '#10B981' : 'var(--brand-blue)'}; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Next Common Meeting</div>
@@ -173,16 +173,16 @@ const TutorComponent = {
                       <span><i class="fa-regular fa-user" style="margin-right:4px;"></i> Host: ${nextMeeting.hostName}</span>
                     </div>
                     
-                    ${isLive 
-                      ? `<a href="${nextMeeting.meetLink}" target="_blank" class="btn btn-success btn-sm" style="margin:0; background:#10B981; border-color:#10B981; color:#fff; font-weight:700;"><i class="fa-solid fa-video"></i> Join Meeting</a>`
-                      : `<div class="cm-countdown-box" data-date="${nextMeeting.date}T${nextMeeting.startTime}" style="font-size:0.85rem; font-weight:700; color:var(--brand-blue);"><i class="fa-solid fa-hourglass-start" style="margin-right:4px;"></i>Starts in: <span class="cm-timer">Calculating...</span></div>`
-                    }
+                    ${isLive
+              ? `<a href="${nextMeeting.meetLink}" target="_blank" class="btn btn-success btn-sm" style="margin:0; background:#10B981; border-color:#10B981; color:#fff; font-weight:700;"><i class="fa-solid fa-video"></i> Join Meeting</a>`
+              : `<div class="cm-countdown-box" data-date="${nextMeeting.date}T${nextMeeting.startTime}" style="font-size:0.85rem; font-weight:700; color:var(--brand-blue);"><i class="fa-solid fa-hourglass-start" style="margin-right:4px;"></i>Starts in: <span class="cm-timer">Calculating...</span></div>`
+            }
                   </div>
                 </div>
               `;
-            }
-            return '';
-          })()}
+        }
+        return '';
+      })()}
 
           <!-- Notice Banner -->
           <div style="background:linear-gradient(135deg,#EFF2FE,#F5F3FF);border:1.5px solid #C7D2FE;border-radius:16px;padding:20px 24px;margin-bottom:28px;display:flex;align-items:flex-start;gap:16px;">
@@ -199,15 +199,15 @@ const TutorComponent = {
             <div data-tutor-tab="courses" style="font-size:0.83rem;color:#3D46D8;font-weight:600;cursor:pointer;">View All →</div>
           </div>
           ${assignedCourses.length === 0
-            ? `<div style="background:#FFFFFF;border-radius:16px;padding:48px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.04);">
+        ? `<div style="background:#FFFFFF;border-radius:16px;padding:48px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.04);">
                 <div style="font-size:3rem;margin-bottom:16px;">📚</div>
                 <h3 style="color:#0F172A;margin-bottom:8px;">No Courses Assigned Yet</h3>
                 <p style="color:#64748B;font-size:0.85rem;">Your admin will assign you to one or more courses. Check back later or contact your Admin.</p>
               </div>`
-            : `<div style="display:flex;flex-direction:column;gap:16px;">
+        : `<div style="display:flex;flex-direction:column;gap:16px;">
                 ${assignedCourses.slice(0, 3).map(c => TutorComponent._courseMiniCard(c)).join('')}
               </div>`
-          }
+      }
         </div>
         ${window.DashboardRightPanel ? window.DashboardRightPanel.render(cu) : ''}
       </div>
@@ -248,7 +248,7 @@ const TutorComponent = {
         <div class="enrolled-course-body">
           <div class="enrolled-course-title">${c.title}</div>
           <div class="enrolled-course-meta">
-            ${totalLessons} Lessons · ${modules} Modules · ${(c.studentsCount||0).toLocaleString('en-IN')} Students · ★ ${c.rating}
+            ${totalLessons} Lessons · ${modules} Modules · ${(c.studentsCount || 0).toLocaleString('en-IN')} Students · ★ ${c.rating}
           </div>
           <div class="enrolled-course-actions" style="margin-top:12px;">
             <button class="btn btn-primary btn-sm">
@@ -275,10 +275,10 @@ const TutorComponent = {
             <div class="lesson-item-meta">
               <span><i class="fa-regular fa-clock"></i> ${les.duration || '—'}</span>
               ${les.videoUrl
-                ? `<a href="${les.videoUrl}" target="_blank" style="color:#EF4444;font-weight:600;text-decoration:none;"><i class="fa-brands fa-youtube"></i> Video</a>`
-                : `<span style="color:#94A3B8;font-style:italic;">No video URL</span>`
-              }
-              ${les.description ? `<span style="color:#94A3B8;">• ${les.description.slice(0,40)}${les.description.length>40?'...':''}</span>` : ''}
+          ? `<a href="${les.videoUrl}" target="_blank" style="color:#EF4444;font-weight:600;text-decoration:none;"><i class="fa-brands fa-youtube"></i> Video</a>`
+          : `<span style="color:#94A3B8;font-style:italic;">No video URL</span>`
+        }
+              ${les.description ? `<span style="color:#94A3B8;">• ${les.description.slice(0, 40)}${les.description.length > 40 ? '...' : ''}</span>` : ''}
             </div>
           </div>
           <div class="lesson-item-actions">
@@ -300,7 +300,7 @@ const TutorComponent = {
             <div style="display:flex; gap:8px; align-items:center;">
               <button class="btn btn-outline-white btn-sm" style="padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; background: white; border: 1px solid #E2E8F0; color: #475569; cursor: pointer;" onclick="TutorComponent._showEditModuleModal('${course.id}',${modIdx})" title="Edit Module Title"><i class="fa-solid fa-pen"></i></button>
               <button class="btn btn-danger btn-sm" style="padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; border: 1px solid #FCA5A5; background: #FEF2F2; color: #EF4444; cursor: pointer;" onclick="TutorComponent._deleteModule('${course.id}',${modIdx})" title="Delete Module"><i class="fa-solid fa-trash-can"></i></button>
-              <span class="lesson-count-badge">${(mod.lessons||[]).length} lessons</span>
+              <span class="lesson-count-badge">${(mod.lessons || []).length} lessons</span>
             </div>
           </div>
           ${lessonsHtml || `<div style="padding:16px 22px;color:#94A3B8;font-size:0.83rem;font-style:italic;">No lessons in this module yet. Add one below.</div>`}
@@ -376,7 +376,7 @@ const TutorComponent = {
         </div>
         <div class="banner-field">
           <div class="banner-field-label">Students <span class="readonly-lock"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
-          <div class="banner-field-value">${(course.studentsCount||0).toLocaleString('en-IN')}</div>
+          <div class="banner-field-value">${(course.studentsCount || 0).toLocaleString('en-IN')}</div>
         </div>
         <div class="banner-field">
           <div class="banner-field-label">Rating <span class="readonly-lock"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
@@ -485,7 +485,7 @@ const TutorComponent = {
   // ============================================================
   // STUDENT-TUTOR MESSAGING (TUTOR VIEW)
   // ============================================================
-  updateTutorBadge: async function() {
+  updateTutorBadge: async function () {
     try {
       const convs = await window.db.getTutorConversations();
       const unreadCount = convs.filter(c => c.unread_by_tutor).length;
@@ -503,7 +503,7 @@ const TutorComponent = {
     }
   },
 
-  _loadAndRenderMessages: async function() {
+  _loadAndRenderMessages: async function () {
     const main = document.getElementById('tutor-main-content');
     if (!main) return;
 
@@ -519,12 +519,12 @@ const TutorComponent = {
       main.innerHTML = await TutorComponent._renderMessagesView(convs, assignedCourses);
       TutorComponent._bindMessagesEvents(convs, assignedCourses);
       TutorComponent.updateTutorBadge();
-    } catch(err) {
+    } catch (err) {
       main.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
     }
   },
 
-  _initRealtime: function() {
+  _initRealtime: function () {
     if (TutorComponent._realtimeChannel) return;
     TutorComponent._realtimeChannel = window.db.subscribeToTutorRealtime((e) => {
       if (TutorComponent._activeTab === 'messages') {
@@ -548,7 +548,7 @@ const TutorComponent = {
     });
   },
 
-  _renderMessagesView: async function(convs, assignedCourses) {
+  _renderMessagesView: async function (convs, assignedCourses) {
     const total = convs.length;
     const unread = convs.filter(c => c.unread_by_tutor).length;
     const active = convs.filter(c => c.status === 'Open').length;
@@ -607,12 +607,12 @@ const TutorComponent = {
             ${filtered.length === 0 ? `
               <div style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.8rem; font-style:italic;">No messages found.</div>
             ` : filtered.map(c => {
-              const activeClass = TutorComponent._activeConvId === c.id ? 'active' : '';
-              const course = assignedCourses.find(x => x.id === c.course_id);
-              const courseTitle = course ? course.title : 'General Course';
-              const lastActive = DashboardComponent._getRelativeTime(c.last_reply_at);
-              
-              return `
+      const activeClass = TutorComponent._activeConvId === c.id ? 'active' : '';
+      const course = assignedCourses.find(x => x.id === c.course_id);
+      const courseTitle = course ? course.title : 'General Course';
+      const lastActive = DashboardComponent._getRelativeTime(c.last_reply_at);
+
+      return `
                 <div class="tutor-chat-list-item ${activeClass}" data-conv-id="${c.id}">
                   <div class="tutor-chat-list-item-avatar">
                     ${c.student_username.charAt(0).toUpperCase()}
@@ -638,7 +638,7 @@ const TutorComponent = {
                   </div>
                 </div>
               `;
-            }).join('')}
+    }).join('')}
           </div>
         </div>
 
@@ -649,7 +649,7 @@ const TutorComponent = {
     `;
   },
 
-  _renderActiveChatPane: async function(convId) {
+  _renderActiveChatPane: async function (convId) {
     const convs = await window.db.getTutorConversations();
     const conv = convs.find(c => c.id === convId);
     if (!conv) return `<div class="alert alert-danger">Conversation not found.</div>`;
@@ -677,17 +677,17 @@ const TutorComponent = {
 
       <div class="support-chat-messages" id="tutor-chat-thread" style="flex:1; padding:20px; overflow-y:auto; max-height:380px;">
         ${messages.map(m => {
-          const isOwn = m.sender === cu.username;
-          const isStudent = m.sender === conv.student_username;
-          const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-          
-          let attachmentHtml = '';
-          if (m.file_url) {
-            const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-            if (isImg) {
-              attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-            } else {
-              attachmentHtml = `
+      const isOwn = m.sender === cu.username;
+      const isStudent = m.sender === conv.student_username;
+      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+      let attachmentHtml = '';
+      if (m.file_url) {
+        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+        if (isImg) {
+          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+        } else {
+          attachmentHtml = `
                 <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
                   <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
                   <div class="support-chat-attachment-info">
@@ -696,30 +696,30 @@ const TutorComponent = {
                   </div>
                 </a>
               `;
-            }
-          }
+        }
+      }
 
-          let linkHtml = '';
-          if (m.external_link) {
-            linkHtml = `
+      let linkHtml = '';
+      if (m.external_link) {
+        linkHtml = `
               <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
                 <i class="fa-solid fa-cloud"></i>
                 <span>Shared File Link</span>
                 <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
               </a>
             `;
-          }
+      }
 
-          let alignClass = 'admin-align';
-          if (m.is_internal) {
-            alignClass = 'internal-note-align';
-          } else if (isStudent) {
-            alignClass = 'admin-align';
-          } else {
-            alignClass = 'student-align';
-          }
+      let alignClass = 'admin-align';
+      if (m.is_internal) {
+        alignClass = 'internal-note-align';
+      } else if (isStudent) {
+        alignClass = 'admin-align';
+      } else {
+        alignClass = 'student-align';
+      }
 
-          return `
+      return `
             <div class="support-msg-wrapper ${alignClass}">
               <div class="support-msg-bubble">
                 <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px;">
@@ -735,7 +735,7 @@ const TutorComponent = {
               </div>
             </div>
           `;
-        }).join('')}
+    }).join('')}
       </div>
 
       <div class="support-chat-input-wrapper" style="border-top:1px solid var(--border-color); background:var(--bg-card); padding:16px;">
@@ -765,7 +765,7 @@ const TutorComponent = {
     `;
   },
 
-  _refreshChatMessagesOnly: async function(convId) {
+  _refreshChatMessagesOnly: async function (convId) {
     const thread = document.getElementById('tutor-chat-thread');
     if (!thread) return;
 
@@ -781,7 +781,7 @@ const TutorComponent = {
         const isOwn = m.sender === cu.username;
         const isStudent = m.sender === conv.student_username;
         const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        
+
         let attachmentHtml = '';
         if (m.file_url) {
           const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
@@ -844,7 +844,7 @@ const TutorComponent = {
     }
   },
 
-  _bindMessagesEvents: function(convs, assignedCourses) {
+  _bindMessagesEvents: function (convs, assignedCourses) {
     const searchInput = document.getElementById('tutor-conv-search');
     const courseSelect = document.getElementById('tutor-conv-course-filter');
 
@@ -898,7 +898,7 @@ const TutorComponent = {
             `;
             chip.className = 'support-file-selected-chip';
             chip.style.display = 'flex';
-            
+
             document.getElementById('tutor-remove-reply-file')?.addEventListener('click', () => {
               selectedReplyFile = null;
               fileInput.value = '';
@@ -1081,7 +1081,7 @@ const TutorComponent = {
     if (!cu) return;
     const newName = document.getElementById('prof-name')?.value;
     const newBio = document.getElementById('prof-bio')?.value || '';
-    
+
     const newWhatsapp = document.getElementById('prof-whatsapp')?.value || '';
     const newDob = document.getElementById('prof-dob')?.value || '';
     const newQual = document.getElementById('prof-qualification')?.value || '';
@@ -1098,15 +1098,15 @@ const TutorComponent = {
 
     const users = window.db.getUsers();
     const idx = users.findIndex(u => u.username === cu.username);
-    if (idx !== -1) { 
-      users[idx] = cu; 
-      window.db.setItemAndSync('cubaze_users', users); 
-      localStorage.setItem('cubaze_current_user', JSON.stringify(cu)); 
+    if (idx !== -1) {
+      users[idx] = cu;
+      window.db.setItemAndSync('cubaze_users', users);
+      localStorage.setItem('cubaze_current_user', JSON.stringify(cu));
     }
-    
+
     window.app.showToast('Profile updated successfully!', 'success');
     window.app.updateNavbarAuth();
-    
+
     // Re-render the tutor profile tab content
     const assignedCourses = window.db.getTutorAssignedCourses(cu.username);
     document.getElementById('tutor-main-content').innerHTML = TutorComponent._renderTab('profile', cu, assignedCourses);
@@ -1125,17 +1125,17 @@ const TutorComponent = {
         <div class="tutor-form-card">
           <h3 style="margin-bottom:20px;font-size:0.95rem;"><i class="fa-solid fa-bell" style="color:#6366F1;margin-right:8px;"></i>Notification Preferences</h3>
           ${[
-            ['Email me when Admin assigns a new course', true],
-            ['Email me when a lesson is approved', true],
-            ['Email me when a student leaves a review', false],
-            ['Weekly summary emails', false],
-          ].map(([label, checked]) => `
+        ['Email me when Admin assigns a new course', true],
+        ['Email me when a lesson is approved', true],
+        ['Email me when a student leaves a review', false],
+        ['Weekly summary emails', false],
+      ].map(([label, checked]) => `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid #F1F5F9;">
               <span style="font-size:0.85rem;color:#374151;">${label}</span>
               <label style="position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;">
-                <input type="checkbox" ${checked?'checked':''} style="opacity:0;width:0;height:0;" onchange="window.app.showToast('Preference saved','success')">
-                <span style="position:absolute;inset:0;background:${checked?'#6366F1':'#CBD5E1'};border-radius:22px;transition:background 0.2s;"></span>
-                <span style="position:absolute;top:3px;left:${checked?'21':'3'}px;width:16px;height:16px;background:#fff;border-radius:50%;transition:left 0.2s;"></span>
+                <input type="checkbox" ${checked ? 'checked' : ''} style="opacity:0;width:0;height:0;" onchange="window.app.showToast('Preference saved','success')">
+                <span style="position:absolute;inset:0;background:${checked ? '#6366F1' : '#CBD5E1'};border-radius:22px;transition:background 0.2s;"></span>
+                <span style="position:absolute;top:3px;left:${checked ? '21' : '3'}px;width:16px;height:16px;background:#fff;border-radius:50%;transition:left 0.2s;"></span>
               </label>
             </div>
           `).join('')}
@@ -1267,15 +1267,15 @@ const TutorComponent = {
     document.body.appendChild(overlay);
   },
 
-  _addModule: function(courseId) {
+  _addModule: function (courseId) {
     const titleInput = document.getElementById('tutor-new-mod-title');
     if (!titleInput) return;
     const title = titleInput.value.trim();
-    if (!title) { window.app.showToast('Enter a module title.','danger'); return; }
-    
+    if (!title) { window.app.showToast('Enter a module title.', 'danger'); return; }
+
     const res = window.db.addCourseModule(courseId, title);
-    if (res.success) { 
-      window.app.showToast('Module added successfully!','success'); 
+    if (res.success) {
+      window.app.showToast('Module added successfully!', 'success');
       const cu = window.db.getCurrentUser();
       const course = window.db.getCourseById(courseId);
       document.getElementById('tutor-main-content').innerHTML = TutorComponent._renderLessonManager(course, cu);
@@ -1285,7 +1285,7 @@ const TutorComponent = {
     }
   },
 
-  _showEditModuleModal: function(courseId, modIdx) {
+  _showEditModuleModal: function (courseId, modIdx) {
     const course = window.db.getCourseById(courseId);
     if (!course || !course.modules || !course.modules[modIdx]) return;
     const mod = course.modules[modIdx];
@@ -1315,25 +1315,25 @@ const TutorComponent = {
     overlay.querySelector('#form-edit-module').addEventListener('submit', e => {
       e.preventDefault();
       const newTitle = document.getElementById('edit-m-title').value.trim();
-      if (!newTitle) { window.app.showToast('Title is required','danger'); return; }
-      
+      if (!newTitle) { window.app.showToast('Title is required', 'danger'); return; }
+
       const res = window.db.updateCourseModule(courseId, modIdx, newTitle);
       if (res.success) {
-        window.app.showToast('Module updated!','success');
+        window.app.showToast('Module updated!', 'success');
         overlay.remove();
         const cu = window.db.getCurrentUser();
         const updatedCourse = window.db.getCourseById(courseId);
         document.getElementById('tutor-main-content').innerHTML = TutorComponent._renderLessonManager(updatedCourse, cu);
         TutorComponent._bindLessonManagerEvents(courseId);
       } else {
-        window.app.showToast(res.error || 'Failed to update module.','danger');
+        window.app.showToast(res.error || 'Failed to update module.', 'danger');
       }
     });
 
     document.body.appendChild(overlay);
   },
 
-  _deleteModule: function(courseId, modIdx) {
+  _deleteModule: function (courseId, modIdx) {
     if (!confirm('Are you sure you want to delete this module and all of its lessons? This action cannot be undone.')) return;
     const res = window.db.deleteCourseModule(courseId, modIdx);
     if (res.success) {
@@ -1623,7 +1623,7 @@ const TutorComponent = {
   // =====================================================
   // LIVE CLASSES METHODS
   // =====================================================
-  _renderLiveClasses: function(assignedCourses, cu) {
+  _renderLiveClasses: function (assignedCourses, cu) {
     const liveClasses = window.db.getLiveClasses().filter(lc => lc.tutor_id === cu.username);
     return `
       <div style="display:flex; flex-direction:column; gap:24px;">
@@ -1660,15 +1660,15 @@ const TutorComponent = {
               ${liveClasses.length === 0 ? `
                 <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px;">No live classes created yet.</td></tr>
               ` : liveClasses.map(lc => {
-                const c = assignedCourses.find(x => x.id === lc.course_id);
-                const courseTitle = c ? c.title : lc.course_id;
-                const moduleTitle = c && c.modules[lc.module_id] ? c.modules[lc.module_id].title : `Module ${lc.module_id + 1}`;
-                
-                let statusClass = "success";
-                if (lc.status === 'draft') statusClass = "warning";
-                else if (lc.status === 'cancelled') statusClass = "danger";
+      const c = assignedCourses.find(x => x.id === lc.course_id);
+      const courseTitle = c ? c.title : lc.course_id;
+      const moduleTitle = c && c.modules[lc.module_id] ? c.modules[lc.module_id].title : `Module ${lc.module_id + 1}`;
 
-                return `
+      let statusClass = "success";
+      if (lc.status === 'draft') statusClass = "warning";
+      else if (lc.status === 'cancelled') statusClass = "danger";
+
+      return `
                   <tr data-lc-id="${lc.id}">
                     <td>
                       <div style="font-weight:700;color:var(--text-primary);font-size:0.85rem;">${courseTitle}</div>
@@ -1701,7 +1701,7 @@ const TutorComponent = {
                     </td>
                   </tr>
                 `;
-              }).join('')}
+    }).join('')}
             </tbody>
           </table>
         </div>
@@ -1709,7 +1709,7 @@ const TutorComponent = {
     `;
   },
 
-  _openTutorMenu: function(btn, e) {
+  _openTutorMenu: function (btn, e) {
     if (e) e.stopPropagation();
     const menu = btn.nextElementSibling;
     if (!menu) return;
@@ -1724,7 +1724,7 @@ const TutorComponent = {
     }
   },
 
-  _duplicateLiveClass: function(id) {
+  _duplicateLiveClass: function (id) {
     const lc = window.db.getLiveClassById(id);
     if (!lc) return;
     const copy = { ...lc, id: undefined, title: `${lc.title} (Copy)`, created_at: undefined, updated_at: undefined };
@@ -1737,7 +1737,7 @@ const TutorComponent = {
     }
   },
 
-  _cancelLiveClass: function(id) {
+  _cancelLiveClass: function (id) {
     if (!confirm('Are you sure you want to cancel this live class?')) return;
     const lc = window.db.getLiveClassById(id);
     if (!lc) return;
@@ -1751,7 +1751,7 @@ const TutorComponent = {
     }
   },
 
-  _deleteLiveClass: function(id) {
+  _deleteLiveClass: function (id) {
     if (!confirm('Are you sure you want to permanently delete this live class?')) return;
     if (window.db.deleteLiveClass(id)) {
       window.app.showToast('Live class deleted.', 'success');
@@ -1761,7 +1761,7 @@ const TutorComponent = {
     }
   },
 
-  _refreshLiveClassesTab: function() {
+  _refreshLiveClassesTab: function () {
     const cu = window.db.getCurrentUser();
     const assignedCourses = window.db.getTutorAssignedCourses(cu.username);
     document.getElementById('tutor-main-content').innerHTML =
@@ -1769,11 +1769,11 @@ const TutorComponent = {
     TutorComponent._bindLiveClassesEvents();
   },
 
-  _showEditLiveClass: function(id) {
+  _showEditLiveClass: function (id) {
     TutorComponent._showLiveClassModal(id);
   },
 
-  _showLiveClassModal: function(id = null) {
+  _showLiveClassModal: function (id = null) {
     const cu = window.db.getCurrentUser();
     const assignedCourses = window.db.getTutorAssignedCourses(cu.username);
     if (assignedCourses.length === 0) {
@@ -1906,7 +1906,7 @@ const TutorComponent = {
     document.body.appendChild(overlay);
   },
 
-  _bindLiveClassesEvents: function() {
+  _bindLiveClassesEvents: function () {
     document.getElementById('btn-tutor-add-live')?.addEventListener('click', () => {
       TutorComponent._showLiveClassModal();
     });
@@ -1928,7 +1928,7 @@ const TutorComponent = {
 
   _renderBatches: function (cu) {
     const batches = window.db.getBatches().filter(b => b.tutorIds.includes(cu.username));
-    
+
     let subPanelHtml = '';
     if (TutorComponent._openBatchId) {
       const selectedBatch = batches.find(b => b.id === TutorComponent._openBatchId);
@@ -1976,14 +1976,14 @@ const TutorComponent = {
     `;
   },
 
-  _selectBatch: function(batchId) {
+  _selectBatch: function (batchId) {
     TutorComponent._openBatchId = batchId;
     const cu = window.db.getCurrentUser();
     document.getElementById('tutor-main-content').innerHTML = TutorComponent._renderBatches(cu);
     TutorComponent._bindBatchesEvents();
   },
 
-  _renderBatchSubPanels: function(batch, cu) {
+  _renderBatchSubPanels: function (batch, cu) {
     const activeSubTab = TutorComponent._activeBatchSubTab || 'attendance';
     const subTabs = [
       ['attendance', 'fa-calendar-check', 'Attendance'],
@@ -2038,18 +2038,18 @@ const TutorComponent = {
     `;
   },
 
-  _selectBatchSubTab: function(tab) {
+  _selectBatchSubTab: function (tab) {
     TutorComponent._activeBatchSubTab = tab;
     const cu = window.db.getCurrentUser();
     document.getElementById('tutor-main-content').innerHTML = TutorComponent._renderBatches(cu);
     TutorComponent._bindBatchesEvents();
   },
 
-  _renderBatchAttendance: function(batch) {
+  _renderBatchAttendance: function (batch) {
     const students = window.db.getUsers().filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[batch.courseId] === batch.id);
     const dateVal = TutorComponent._attendanceDate;
     const attendanceMap = window.db.getAttendance(batch.id, dateVal) || {};
-    
+
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
         <h3 style="font-size:1rem; font-weight:800; text-align:left; margin:0;">Daily Attendance Tracking</h3>
@@ -2069,21 +2069,21 @@ const TutorComponent = {
         </thead>
         <tbody>
           ${students.map(s => {
-            const status = attendanceMap[s.username] || 'Absent';
-            return `
+      const status = attendanceMap[s.username] || 'Absent';
+      return `
               <tr>
                 <td style="font-weight:700; color:#0F172A; text-align:left;">${s.name}</td>
                 <td style="text-align:left;">@${s.username}</td>
                 <td style="text-align:center;">
                   <select class="form-control att-student-select" data-student="${s.username}" style="height:36px; padding:0 10px; font-size:0.8rem; font-weight:700; font-family:inherit;">
-                    <option value="Present" ${status==='Present'?'selected':''}>Present</option>
-                    <option value="Absent" ${status==='Absent'?'selected':''}>Absent</option>
-                    <option value="Excused" ${status==='Excused'?'selected':''}>Excused</option>
+                    <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
+                    <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
+                    <option value="Excused" ${status === 'Excused' ? 'selected' : ''}>Excused</option>
                   </select>
                 </td>
               </tr>
             `;
-          }).join('')}
+    }).join('')}
           ${students.length === 0 ? '<tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:20px;">No students enrolled in this batch yet.</td></tr>' : ''}
         </tbody>
       </table>
@@ -2096,7 +2096,7 @@ const TutorComponent = {
     `;
   },
 
-  _renderBatchLiveClasses: function(batch) {
+  _renderBatchLiveClasses: function (batch) {
     const liveClasses = window.db.getLiveClasses().filter(lc => lc.batch_id === batch.id);
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -2120,7 +2120,7 @@ const TutorComponent = {
               <td style="font-weight:700; color:#0F172A; text-align:left;">${lc.title}</td>
               <td style="font-size:0.8rem; font-weight:600; text-align:left;">${lc.date} @ ${lc.start_time} - ${lc.end_time}</td>
               <td style="text-align:left;"><a href="${lc.meet_link}" target="_blank" style="color:#3D46D8; text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</a></td>
-              <td><span class="status-badge ${lc.status==='published'?'success':''}">${lc.status}</span></td>
+              <td><span class="status-badge ${lc.status === 'published' ? 'success' : ''}">${lc.status}</span></td>
               <td>
                 <div style="display:flex; gap:6px; justify-content:center;">
                   <button class="btn btn-outline-white btn-xs" onclick="TutorComponent._editBatchLiveClass('${lc.id}')" style="margin:0; padding:6px 10px;"><i class="fa-solid fa-pen"></i></button>
@@ -2135,7 +2135,7 @@ const TutorComponent = {
     `;
   },
 
-  _renderBatchAnnouncements: function(batch) {
+  _renderBatchAnnouncements: function (batch) {
     const announcements = window.db.getAnnouncementsByBatchOrCourse(batch.courseId, batch.id).filter(a => a.batchId === batch.id);
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -2168,7 +2168,7 @@ const TutorComponent = {
     `;
   },
 
-  _renderBatchAssignments: function(batch) {
+  _renderBatchAssignments: function (batch) {
     const assignments = window.db.getAssignmentsByBatchOrCourse(batch.courseId, batch.id).filter(a => a.batchId === batch.id);
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -2211,7 +2211,7 @@ const TutorComponent = {
     `;
   },
 
-  _renderBatchResources: function(batch) {
+  _renderBatchResources: function (batch) {
     const resources = window.db.getResourcesByBatchOrCourse(batch.courseId, batch.id).filter(r => r.batchId === batch.id);
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -2247,13 +2247,13 @@ const TutorComponent = {
     `;
   },
 
-  _bindBatchesEvents: function() {
+  _bindBatchesEvents: function () {
     document.getElementById('t-whatsapp-form')?.addEventListener('submit', e => {
       e.preventDefault();
       const linkVal = document.getElementById('t-whatsapp-link-input').value.trim();
       const batch = window.db.getBatchById(TutorComponent._openBatchId);
       if (!batch) return;
-      
+
       if (linkVal !== '') {
         const waRegex = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/;
         if (!waRegex.test(linkVal)) {
@@ -2261,7 +2261,7 @@ const TutorComponent = {
           return;
         }
       }
-      
+
       batch.whatsappLink = linkVal;
       const res = window.db.saveBatch(batch);
       if (res.success) {
@@ -2283,7 +2283,7 @@ const TutorComponent = {
         const student = select.getAttribute('data-student');
         records[student] = select.value;
       });
-      
+
       const res = window.db.saveAttendance(TutorComponent._openBatchId, TutorComponent._attendanceDate, records);
       if (res.success) {
         window.app.showToast('Attendance records saved! 📝', 'success');
@@ -2302,7 +2302,7 @@ const TutorComponent = {
       const title = document.getElementById('ann-title').value.trim();
       const content = document.getElementById('ann-content').value.trim();
       const cu = window.db.getCurrentUser();
-      
+
       const res = window.db.saveAnnouncement({
         id: `AN-${Math.floor(100000 + Math.random() * 900000)}`,
         batchId: TutorComponent._openBatchId,
@@ -2312,7 +2312,7 @@ const TutorComponent = {
         author: cu.name,
         createdAt: new Date().toISOString()
       });
-      
+
       if (res.success) {
         window.app.showToast('Announcement posted! 📢', 'success');
         TutorComponent._refreshBatchesTab();
@@ -2327,7 +2327,7 @@ const TutorComponent = {
       const maxPoints = parseInt(document.getElementById('asg-points').value) || 100;
       const dueDate = document.getElementById('asg-due').value;
       const description = document.getElementById('asg-desc').value.trim();
-      
+
       const res = window.db.saveAssignment({
         id: `AS-${Math.floor(100000 + Math.random() * 900000)}`,
         batchId: TutorComponent._openBatchId,
@@ -2338,7 +2338,7 @@ const TutorComponent = {
         description,
         createdAt: new Date().toISOString()
       });
-      
+
       if (res.success) {
         window.app.showToast('Assignment created! 📝', 'success');
         TutorComponent._refreshBatchesTab();
@@ -2351,7 +2351,7 @@ const TutorComponent = {
       e.preventDefault();
       const title = document.getElementById('res-title').value.trim();
       const url = document.getElementById('res-url').value.trim();
-      
+
       const res = window.db.saveResource({
         id: `RS-${Math.floor(100000 + Math.random() * 900000)}`,
         batchId: TutorComponent._openBatchId,
@@ -2360,7 +2360,7 @@ const TutorComponent = {
         url,
         createdAt: new Date().toISOString()
       });
-      
+
       if (res.success) {
         window.app.showToast('Resource link shared! 🔗', 'success');
         TutorComponent._refreshBatchesTab();
@@ -2370,13 +2370,13 @@ const TutorComponent = {
     });
   },
 
-  _refreshBatchesTab: function() {
+  _refreshBatchesTab: function () {
     const cu = window.db.getCurrentUser();
     document.getElementById('tutor-main-content').innerHTML = TutorComponent._renderBatches(cu);
     TutorComponent._bindBatchesEvents();
   },
 
-  _deleteBatchAnnouncement: function(id) {
+  _deleteBatchAnnouncement: function (id) {
     if (!confirm('Delete this announcement?')) return;
     const res = window.db.deleteAnnouncement(id);
     if (res.success) {
@@ -2387,7 +2387,7 @@ const TutorComponent = {
     }
   },
 
-  _deleteBatchAssignment: function(id) {
+  _deleteBatchAssignment: function (id) {
     if (!confirm('Delete this assignment?')) return;
     const res = window.db.deleteAssignment(id);
     if (res.success) {
@@ -2398,7 +2398,7 @@ const TutorComponent = {
     }
   },
 
-  _deleteBatchResource: function(id) {
+  _deleteBatchResource: function (id) {
     if (!confirm('Delete this resource?')) return;
     const res = window.db.deleteResource(id);
     if (res.success) {
@@ -2409,13 +2409,13 @@ const TutorComponent = {
     }
   },
 
-  _showBatchLiveClassModal: function(lcId = null) {
+  _showBatchLiveClassModal: function (lcId = null) {
     const cu = window.db.getCurrentUser();
     const batch = window.db.getBatchById(TutorComponent._openBatchId);
     if (!batch) return;
-    
+
     const lc = lcId ? window.db.getLiveClassById(lcId) : null;
-    
+
     const overlay = document.createElement('div');
     overlay.className = 'tutor-modal-overlay';
     overlay.id = 'batch-live-class-modal';
@@ -2476,7 +2476,7 @@ const TutorComponent = {
     });
 
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-    
+
     overlay.querySelector('#form-batch-live-class').addEventListener('submit', e => {
       e.preventDefault();
       const title = overlay.querySelector('#bt-lc-title').value.trim();
@@ -2515,11 +2515,11 @@ const TutorComponent = {
     document.body.appendChild(overlay);
   },
 
-  _editBatchLiveClass: function(id) {
+  _editBatchLiveClass: function (id) {
     TutorComponent._showBatchLiveClassModal(id);
   },
 
-  _deleteBatchLiveClass: function(id) {
+  _deleteBatchLiveClass: function (id) {
     if (!confirm('Delete this live class?')) return;
     const res = window.db.deleteLiveClass(id);
     if (res.success) {
@@ -2530,9 +2530,9 @@ const TutorComponent = {
     }
   },
 
-  _renderCommonMeetings: function(cu) {
+  _renderCommonMeetings: function (cu) {
     const meetings = window.db.getCommonMeetingsForUser(cu.username);
-    
+
     // Group by status
     const live = meetings.filter(m => m.status === 'Live Now');
     const upcoming = meetings.filter(m => m.status === 'Upcoming');
@@ -2554,7 +2554,7 @@ const TutorComponent = {
           </div>
         `;
       } else if (m.status === 'Completed') {
-        actionHtml = m.recordingLink 
+        actionHtml = m.recordingLink
           ? `<a href="${m.recordingLink}" target="_blank" class="btn btn-outline btn-block" style="margin-top:16px; display:flex; align-items:center; justify-content:center; gap:8px;">
                <i class="fa-solid fa-play"></i> Watch Recording
              </a>`
@@ -2649,7 +2649,7 @@ const TutorComponent = {
     `;
   },
 
-  _startCommonMeetingTimers: function() {
+  _startCommonMeetingTimers: function () {
     if (TutorComponent._cmIntervalId) clearInterval(TutorComponent._cmIntervalId);
 
     const updateTimers = () => {
@@ -2667,7 +2667,7 @@ const TutorComponent = {
           const hours = Math.floor(diff / (1000 * 60 * 60));
           const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
           const secs = Math.floor((diff % (1000 * 60)) / 1000);
-          
+
           let display = '';
           if (hours > 0) display += `${hours}h `;
           display += `${mins}m ${secs}s`;
