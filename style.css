@@ -7100,6 +7100,14 @@ body.dark-mode .dashboard-admin-theme {
 .calendar-day-modern.today.has-event::after {
   background: #ffffff !important;
 }
+.calendar-day-modern.selected-day-highlight:not(.today) {
+  background: rgba(61, 70, 216, 0.1) !important;
+  color: var(--brand-blue) !important;
+}
+.calendar-day-modern.selected-day-highlight {
+  outline: 2px solid var(--brand-blue) !important;
+  outline-offset: -2px !important;
+}
 
 /* TIMELINE AND ACTIVITIES REDESIGN */
 .upcoming-activity-item-modern {
