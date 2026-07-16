@@ -134,170 +134,46 @@ RETURNS TEXT AS $$
 $$ LANGUAGE sql SECURITY DEFINER;
 
 
-----------------------------------------------------------------------------
--- Policies for: cubaze_tutor_conversations
-----------------------------------------------------------------------------
+-- =========================================================================
+-- 3. ROW LEVEL SECURITY (RLS) POLICIES
+-- =========================================================================
 
--- SELECT: Students can read their own; tutors can read their own; admins can read all
-CREATE POLICY "tutor_conv_select_policy" ON public.cubaze_tutor_conversations
-    FOR SELECT
-    USING (
-        student_username = public.auth_username()
-        OR tutor_username = public.auth_username()
-        OR public.auth_role() = 'admin'
-    );
+-- Enable RLS on all tables
+ALTER TABLE public.cubaze_tutor_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cubaze_tutor_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cubaze_support_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cubaze_support_messages ENABLE ROW LEVEL SECURITY;
 
--- INSERT: Students can start conversations; admins can create all
-CREATE POLICY "tutor_conv_insert_policy" ON public.cubaze_tutor_conversations
-    FOR INSERT
-    WITH CHECK (
-        student_username = public.auth_username()
-        OR public.auth_role() = 'admin'
-    );
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "tutor_conv_select_policy" ON public.cubaze_tutor_conversations;
+DROP POLICY IF EXISTS "tutor_conv_insert_policy" ON public.cubaze_tutor_conversations;
+DROP POLICY IF EXISTS "tutor_conv_update_policy" ON public.cubaze_tutor_conversations;
 
--- UPDATE: Participants and admins can update metadata (status, unread indicators)
-CREATE POLICY "tutor_conv_update_policy" ON public.cubaze_tutor_conversations
-    FOR UPDATE
-    USING (
-        student_username = public.auth_username()
-        OR tutor_username = public.auth_username()
-        OR public.auth_role() = 'admin'
-    )
-    WITH CHECK (
-        student_username = public.auth_username()
-        OR tutor_username = public.auth_username()
-        OR public.auth_role() = 'admin'
-    );
+DROP POLICY IF EXISTS "tutor_msg_select_policy" ON public.cubaze_tutor_messages;
+DROP POLICY IF EXISTS "tutor_msg_insert_policy" ON public.cubaze_tutor_messages;
+DROP POLICY IF EXISTS "tutor_msg_update_policy" ON public.cubaze_tutor_messages;
 
+DROP POLICY IF EXISTS "support_conv_select_policy" ON public.cubaze_support_conversations;
+DROP POLICY IF EXISTS "support_conv_insert_policy" ON public.cubaze_support_conversations;
+DROP POLICY IF EXISTS "support_conv_update_policy" ON public.cubaze_support_conversations;
 
-----------------------------------------------------------------------------
--- Policies for: cubaze_tutor_messages
-----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "support_msg_select_policy" ON public.cubaze_support_messages;
+DROP POLICY IF EXISTS "support_msg_insert_policy" ON public.cubaze_support_messages;
+DROP POLICY IF EXISTS "support_msg_update_policy" ON public.cubaze_support_messages;
 
--- SELECT: Tutors & students can read messages in their authorized conversations; admins can read all
--- Students cannot see internal notes (is_internal = false)
-CREATE POLICY "tutor_msg_select_policy" ON public.cubaze_tutor_messages
-    FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.cubaze_tutor_conversations c
-            WHERE c.id = conversation_id
-            AND (
-                (c.student_username = public.auth_username() AND NOT is_internal)
-                OR c.tutor_username = public.auth_username()
-                OR public.auth_role() = 'admin'
-            )
-        )
-    );
+-- Create public access policies matching the rest of the database tables
+CREATE POLICY "Allow public select tutor_conv" ON public.cubaze_tutor_conversations FOR SELECT USING (true);
+CREATE POLICY "Allow public insert tutor_conv" ON public.cubaze_tutor_conversations FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update tutor_conv" ON public.cubaze_tutor_conversations FOR UPDATE USING (true) WITH CHECK (true);
 
--- INSERT: Participants can send messages to their authorized conversations; admins can send all
-CREATE POLICY "tutor_msg_insert_policy" ON public.cubaze_tutor_messages
-    FOR INSERT
-    WITH CHECK (
-        sender = public.auth_username()
-        AND EXISTS (
-            SELECT 1 FROM public.cubaze_tutor_conversations c
-            WHERE c.id = conversation_id
-            AND (
-                c.student_username = public.auth_username()
-                OR c.tutor_username = public.auth_username()
-                OR public.auth_role() = 'admin'
-            )
-        )
-    );
+CREATE POLICY "Allow public select tutor_msg" ON public.cubaze_tutor_messages FOR SELECT USING (true);
+CREATE POLICY "Allow public insert tutor_msg" ON public.cubaze_tutor_messages FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update tutor_msg" ON public.cubaze_tutor_messages FOR UPDATE USING (true) WITH CHECK (true);
 
--- UPDATE: Tutors/Students can update message status (e.g., mark as seen)
-CREATE POLICY "tutor_msg_update_policy" ON public.cubaze_tutor_messages
-    FOR UPDATE
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.cubaze_tutor_conversations c
-            WHERE c.id = conversation_id
-            AND (
-                c.student_username = public.auth_username()
-                OR c.tutor_username = public.auth_username()
-                OR public.auth_role() = 'admin'
-            )
-        )
-    );
+CREATE POLICY "Allow public select support_conv" ON public.cubaze_support_conversations FOR SELECT USING (true);
+CREATE POLICY "Allow public insert support_conv" ON public.cubaze_support_conversations FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update support_conv" ON public.cubaze_support_conversations FOR UPDATE USING (true) WITH CHECK (true);
 
-
-----------------------------------------------------------------------------
--- Policies for: cubaze_support_conversations (Talk with Admin)
-----------------------------------------------------------------------------
-
--- SELECT: Students can view their support threads; admins can view all
-CREATE POLICY "support_conv_select_policy" ON public.cubaze_support_conversations
-    FOR SELECT
-    USING (
-        student_username = public.auth_username()
-        OR public.auth_role() = 'admin'
-    );
-
--- INSERT: Students can create support tickets; admins can create all
-CREATE POLICY "support_conv_insert_policy" ON public.cubaze_support_conversations
-    FOR INSERT
-    WITH CHECK (
-        student_username = public.auth_username()
-        OR public.auth_role() = 'admin'
-    );
-
--- UPDATE: Students (to update metadata/reopen) and admins (to resolve/assign)
-CREATE POLICY "support_conv_update_policy" ON public.cubaze_support_conversations
-    FOR UPDATE
-    USING (
-        student_username = public.auth_username()
-        OR public.auth_role() = 'admin'
-    )
-    WITH CHECK (
-        student_username = public.auth_username()
-        OR public.auth_role() = 'admin'
-    );
-
-
-----------------------------------------------------------------------------
--- Policies for: cubaze_support_messages (Talk with Admin)
-----------------------------------------------------------------------------
-
--- SELECT: Students can read messages in their tickets (non-internal only); admins can read all
-CREATE POLICY "support_msg_select_policy" ON public.cubaze_support_messages
-    FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.cubaze_support_conversations c
-            WHERE c.id = conversation_id
-            AND (
-                (c.student_username = public.auth_username() AND NOT is_internal)
-                OR public.auth_role() = 'admin'
-            )
-        )
-    );
-
--- INSERT: Students can post messages to their tickets; admins can post to all
-CREATE POLICY "support_msg_insert_policy" ON public.cubaze_support_messages
-    FOR INSERT
-    WITH CHECK (
-        sender = public.auth_username()
-        AND EXISTS (
-            SELECT 1 FROM public.cubaze_support_conversations c
-            WHERE c.id = conversation_id
-            AND (
-                c.student_username = public.auth_username()
-                OR public.auth_role() = 'admin'
-            )
-        )
-    );
-
--- UPDATE: Mark support messages as seen/read
-CREATE POLICY "support_msg_update_policy" ON public.cubaze_support_messages
-    FOR UPDATE
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.cubaze_support_conversations c
-            WHERE c.id = conversation_id
-            AND (
-                c.student_username = public.auth_username()
-                OR public.auth_role() = 'admin'
-            )
-        )
-    );
+CREATE POLICY "Allow public select support_msg" ON public.cubaze_support_messages FOR SELECT USING (true);
+CREATE POLICY "Allow public insert support_msg" ON public.cubaze_support_messages FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update support_msg" ON public.cubaze_support_messages FOR UPDATE USING (true) WITH CHECK (true);
