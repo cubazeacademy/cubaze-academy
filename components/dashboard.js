@@ -509,8 +509,17 @@ const DashboardComponent = {
     DashboardComponent._activeTutorConvId = null;
     DashboardComponent._showNewForm = false;
     DashboardComponent._showNewTutorForm = false;
+
+    // Initial badge fetch
     DashboardComponent.updateSupportBadge();
     DashboardComponent.updateTutorChatBadge();
+
+    // Periodic badge polling every 30 s (works even when student is on other tabs)
+    if (DashboardComponent._badgePollInterval) clearInterval(DashboardComponent._badgePollInterval);
+    DashboardComponent._badgePollInterval = setInterval(() => {
+      DashboardComponent.updateSupportBadge();
+      DashboardComponent.updateTutorChatBadge();
+    }, 30000);
 
     document.querySelectorAll('.sidebar-nav-item[data-tab]').forEach(item => {
       item.addEventListener('click', () => {
@@ -845,13 +854,38 @@ const DashboardComponent = {
     try {
       const cu = window.db.getCurrentUser();
       if (!cu) return;
-      const convs = await window.db.getSupportConversations();
-      const unreadCount = convs.filter(c => c.unread_by_student && c.student_username === cu.username).length;
+
+      let unreadCount = 0;
+
+      // Count actual unseen messages sent by admin/others to this student
+      if (window.db.sb) {
+        // Get conversations belonging to this student
+        const { data: convs } = await window.db.sb
+          .from('cubaze_support_conversations')
+          .select('id')
+          .eq('student_username', cu.username);
+
+        if (convs && convs.length > 0) {
+          const convIds = convs.map(c => c.id);
+          const { count } = await window.db.sb
+            .from('cubaze_support_messages')
+            .select('id', { count: 'exact', head: true })
+            .in('conversation_id', convIds)
+            .neq('sender', cu.username)
+            .eq('seen', false);
+          unreadCount = count || 0;
+        }
+      } else {
+        // Fallback: use unread_by_student boolean
+        const convs = await window.db.getSupportConversations();
+        unreadCount = convs.filter(c => c.unread_by_student && c.student_username === cu.username).length;
+      }
+
       const el = document.getElementById('support-unread-badge');
       if (el) {
         if (unreadCount > 0) {
-          el.textContent = unreadCount;
-          el.style.display = 'inline-block';
+          el.textContent = unreadCount > 99 ? '99+' : unreadCount;
+          el.style.display = 'inline-flex';
         } else {
           el.style.display = 'none';
         }
@@ -1255,6 +1289,9 @@ const DashboardComponent = {
     document.querySelectorAll('.support-conv-card').forEach(card => {
       card.addEventListener('click', () => {
         DashboardComponent._activeConvId = card.getAttribute('data-conv-id');
+        // Immediately hide badge (optimistic clear) when student opens a conversation
+        const badge = document.getElementById('support-unread-badge');
+        if (badge) badge.style.display = 'none';
         DashboardComponent._loadAndRenderSupport();
       });
     });
@@ -1477,13 +1514,39 @@ const DashboardComponent = {
   // ============================================================
   updateTutorChatBadge: async function () {
     try {
-      const convs = await window.db.getTutorConversations();
-      const unreadCount = convs.filter(c => c.unread_by_student).length;
+      const cu = window.db.getCurrentUser();
+      if (!cu) return;
+
+      let unreadCount = 0;
+
+      if (window.db.sb) {
+        // Count actual unseen tutor messages for this student
+        const { data: convs } = await window.db.sb
+          .from('cubaze_tutor_conversations')
+          .select('id')
+          .eq('student_username', cu.username);
+
+        if (convs && convs.length > 0) {
+          const convIds = convs.map(c => c.id);
+          const { count } = await window.db.sb
+            .from('cubaze_tutor_messages')
+            .select('id', { count: 'exact', head: true })
+            .in('conversation_id', convIds)
+            .neq('sender', cu.username)
+            .eq('seen', false);
+          unreadCount = count || 0;
+        }
+      } else {
+        // Fallback: use unread_by_student boolean
+        const convs = await window.db.getTutorConversations();
+        unreadCount = convs.filter(c => c.unread_by_student).length;
+      }
+
       const el = document.getElementById('tutor-chat-unread-badge');
       if (el) {
         if (unreadCount > 0) {
-          el.textContent = unreadCount;
-          el.style.display = 'inline-block';
+          el.textContent = unreadCount > 99 ? '99+' : unreadCount;
+          el.style.display = 'inline-flex';
         } else {
           el.style.display = 'none';
         }
@@ -1775,6 +1838,9 @@ const DashboardComponent = {
     document.querySelectorAll('.btn-view-tutor-chat').forEach(btn => {
       btn.addEventListener('click', () => {
         DashboardComponent._activeTutorConvId = btn.getAttribute('data-conv-id');
+        // Immediately clear tutor badge (optimistic UI) when student opens a chat
+        const badge = document.getElementById('tutor-chat-unread-badge');
+        if (badge) badge.style.display = 'none';
         DashboardComponent._loadAndRenderTutorChat();
       });
     });
