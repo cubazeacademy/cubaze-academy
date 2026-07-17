@@ -1309,6 +1309,33 @@ class CubazeDB {
         console.warn('Supabase common_meetings sync failed:', err);
       }
 
+      // Sync Live Classes
+      try {
+        const { data: lcs, error: lcErr } = await this.sb.from('cubaze_live_classes').select('*');
+        if (!lcErr && lcs && lcs.length > 0) {
+          const mappedLcs = lcs.map(lc => ({
+            id: lc.id,
+            course_id: lc.course_id || '',
+            batch_id: lc.batch_id || '',
+            module_id: lc.module_id || 0,
+            tutor_id: lc.tutor_id || '',
+            title: lc.title || '',
+            description: lc.description || '',
+            meet_link: lc.meet_link || '',
+            date: lc.date || '',
+            start_time: lc.start_time || '',
+            end_time: lc.end_time || '',
+            status: lc.status || 'draft',
+            recording_url: lc.recording_url || '',
+            created_at: lc.created_at || '',
+            updated_at: lc.updated_at || ''
+          }));
+          localStorage.setItem('cubaze_live_classes', JSON.stringify(mappedLcs));
+        }
+      } catch (err) {
+        console.warn('Supabase live_classes sync failed:', err);
+      }
+
       console.log("✅ Supabase sync completed.");
       this.supabaseStatus = 'online';
       // Trigger a view refresh if app is loaded
@@ -1593,6 +1620,27 @@ class CubazeDB {
           recording_link: m.recordingLink || '',
           google_drive_resources: m.googleDriveResources || '',
           notes: m.notes || ''
+        });
+      });
+    } else if (key === "cubaze_live_classes") {
+      const itemsToPush = specificId ? value.filter(lc => lc.id === specificId) : value;
+      itemsToPush.forEach(lc => {
+        this.pushToSupabase("cubaze_live_classes", {
+          id: lc.id,
+          course_id: lc.course_id || null,
+          batch_id: lc.batch_id || null,
+          module_id: lc.module_id || 0,
+          tutor_id: lc.tutor_id || null,
+          title: lc.title,
+          description: lc.description || "",
+          meet_link: lc.meet_link || "",
+          date: lc.date,
+          start_time: lc.start_time || "",
+          end_time: lc.end_time || "",
+          status: lc.status || "draft",
+          recording_url: lc.recording_url || "",
+          created_at: lc.created_at || new Date().toISOString(),
+          updated_at: lc.updated_at || new Date().toISOString()
         });
       });
     }
@@ -1950,6 +1998,7 @@ class CubazeDB {
     classes = classes.filter(lc => lc.id !== id);
     if (classes.length < initialLen) {
       this.setItemAndSync("cubaze_live_classes", classes);
+      this.deleteFromSupabase("cubaze_live_classes", "id", id);
       this.addActivity("admin", "DELETED_LIVE_CLASS", "live_class", id, `Class ID: ${id}`);
       return true;
     }
