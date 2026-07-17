@@ -298,12 +298,12 @@ const TutorComponent = {
           <div class="lesson-module-header" style="display:flex; justify-content:space-between; align-items:center;">
             <div class="lesson-module-name"><i class="fa-solid fa-layer-group" style="color:#6366F1;margin-right:8px;"></i>${mod.title}</div>
             <div style="display:flex; gap:8px; align-items:center;">
-              <button class="btn btn-outline-white btn-sm" style="padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; background: white; border: 1px solid #E2E8F0; color: #475569; cursor: pointer;" onclick="TutorComponent._showEditModuleModal('${course.id}',${modIdx})" title="Edit Module Title"><i class="fa-solid fa-pen"></i></button>
-              <button class="btn btn-danger btn-sm" style="padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; border: 1px solid #FCA5A5; background: #FEF2F2; color: #EF4444; cursor: pointer;" onclick="TutorComponent._deleteModule('${course.id}',${modIdx})" title="Delete Module"><i class="fa-solid fa-trash-can"></i></button>
+              <button class="btn btn-outline-white btn-sm" style="padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary); cursor: pointer;" onclick="TutorComponent._showEditModuleModal('${course.id}',${modIdx})" title="Edit Module Title"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-danger btn-sm" style="padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; border: 1px solid rgba(239, 68, 68, 0.2); background: var(--danger-bg); color: var(--danger); cursor: pointer;" onclick="TutorComponent._deleteModule('${course.id}',${modIdx})" title="Delete Module"><i class="fa-solid fa-trash-can"></i></button>
               <span class="lesson-count-badge">${(mod.lessons || []).length} lessons</span>
             </div>
           </div>
-          ${lessonsHtml || `<div style="padding:16px 22px;color:#94A3B8;font-size:0.83rem;font-style:italic;">No lessons in this module yet. Add one below.</div>`}
+          ${lessonsHtml || `<div style="padding:16px 22px;color:var(--text-muted);font-size:0.83rem;font-style:italic;">No lessons in this module yet. Add one below.</div>`}
 
           <!-- Add Lesson Trigger -->
           <div class="add-lesson-trigger btn-show-add-form" data-form-id="${formId}">
@@ -316,26 +316,26 @@ const TutorComponent = {
               <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;">
                 <div>
                   <label>Lesson Title *</label>
-                  <input type="text" class="l-title" required placeholder="e.g. Introduction to Blender Interface">
+                  <input type="text" class="l-title" required placeholder="e.g. Introduction to Blender Interface" style="border:1px solid var(--border-color); background:var(--bg-secondary); color:var(--text-primary); border-radius:8px; padding:10px 14px; width:100%; box-sizing:border-box;">
                 </div>
                 <div>
                   <label>Duration (MM:SS)</label>
-                  <input type="text" class="l-duration" placeholder="e.g. 12:45">
+                  <input type="text" class="l-duration" placeholder="e.g. 12:45" style="border:1px solid var(--border-color); background:var(--bg-secondary); color:var(--text-primary); border-radius:8px; padding:10px 14px; width:100%; box-sizing:border-box;">
                 </div>
               </div>
               <div style="margin-bottom:14px;">
                 <label>YouTube Video URL *</label>
-                <input type="url" class="l-url" required placeholder="https://www.youtube.com/watch?v=...">
+                <input type="url" class="l-url" required placeholder="https://www.youtube.com/watch?v=..." style="border:1px solid var(--border-color); background:var(--bg-secondary); color:var(--text-primary); border-radius:8px; padding:10px 14px; width:100%; box-sizing:border-box;">
               </div>
               <div style="margin-bottom:16px;">
                 <label>Lesson Description (optional)</label>
-                <textarea class="l-desc" rows="2" placeholder="Brief description of what this lesson covers..."></textarea>
+                <textarea class="l-desc" rows="2" placeholder="Brief description of what this lesson covers..." style="border:1px solid var(--border-color); background:var(--bg-secondary); color:var(--text-primary); border-radius:8px; padding:10px 14px; width:100%; box-sizing:border-box; resize:vertical;"></textarea>
               </div>
               <div style="display:flex;gap:10px;">
                 <button type="submit" style="padding:10px 20px;background:linear-gradient(135deg,#3D46D8,#6366F1);color:#fff;border:none;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;">
                   <i class="fa-solid fa-plus"></i> Add Lesson
                 </button>
-                <button type="button" class="btn-cancel-add-form" data-form-id="${formId}" style="padding:10px 20px;background:#F1F5F9;color:#475569;border:none;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit;">
+                <button type="button" class="btn-cancel-add-form" data-form-id="${formId}" style="padding:10px 20px;background:var(--bg-primary);color:var(--text-secondary);border:1px solid var(--border-color);border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit;">
                   Cancel
                 </button>
               </div>
@@ -348,53 +348,53 @@ const TutorComponent = {
     return `
       <!-- Header with back button -->
       <div class="lesson-manager-header">
-        <button class="lesson-back-btn" id="btn-back-to-courses">
+        <button class="lesson-back-btn" id="btn-back-to-courses" style="cursor:pointer;">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
         <div class="lesson-manager-course-info">
           <div class="lesson-manager-title">Lesson Manager</div>
-          <div class="lesson-manager-subtitle"><i class="fa-solid fa-book-open" style="color:#6366F1;margin-right:4px;"></i>${course.title}</div>
+          <div class="lesson-manager-subtitle"><i class="fa-solid fa-book-open" style="color:var(--brand-blue);margin-right:4px;"></i>${course.title}</div>
         </div>
-        <a href="#/course/${course.id}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:9px 16px;background:#FFFFFF;border:1.5px solid #E2E8F0;border-radius:10px;color:#475569;text-decoration:none;font-size:0.83rem;font-weight:600;">
+        <a href="#/course/${course.id}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:9px 16px;background:var(--bg-secondary);border:1.5px solid var(--border-color);border-radius:10px;color:var(--text-primary);text-decoration:none;font-size:0.83rem;font-weight:600;">
           <i class="fa-solid fa-eye"></i> Preview
         </a>
       </div>
 
       <!-- Read-only course info -->
-      <div class="course-readonly-banner">
+      <div class="course-readonly-banner" style="border: 1px solid var(--border-color); background: var(--bg-card); box-shadow: var(--shadow-sm); border-radius: var(--radius-lg);">
         <div class="banner-field">
-          <div class="banner-field-label">Course Name <span class="readonly-lock"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
-          <div class="banner-field-value">${course.title}</div>
+          <div class="banner-field-label">Course Name <span class="readonly-lock" style="color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
+          <div class="banner-field-value" style="color:var(--text-primary);">${course.title}</div>
         </div>
         <div class="banner-field">
-          <div class="banner-field-label">Price <span class="readonly-lock"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
-          <div class="banner-field-value">₹${course.price.toLocaleString('en-IN')}</div>
+          <div class="banner-field-label">Price <span class="readonly-lock" style="color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
+          <div class="banner-field-value" style="color:var(--text-primary);">₹${course.price.toLocaleString('en-IN')}</div>
         </div>
         <div class="banner-field">
-          <div class="banner-field-label">Level <span class="readonly-lock"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
-          <div class="banner-field-value">${course.level || '—'}</div>
+          <div class="banner-field-label">Level <span class="readonly-lock" style="color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
+          <div class="banner-field-value" style="color:var(--text-primary);">${course.level || '—'}</div>
         </div>
         <div class="banner-field">
-          <div class="banner-field-label">Students <span class="readonly-lock"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
-          <div class="banner-field-value">${(course.studentsCount || 0).toLocaleString('en-IN')}</div>
+          <div class="banner-field-label">Students <span class="readonly-lock" style="color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
+          <div class="banner-field-value" style="color:var(--text-primary);">${(course.studentsCount || 0).toLocaleString('en-IN')}</div>
         </div>
         <div class="banner-field">
-          <div class="banner-field-label">Rating <span class="readonly-lock"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
-          <div class="banner-field-value">★ ${course.rating}</div>
+          <div class="banner-field-label">Rating <span class="readonly-lock" style="color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Admin Only</span></div>
+          <div class="banner-field-value" style="color:var(--text-primary);">★ ${course.rating}</div>
         </div>
       </div>
 
       <!-- Add Module Section -->
-      <div style="background: #FFFFFF; border-radius: 12px; margin-bottom: 24px; padding: 16px; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);">
+      <div style="background: var(--bg-card); border-radius: 12px; margin-bottom: 24px; padding: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
         <div style="display:flex; gap:12px; align-items:center;">
-          <input id="tutor-new-mod-title" class="form-control" placeholder="New Module Title..." style="flex:1; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px;">
+          <input id="tutor-new-mod-title" class="form-control" placeholder="New Module Title..." style="flex:1; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; background: var(--bg-secondary); color: var(--text-primary);">
           <button class="btn btn-primary btn-sm" style="padding: 10px 20px; font-weight: 600; border-radius: 8px; cursor: pointer;" onclick="TutorComponent._addModule('${course.id}')"><i class="fa-solid fa-plus" style="margin-right:6px;"></i> Add Module</button>
         </div>
       </div>
 
       <!-- Modules -->
-      ${modulesHtml || `<div style="background:#FFFFFF;border-radius:16px;padding:48px;text-align:center;">
-        <p style="color:#64748B;">This course has no modules yet. Add one above.</p>
+      ${modulesHtml || `<div style="background:var(--bg-card);border-radius:16px;padding:48px;text-align:center;border:1px solid var(--border-color);">
+        <p style="color:var(--text-muted);">This course has no modules yet. Add one above.</p>
       </div>`}
     `;
   },

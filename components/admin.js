@@ -1328,55 +1328,55 @@ const AdminComponent = {
     const course = window.db.getCourseById(courseId);
     if (!course) return '<div style="padding:20px;">Course not found.</div>';
     return `
-      <div class="adm-modal" style="max-width: 900px; width: 100%; padding: 0; overflow: hidden;">
-        <div class="glass-panel-header" style="background: linear-gradient(135deg, #EFF2FE, #ffffff); border-bottom: 1px solid #E2E8F0; padding: 20px 24px; margin-bottom: 0;">
-          <div class="glass-panel-title" style="font-size: 1.1rem; font-weight: 800; color: #1E293B;"><i class="fa-solid fa-list-check" style="color:#4F46E5; margin-right: 10px; font-size: 1.2rem;"></i>Manage Lessons — <span style="color:#64748B; font-weight: 600;">${course.title}</span></div>
-          <button type="button" class="btn btn-outline-white btn-sm btn-icon" style="background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" onclick="document.getElementById('modules-panel').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
+      <div class="adm-modal" style="max-width: 900px; width: 100%; padding: 0; display: flex; flex-direction: column; max-height: 85vh; overflow: hidden; background: var(--bg-card); border-color: var(--border-color);">
+        <div class="glass-panel-header" style="background: var(--bg-primary); border-bottom: 1px solid var(--border-color); padding: 20px 24px; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center; border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;">
+          <div class="glass-panel-title" style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary);"><i class="fa-solid fa-list-check" style="color:var(--brand-blue); margin-right: 10px; font-size: 1.2rem;"></i>Manage Lessons — <span style="color:var(--text-secondary); font-weight: 600;">${course.title}</span></div>
+          <button type="button" class="btn btn-outline-white btn-sm btn-icon" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="document.getElementById('modules-panel').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div style="padding: 28px;">
+        <div style="padding: 28px; overflow-y: auto; flex: 1; background: var(--bg-secondary);">
           <!-- Add Module -->
-          <div style="display:flex; gap:12px; margin-bottom:24px; align-items:center; background: #F8FAFC; padding: 12px; border-radius: 12px; border: 1px solid #F1F5F9;">
-            <input id="new-mod-title" class="form-control" placeholder="New Module Title..." style="flex:1; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
-            <button class="btn btn-primary btn-sm" style="padding: 10px 20px; font-weight: 600; border-radius: 8px;" onclick="AdminComponent._addModule('${courseId}')"><i class="fa-solid fa-plus"></i> Add Module</button>
+          <div style="display:flex; gap:12px; margin-bottom:24px; align-items:center; background: var(--bg-primary); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <input id="new-mod-title" class="form-control" placeholder="New Module Title..." style="flex:1; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; background: var(--bg-secondary); color: var(--text-primary);">
+            <button class="btn btn-primary btn-sm" style="padding: 10px 20px; font-weight: 600; border-radius: 8px; cursor: pointer;" onclick="AdminComponent._addModule('${courseId}')"><i class="fa-solid fa-plus"></i> Add Module</button>
           </div>
           ${(course.modules || []).map((mod, modIdx) => `
-            <div style="background: #FFFFFF; border-radius: 12px; margin-bottom: 24px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);">
-              <div style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0;">
-                <div style="font-weight: 700; font-size: 0.95rem; color: #0F172A; display: flex; align-items: center; gap: 10px;"><i class="fa-solid fa-layer-group" style="color: #6366F1;"></i>${mod.title}</div>
+            <div style="background: var(--bg-card); border-radius: var(--radius-lg); margin-bottom: 24px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px; background: var(--bg-primary); border-bottom: 1px solid var(--border-color);">
+                <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary); display: flex; align-items: center; gap: 10px;"><i class="fa-solid fa-layer-group" style="color: var(--brand-blue);"></i>${mod.title}</div>
                 <div style="display:flex; gap:8px;">
-                   <button class="btn btn-outline-white btn-sm" style="padding: 6px 12px; border-radius: 6px;" onclick="AdminComponent._editModule('${courseId}',${modIdx})" title="Edit Module Title"><i class="fa-solid fa-pen"></i></button>
-                   <button class="btn btn-danger btn-sm" style="background: white; color: #EF4444; border: 1px solid #FCA5A5; padding: 6px 12px;" onclick="AdminComponent._deleteModule('${courseId}',${modIdx})" title="Delete Module"><i class="fa-solid fa-trash-can"></i></button>
+                   <button class="btn btn-outline-white btn-sm" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer;" onclick="AdminComponent._editModule('${courseId}',${modIdx})" title="Edit Module Title"><i class="fa-solid fa-pen"></i></button>
+                   <button class="btn btn-danger btn-sm" style="background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 6px 12px; border-radius: 6px; cursor: pointer;" onclick="AdminComponent._deleteModule('${courseId}',${modIdx})" title="Delete Module"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
               </div>
               <div style="padding: 16px 20px;">
                 ${(mod.lessons || []).map((les, lesIdx) => `
-                  <div style="display:flex; align-items:center; gap: 16px; padding: 12px 16px; border-radius: 8px; border: 1px solid transparent; margin-bottom: 8px; background: #FAFAF9; transition: all 0.2s;" onmouseover="this.style.background='#F1F5F9';this.style.borderColor='#E2E8F0'" onmouseout="this.style.background='#FAFAF9';this.style.borderColor='transparent'">
-                    <div style="width: 32px; height: 32px; background: #EEF2FF; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; color: #4F46E5; flex-shrink: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">${lesIdx + 1}</div>
+                  <div style="display:flex; align-items:center; gap: 16px; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 8px; background: var(--bg-primary); transition: all 0.2s;" onmouseover="this.style.background='var(--bg-secondary)';this.style.borderColor='var(--border-color)'" onmouseout="this.style.background='var(--bg-primary)';this.style.borderColor='var(--border-color)'">
+                    <div style="width: 32px; height: 32px; background: var(--brand-blue-pale); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; color: var(--brand-blue); flex-shrink: 0;">${lesIdx + 1}</div>
                     <div style="flex:1;">
-                      <div style="font-size: 0.9rem; font-weight: 700; color: #1E293B; margin-bottom: 4px;">${les.title}</div>
-                      <div style="font-size: 0.75rem; color: #64748B; display: flex; gap: 16px; align-items: center;">
+                      <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">${les.title}</div>
+                      <div style="font-size: 0.75rem; color: var(--text-secondary); display: flex; gap: 16px; align-items: center;">
                         <span style="display:flex; align-items:center; gap:4px;"><i class="fa-regular fa-clock"></i>${les.duration || '—'}</span>
                         ${les.videoUrl ? `<a href="${les.videoUrl}" target="_blank" style="color: #EF4444; text-decoration: none; display:flex; align-items:center; gap:4px; font-weight:600;"><i class="fa-brands fa-youtube"></i>Watch</a>` : ''}
                       </div>
                     </div>
                     <div style="display:flex; gap: 8px; opacity: 0.9;">
-                      <button class="btn btn-outline-white btn-sm" style="padding: 6px 10px; border-radius: 6px;" onclick="AdminComponent._editLesson('${courseId}',${modIdx},'${les.id}')" title="Edit Lesson"><i class="fa-solid fa-pen"></i></button>
-                      <button class="btn btn-danger btn-sm" style="padding: 6px 10px; border-radius: 6px;" onclick="AdminComponent._deleteLesson('${courseId}','${les.id}')" title="Delete Lesson"><i class="fa-solid fa-xmark"></i></button>
+                      <button class="btn btn-outline-white btn-sm" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer;" onclick="AdminComponent._editLesson('${courseId}',${modIdx},'${les.id}')" title="Edit Lesson"><i class="fa-solid fa-pen"></i></button>
+                      <button class="btn btn-danger btn-sm" style="padding: 6px 10px; border-radius: 6px; background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); cursor: pointer;" onclick="AdminComponent._deleteLesson('${courseId}','${les.id}')" title="Delete Lesson"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                   </div>`).join('')}
                 
                 <!-- Add Lesson Form -->
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed #E2E8F0;">
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border-color);">
                   <form class="form-add-lesson" data-course-id="${courseId}" data-mod-idx="${modIdx}" style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
-                    <input class="form-control l-title" type="text" required placeholder="Lesson Title..." style="grid-column: 1/-1; padding: 10px 14px; border-radius: 8px;">
-                    <input class="form-control l-url" type="url" required placeholder="YouTube/Video URL..." style="padding: 10px 14px; border-radius: 8px;">
-                    <input class="form-control l-duration" type="text" placeholder="Duration (e.g. 15:30)" style="padding: 10px 14px; border-radius: 8px;">
-                    <button type="submit" class="btn btn-primary btn-sm" style="grid-column: 1/-1; width: fit-content; padding: 8px 16px; border-radius: 8px; font-weight: 600;"><i class="fa-solid fa-plus" style="margin-right: 6px;"></i>Add Lesson</button>
+                    <input class="form-control l-title" type="text" required placeholder="Lesson Title..." style="grid-column: 1/-1; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
+                    <input class="form-control l-url" type="url" required placeholder="YouTube/Video URL..." style="padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
+                    <input class="form-control l-duration" type="text" placeholder="Duration (e.g. 15:30)" style="padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
+                    <button type="submit" class="btn btn-primary btn-sm" style="grid-column: 1/-1; width: fit-content; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;"><i class="fa-solid fa-plus" style="margin-right: 6px;"></i>Add Lesson</button>
                   </form>
                 </div>
               </div>
             </div>`).join('')}
-          ${(course.modules || []).length === 0 ? `<div style="text-align:center; padding: 40px; color: #64748B; background: #F8FAFC; border-radius: 12px; border: 1px dashed #CBD5E1;">No modules yet. Create your first module above.</div>` : ''}
+          ${(course.modules || []).length === 0 ? `<div style="text-align:center; padding: 40px; color: var(--text-muted); background: var(--bg-primary); border-radius: 12px; border: 1px dashed var(--border-color);">No modules yet. Create your first module above.</div>` : ''}
         </div>
       </div>`;
   },
