@@ -77,6 +77,12 @@ class CubazeApp {
       } else if (path === '/pay' && parts[1]) {
         this.view.innerHTML = window.PhonePeComponent.render(parts[1]);
         window.PhonePeComponent.init(parts[1]);
+      } else if (path === '/pay-callback' && parts[1] && parts[2]) {
+        this.view.innerHTML = window.PhonePeComponent.renderCallback(parts[1], parts[2]);
+        window.PhonePeComponent.initCallback(parts[1], parts[2]);
+      } else if (path === '/phonepe-simulator' && parts[1]) {
+        this.view.innerHTML = window.PhonePeComponent.renderSimulator(parts[1]);
+        window.PhonePeComponent.initSimulator(parts[1]);
       } else if (path === '/dashboard') {
         const cu = window.db.getCurrentUser();
         if (cu && cu.role === 'admin') {

@@ -209,3 +209,183 @@ CREATE POLICY "Allow public select posters" ON public.cubaze_posters FOR SELECT 
 CREATE POLICY "Allow public insert posters" ON public.cubaze_posters FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public update posters" ON public.cubaze_posters FOR UPDATE USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public delete posters" ON public.cubaze_posters FOR DELETE USING (true);
+
+----------------------------------------------------------------------------
+-- Table: public.cubaze_settings (System settings and API credentials)
+----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.cubaze_settings (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.cubaze_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public select settings" ON public.cubaze_settings;
+DROP POLICY IF EXISTS "Allow public insert settings" ON public.cubaze_settings;
+DROP POLICY IF EXISTS "Allow public update settings" ON public.cubaze_settings;
+DROP POLICY IF EXISTS "Allow public delete settings" ON public.cubaze_settings;
+
+CREATE POLICY "Allow public select settings" ON public.cubaze_settings FOR SELECT USING (true);
+CREATE POLICY "Allow public insert settings" ON public.cubaze_settings FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update settings" ON public.cubaze_settings FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete settings" ON public.cubaze_settings FOR DELETE USING (true);
+
+----------------------------------------------------------------------------
+-- Table: public.cubaze_notifications (In-app notifications)
+----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.cubaze_notifications (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    type TEXT DEFAULT 'info',
+    read BOOLEAN DEFAULT FALSE,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.cubaze_notifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public select notifications" ON public.cubaze_notifications;
+DROP POLICY IF EXISTS "Allow public insert notifications" ON public.cubaze_notifications;
+DROP POLICY IF EXISTS "Allow public update notifications" ON public.cubaze_notifications;
+DROP POLICY IF EXISTS "Allow public delete notifications" ON public.cubaze_notifications;
+
+CREATE POLICY "Allow public select notifications" ON public.cubaze_notifications FOR SELECT USING (true);
+CREATE POLICY "Allow public insert notifications" ON public.cubaze_notifications FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update notifications" ON public.cubaze_notifications FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete notifications" ON public.cubaze_notifications FOR DELETE USING (true);
+
+----------------------------------------------------------------------------
+-- Table: public.cubaze_transactions (LMS Transactions and Payments)
+----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.cubaze_transactions (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    student_name TEXT,
+    student_email TEXT,
+    student_phone TEXT,
+    course_id TEXT NOT NULL,
+    course_title TEXT,
+    batch_id TEXT,
+    batch_name TEXT,
+    amount NUMERIC NOT NULL,
+    discount NUMERIC DEFAULT 0,
+    coupon_code TEXT,
+    payment_method TEXT,
+    gateway_reference TEXT,
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    admin_status TEXT NOT NULL DEFAULT 'PENDING',
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    invoice_number TEXT,
+    screenshot TEXT, -- base64 data URI or file link
+    utr TEXT,
+    payment_date TEXT,
+    rejection_reason TEXT,
+    reupload_reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.cubaze_transactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public select transactions" ON public.cubaze_transactions;
+DROP POLICY IF EXISTS "Allow public insert transactions" ON public.cubaze_transactions;
+DROP POLICY IF EXISTS "Allow public update transactions" ON public.cubaze_transactions;
+DROP POLICY IF EXISTS "Allow public delete transactions" ON public.cubaze_transactions;
+
+CREATE POLICY "Allow public select transactions" ON public.cubaze_transactions FOR SELECT USING (true);
+CREATE POLICY "Allow public insert transactions" ON public.cubaze_transactions FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update transactions" ON public.cubaze_transactions FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete transactions" ON public.cubaze_transactions FOR DELETE USING (true);
+
+-- =========================================================================
+-- MIGRATION STATEMENTS FOR EXISTING SCHEMAS
+-- =========================================================================
+-- Run these statements in the Supabase SQL editor if your tables already exist:
+--
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS student_name TEXT;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS student_email TEXT;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS student_phone TEXT;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS discount NUMERIC DEFAULT 0;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS coupon_code TEXT;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS gateway_reference TEXT;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS screenshot TEXT;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS utr TEXT;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS payment_date TEXT;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS reupload_reason TEXT;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS batch_id TEXT;
+-- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS batch_name TEXT;
+
+
+-- =========================================================================
+-- TABLE: cubaze_common_meetings
+-- Academy-wide meetings visible to selected audiences
+-- =========================================================================
+
+CREATE TABLE IF NOT EXISTS public.cubaze_common_meetings (
+    id                     TEXT PRIMARY KEY,           -- e.g. "CM-FRESH-101"
+    title                  TEXT NOT NULL,
+    description            TEXT NOT NULL DEFAULT '',
+    meet_link              TEXT NOT NULL DEFAULT '',
+    date                   TEXT NOT NULL,              -- "YYYY-MM-DD"
+    start_time             TEXT NOT NULL DEFAULT '',   -- "HH:MM"
+    end_time               TEXT NOT NULL DEFAULT '',   -- "HH:MM"
+    host_name              TEXT NOT NULL DEFAULT '',
+    status                 TEXT NOT NULL DEFAULT 'Upcoming'
+                               CONSTRAINT chk_cm_status
+                               CHECK (status IN ('Upcoming', 'Live Now', 'Completed', 'Cancelled')),
+    -- JSONB access control object:
+    -- { "type": "everyone"|"all_students"|"all_tutors"|"all_students_tutors"
+    --           |"selected_courses"|"selected_batches"|"admission_counselors",
+    --   "courseIds": [], "batchIds": [] }
+    access                 JSONB NOT NULL DEFAULT '{"type":"everyone","courseIds":[],"batchIds":[]}'::jsonb,
+    password               TEXT NOT NULL DEFAULT '',
+    recording_link         TEXT NOT NULL DEFAULT '',
+    google_drive_resources TEXT NOT NULL DEFAULT '',
+    notes                  TEXT NOT NULL DEFAULT '',
+    created_at             TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at             TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- ── Indexes ──────────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_cm_date        ON public.cubaze_common_meetings (date);
+CREATE INDEX IF NOT EXISTS idx_cm_status      ON public.cubaze_common_meetings (status);
+CREATE INDEX IF NOT EXISTS idx_cm_access_type ON public.cubaze_common_meetings ((access->>'type'));
+
+-- ── Row Level Security ────────────────────────────────────────────────────────
+ALTER TABLE public.cubaze_common_meetings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public select common_meetings"  ON public.cubaze_common_meetings;
+DROP POLICY IF EXISTS "Allow public insert common_meetings"  ON public.cubaze_common_meetings;
+DROP POLICY IF EXISTS "Allow public update common_meetings"  ON public.cubaze_common_meetings;
+DROP POLICY IF EXISTS "Allow public delete common_meetings"  ON public.cubaze_common_meetings;
+
+CREATE POLICY "Allow public select common_meetings"
+    ON public.cubaze_common_meetings FOR SELECT USING (true);
+CREATE POLICY "Allow public insert common_meetings"
+    ON public.cubaze_common_meetings FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update common_meetings"
+    ON public.cubaze_common_meetings FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete common_meetings"
+    ON public.cubaze_common_meetings FOR DELETE USING (true);
+
+-- ── Auto-update updated_at on every UPDATE ────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_cm_updated_at ON public.cubaze_common_meetings;
+CREATE TRIGGER trg_cm_updated_at
+    BEFORE UPDATE ON public.cubaze_common_meetings
+    FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- =========================================================================
+-- MIGRATION (run only if the table already exists without newer columns)
+-- =========================================================================
+-- ALTER TABLE public.cubaze_common_meetings ADD COLUMN IF NOT EXISTS password               TEXT NOT NULL DEFAULT '';
+-- ALTER TABLE public.cubaze_common_meetings ADD COLUMN IF NOT EXISTS recording_link         TEXT NOT NULL DEFAULT '';
+-- ALTER TABLE public.cubaze_common_meetings ADD COLUMN IF NOT EXISTS google_drive_resources TEXT NOT NULL DEFAULT '';
+-- ALTER TABLE public.cubaze_common_meetings ADD COLUMN IF NOT EXISTS notes                  TEXT NOT NULL DEFAULT '';
+-- ALTER TABLE public.cubaze_common_meetings ADD COLUMN IF NOT EXISTS updated_at             TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();

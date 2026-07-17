@@ -1079,14 +1079,27 @@ class CubazeDB {
         const mappedTxns = txns.map(txn => ({
           id: txn.id,
           username: txn.username,
+          studentName: txn.student_name || txn.username,
+          studentEmail: txn.student_email || "",
+          studentPhone: txn.student_phone || "",
           courseId: txn.course_id,
           courseTitle: txn.course_title || "",
+          batchId: txn.batch_id || "",
+          batchName: txn.batch_name || "",
           amount: txn.amount,
-          status: txn.status || "PENDING",
+          discount: txn.discount || 0,
+          couponCode: txn.coupon_code || "",
           paymentMethod: txn.payment_method || "",
+          gatewayReference: txn.gateway_reference || "",
+          status: txn.status || "PENDING",
+          adminStatus: txn.admin_status || "PENDING",
           timestamp: txn.timestamp || new Date().toISOString(),
-          adminStatus: (txn.status === "SUCCESS") ? "APPROVED" : (txn.admin_status || "PENDING"),
-          invoiceNumber: txn.invoice_number || ""
+          invoiceNumber: txn.invoice_number || "",
+          screenshot: txn.screenshot || "",
+          utr: txn.utr || "",
+          paymentDate: txn.payment_date || "",
+          rejectionReason: txn.rejection_reason || "",
+          reuploadReason: txn.reupload_reason || ""
         }));
         localStorage.setItem("cubaze_transactions", JSON.stringify(mappedTxns));
 
@@ -1180,6 +1193,38 @@ class CubazeDB {
         }
       }
 
+      // Sync Settings
+      try {
+        const { data: settings, error: sErr } = await this.sb.from('cubaze_settings').select('*');
+        if (!sErr && settings) {
+          const paySettings = settings.find(s => s.key === "payment_settings");
+          if (paySettings && paySettings.value) {
+            localStorage.setItem("cubaze_payment_settings", JSON.stringify(paySettings.value));
+          }
+        }
+      } catch (err) {
+        console.warn("Supabase settings sync failed:", err);
+      }
+
+      // Sync Notifications
+      try {
+        const { data: notifs, error: nErr } = await this.sb.from('cubaze_notifications').select('*');
+        if (!nErr && notifs) {
+          const mappedNotifs = notifs.map(n => ({
+            id: n.id,
+            username: n.username,
+            title: n.title,
+            message: n.message,
+            type: n.type || "info",
+            read: n.read === true,
+            timestamp: n.timestamp
+          }));
+          localStorage.setItem("cubaze_notifications", JSON.stringify(mappedNotifs));
+        }
+      } catch (err) {
+        console.warn("Supabase notifications sync failed:", err);
+      }
+
       // Sync Progress
       const { data: prog, error: pErr } = await this.sb.from('cubaze_progress').select('*');
       if (!pErr && prog) {
@@ -1236,6 +1281,32 @@ class CubazeDB {
         }
       } catch (err) {
         console.warn("Supabase posters sync failed:", err);
+      }
+
+      // Sync Common Meetings
+      try {
+        const { data: cms, error: cmErr } = await this.sb.from('cubaze_common_meetings').select('*');
+        if (!cmErr && cms && cms.length > 0) {
+          const mappedCms = cms.map(m => ({
+            id: m.id,
+            title: m.title,
+            description: m.description || '',
+            meetLink: m.meet_link || '',
+            date: m.date,
+            startTime: m.start_time || '',
+            endTime: m.end_time || '',
+            hostName: m.host_name || '',
+            status: m.status || 'Upcoming',
+            access: m.access || { type: 'everyone', courseIds: [], batchIds: [] },
+            password: m.password || '',
+            recordingLink: m.recording_link || '',
+            googleDriveResources: m.google_drive_resources || '',
+            notes: m.notes || ''
+          }));
+          localStorage.setItem('cubaze_common_meetings', JSON.stringify(mappedCms));
+        }
+      } catch (err) {
+        console.warn('Supabase common_meetings sync failed:', err);
       }
 
       console.log("✅ Supabase sync completed.");
@@ -1419,14 +1490,45 @@ class CubazeDB {
         this.pushToSupabase("cubaze_transactions", {
           id: txn.id,
           username: txn.username,
+          student_name: txn.studentName || txn.username,
+          student_email: txn.studentEmail || "",
+          student_phone: txn.studentPhone || "",
           course_id: txn.courseId,
           course_title: txn.courseTitle || "",
+          batch_id: txn.batchId || "",
+          batch_name: txn.batchName || "",
           amount: txn.amount,
-          status: txn.status || "PENDING",
+          discount: txn.discount || 0,
+          coupon_code: txn.couponCode || "",
           payment_method: txn.paymentMethod || "",
+          gateway_reference: txn.gatewayReference || "",
+          status: txn.status || "PENDING",
+          admin_status: txn.adminStatus || "PENDING",
           timestamp: txn.timestamp || new Date().toISOString(),
-          admin_status: (txn.status === "SUCCESS") ? "APPROVED" : (txn.adminStatus || "PENDING"),
-          invoice_number: txn.invoiceNumber || ""
+          invoice_number: txn.invoiceNumber || "",
+          screenshot: txn.screenshot || "",
+          utr: txn.utr || "",
+          payment_date: txn.paymentDate || "",
+          rejection_reason: txn.rejectionReason || "",
+          reupload_reason: txn.reuploadReason || ""
+        });
+      });
+    } else if (key === "cubaze_payment_settings") {
+      this.pushToSupabase("cubaze_settings", {
+        key: "payment_settings",
+        value: value
+      });
+    } else if (key === "cubaze_notifications") {
+      const itemsToPush = specificId ? value.filter(n => n.id === specificId) : value;
+      itemsToPush.forEach(n => {
+        this.pushToSupabase("cubaze_notifications", {
+          id: n.id,
+          username: n.username,
+          title: n.title,
+          message: n.message,
+          type: n.type || "info",
+          read: n.read === true,
+          timestamp: n.timestamp
         });
       });
     } else if (key === "cubaze_progress") {
@@ -1471,6 +1573,26 @@ class CubazeDB {
           status: p.status || "Draft",
           created_at: p.createdAt || new Date().toISOString(),
           updated_at: p.updatedAt || new Date().toISOString()
+        });
+      });
+    } else if (key === "cubaze_common_meetings") {
+      const itemsToPush = specificId ? value.filter(m => m.id === specificId) : value;
+      itemsToPush.forEach(m => {
+        this.pushToSupabase("cubaze_common_meetings", {
+          id: m.id,
+          title: m.title,
+          description: m.description || '',
+          meet_link: m.meetLink || '',
+          date: m.date,
+          start_time: m.startTime || '',
+          end_time: m.endTime || '',
+          host_name: m.hostName || '',
+          status: m.status || 'Upcoming',
+          access: m.access || { type: 'everyone', courseIds: [], batchIds: [] },
+          password: m.password || '',
+          recording_link: m.recordingLink || '',
+          google_drive_resources: m.googleDriveResources || '',
+          notes: m.notes || ''
         });
       });
     }
@@ -1518,6 +1640,26 @@ class CubazeDB {
     if (!localStorage.getItem("cubaze_notifications")) localStorage.setItem("cubaze_notifications", JSON.stringify([]));
     if (!localStorage.getItem("cubaze_wishlist")) localStorage.setItem("cubaze_wishlist", JSON.stringify({}));
     if (!localStorage.getItem("cubaze_dark_mode")) localStorage.setItem("cubaze_dark_mode", "false");
+
+    if (!localStorage.getItem("cubaze_payment_settings")) {
+      const defaultSettings = {
+        phonepe: {
+          merchantId: "M_PHPE_CUBAZE",
+          clientId: "client-phpe-5829103",
+          clientSecret: "client-secret-sec-81057",
+          clientVersion: "v1",
+          environment: "Sandbox"
+        },
+        upi: {
+          enabled: true,
+          upiId: "cubazeacademy@ybl",
+          accountName: "Cubaze Academy",
+          qrCodeImage: "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" width=\"200\" height=\"200\"><rect width=\"100\" height=\"100\" fill=\"white\"/><rect x=\"10\" y=\"10\" width=\"30\" height=\"30\" fill=\"black\"/><rect x=\"60\" y=\"10\" width=\"30\" height=\"30\" fill=\"black\"/><rect x=\"10\" y=\"60\" width=\"30\" height=\"30\" fill=\"black\"/><rect x=\"15\" y=\"15\" width=\"20\" height=\"20\" fill=\"white\"/><rect x=\"65\" y=\"15\" width=\"20\" height=\"20\" fill=\"white\"/><rect x=\"15\" y=\"65\" width=\"20\" height=\"20\" fill=\"white\"/><rect x=\"20\" y=\"20\" width=\"10\" height=\"10\" fill=\"black\"/><rect x=\"70\" y=\"20\" width=\"10\" height=\"10\" fill=\"black\"/><rect x=\"20\" y=\"70\" width=\"10\" height=\"10\" fill=\"black\"/><rect x=\"45\" y=\"10\" width=\"5\" height=\"15\" fill=\"black\"/><rect x=\"50\" y=\"20\" width=\"5\" height=\"10\" fill=\"black\"/><rect x=\"45\" y=\"35\" width=\"10\" height=\"5\" fill=\"black\"/><rect x=\"10\" y=\"45\" width=\"15\" height=\"5\" fill=\"black\"/><rect x=\"20\" y=\"50\" width=\"10\" height=\"5\" fill=\"black\"/><rect x=\"35\" y=\"45\" width=\"15\" height=\"15\" fill=\"black\"/><rect x=\"55\" y=\"45\" width=\"10\" height=\"5\" fill=\"black\"/><rect x=\"50\" y=\"55\" width=\"10\" height=\"10\" fill=\"black\"/><rect x=\"65\" y=\"45\" width=\"5\" height=\"15\" fill=\"black\"/><rect x=\"75\" y=\"45\" width=\"15\" height=\"5\" fill=\"black\"/><rect x=\"80\" y=\"55\" width=\"10\" height=\"15\" fill=\"black\"/><rect x=\"10\" y=\"90\" width=\"25\" height=\"5\" fill=\"black\"/><rect x=\"45\" y=\"75\" width=\"15\" height=\"10\" fill=\"black\"/><rect x=\"45\" y=\"90\" width=\"5\" height=\"5\" fill=\"black\"/><rect x=\"65\" y=\"75\" width=\"10\" height=\"5\" fill=\"black\"/><rect x=\"65\" y=\"85\" width=\"25\" height=\"10\" fill=\"black\"/></svg>",
+          instructions: "Scan the QR code above or copy the UPI ID using any UPI app (such as GPay, PhonePe, Paytm, BHIM) to make the payment. After successful transfer, upload the screenshot of the payment receipt and enter the 12-digit UTR/Transaction Number."
+        }
+      };
+      localStorage.setItem("cubaze_payment_settings", JSON.stringify(defaultSettings));
+    }
 
     // Initialize Batch System tables in LocalStorage
     if (!localStorage.getItem("cubaze_batches")) localStorage.setItem("cubaze_batches", JSON.stringify(DEFAULT_BATCHES));
@@ -1848,19 +1990,98 @@ class CubazeDB {
   // --- TRANSACTIONS ---
   getTransactions() { return JSON.parse(localStorage.getItem("cubaze_transactions")) || []; }
 
-  addTransaction(username, courseId, amount, paymentMethod, status = "SUCCESS") {
+  addTransaction(username, courseId, amount, paymentMethod, status = "SUCCESS", details = {}) {
     const transactions = this.getTransactions();
     const course = this.getCourseById(courseId);
-    const txnId = "TXN_PHPE_" + Math.floor(100000000 + Math.random() * 900000000);
+    const user = this.getUsers().find(u => u.username.toLowerCase() === username.toLowerCase()) || {};
+    
+    // Determine unique prefix
+    const prefix = paymentMethod === "UPI QR Payment" ? "TXN_UPI_" : "TXN_PHPE_";
+    const txnId = details.id || (prefix + Math.floor(100000000 + Math.random() * 900000000));
     const adminStatus = status === "SUCCESS" ? "APPROVED" : (status === "FAILED" || status === "DENIED" ? "DENIED" : "PENDING");
-    const newTxn = { id: txnId, username, courseId, courseTitle: course ? course.title : "Unknown", amount, status, adminStatus, paymentMethod, timestamp: new Date().toISOString() };
+    
+    const newTxn = {
+      id: txnId,
+      username: username,
+      studentName: user.name || username,
+      studentEmail: user.phone ? user.email || `${username}@cubazeacademy.com` : `${username}@cubazeacademy.com`,
+      studentPhone: user.phone || "",
+      courseId: courseId,
+      courseTitle: course ? course.title : "Unknown",
+      amount: amount,
+      discount: details.discount || 0,
+      couponCode: details.couponCode || "",
+      paymentMethod: paymentMethod,
+      gatewayReference: details.gatewayReference || "",
+      status: status,
+      adminStatus: details.adminStatus || adminStatus,
+      timestamp: new Date().toISOString(),
+      invoiceNumber: status === "SUCCESS" ? "INV-" + Date.now() : (details.invoiceNumber || ""),
+      screenshot: details.screenshot || "",
+      utr: details.utr || "",
+      paymentDate: details.paymentDate || "",
+      rejectionReason: details.rejectionReason || "",
+      reuploadReason: details.reuploadReason || ""
+    };
+    
     transactions.unshift(newTxn);
     this.setItemAndSync("cubaze_transactions", transactions, txnId);
+    
     if (status === "SUCCESS") {
       this.handleAutomaticEnrollment(username, courseId);
     }
     return newTxn;
   }
+
+  // --- PAYMENT SETTINGS ---
+  getPaymentSettings() {
+    return JSON.parse(localStorage.getItem("cubaze_payment_settings")) || {
+      phonepe: { merchantId: "M_PHPE_CUBAZE", clientId: "client-phpe-5829103", clientSecret: "client-secret-sec-81057", clientVersion: "v1", environment: "Sandbox" },
+      upi: { enabled: true, upiId: "cubazeacademy@ybl", accountName: "Cubaze Academy", qrCodeImage: "", instructions: "Scan the QR code or copy the UPI ID to pay. After successful transaction, enter the 12-digit UTR/Transaction Number and upload the payment screenshot as proof." }
+    };
+  }
+
+  savePaymentSettings(settings) {
+    localStorage.setItem("cubaze_payment_settings", JSON.stringify(settings));
+    this.setItemAndSync("cubaze_payment_settings", settings);
+    return true;
+  }
+
+  // --- NOTIFICATIONS ---
+  getNotifications(username) {
+    const all = JSON.parse(localStorage.getItem("cubaze_notifications")) || [];
+    return all.filter(n => n.username.toLowerCase() === username.toLowerCase());
+  }
+
+  addNotification(username, title, message, type = "info") {
+    const all = JSON.parse(localStorage.getItem("cubaze_notifications")) || [];
+    const notif = {
+      id: "NTF-" + Date.now() + Math.floor(10 + Math.random() * 90),
+      username,
+      title,
+      message,
+      type,
+      read: false,
+      timestamp: new Date().toISOString()
+    };
+    all.unshift(notif);
+    localStorage.setItem("cubaze_notifications", JSON.stringify(all));
+    this.setItemAndSync("cubaze_notifications", all, notif.id);
+    return notif;
+  }
+
+  markNotificationAsRead(notifId) {
+    const all = JSON.parse(localStorage.getItem("cubaze_notifications")) || [];
+    const idx = all.findIndex(n => n.id === notifId);
+    if (idx > -1) {
+      all[idx].read = true;
+      localStorage.setItem("cubaze_notifications", JSON.stringify(all));
+      this.setItemAndSync("cubaze_notifications", all, notifId);
+      return true;
+    }
+    return false;
+  }
+
 
   getInstructorEarnings(instructorUsername) {
     const transactions = this.getTransactions().filter(t => t.status === "SUCCESS");
@@ -2010,19 +2231,19 @@ class CubazeDB {
   }
 
   // ============================================================
-  // PAYMENT ADMIN STATUS MANAGEMENT
-  // ============================================================
-  updatePaymentAdminStatus(txnId, newStatus) {
+  updatePaymentAdminStatus(txnId, newStatus, reason = "") {
     const txns = this.getTransactions();
     const idx = txns.findIndex(t => t.id === txnId);
     if (idx === -1) return { success: false, error: "Transaction not found." };
     const txn = txns[idx];
     const prevStatus = txn.adminStatus || "PENDING";
-    txn.adminStatus = newStatus; // PENDING | APPROVED | DENIED
+    txn.adminStatus = newStatus; // PENDING | APPROVED | DENIED | RE_UPLOAD_REQUESTED
     txn.adminUpdatedAt = new Date().toISOString();
+    
     if (newStatus === "APPROVED") {
       txn.status = "SUCCESS";
       if (!txn.invoiceNumber) txn.invoiceNumber = "INV-" + Date.now();
+      
       // Auto-enroll student
       const users = this.getUsers();
       const uIdx = users.findIndex(u => u.username === txn.username);
@@ -2039,8 +2260,12 @@ class CubazeDB {
         }
       }
       this.addActivity("admin", "APPROVED_PAYMENT", "transaction", txnId, `₹${txn.amount} for ${txn.courseTitle} — ${txn.username}`);
+      this.addNotification(txn.username, "Payment Verified & Enrolled! 🎉", `Your payment of ₹${txn.amount} for "${txn.courseTitle}" has been verified. You can now access the course details on your dashboard!`, "success");
+      
     } else if (newStatus === "DENIED") {
       txn.status = "FAILED";
+      txn.rejectionReason = reason;
+      
       // Remove enrollment if was previously approved
       if (prevStatus === "APPROVED") {
         const users = this.getUsers();
@@ -2051,6 +2276,15 @@ class CubazeDB {
         }
       }
       this.addActivity("admin", "DENIED_PAYMENT", "transaction", txnId, `₹${txn.amount} for ${txn.courseTitle} — ${txn.username}`);
+      this.addNotification(txn.username, "Payment Verification Rejected ❌", `Your payment verification for "${txn.courseTitle}" was rejected. Reason: ${reason}`, "danger");
+      
+    } else if (newStatus === "RE_UPLOAD_REQUESTED") {
+      txn.status = "PENDING";
+      txn.reuploadReason = reason;
+      
+      this.addActivity("admin", "RE_UPLOAD_REQUESTED_PAYMENT", "transaction", txnId, `Requested payment re-upload for ${txn.courseTitle} — ${txn.username}`);
+      this.addNotification(txn.username, "Payment Re-upload Requested ⚠️", `We noticed an issue with your payment proof for "${txn.courseTitle}". Reason: ${reason}. Please re-upload your screenshot.`, "warning");
+      
     } else {
       txn.status = "PENDING";
       this.addActivity("admin", "PENDING_PAYMENT", "transaction", txnId, `₹${txn.amount} for ${txn.courseTitle}`);

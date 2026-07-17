@@ -18,6 +18,7 @@ const DashboardRightPanel = {
 
   _getEventsForMonth: function (cu, year, month) {
     const list = [];
+    if (!cu) return list;
     
     // 1. Common Meetings
     const meetings = window.db.getCommonMeetingsForUser(cu.username);
@@ -311,6 +312,7 @@ const DashboardRightPanel = {
   },
 
   _getFilteredPosters: function (cu) {
+    if (!cu) return [];
     const allPosters = window.db.getPosters().filter(p => p.status === 'Published' || p.isActive === true);
     const now = new Date().getTime();
 
@@ -414,6 +416,7 @@ const DashboardRightPanel = {
 
   _getUpcomingItems: function (cu) {
     const list = [];
+    if (!cu) return list;
     const now = new Date();
 
     // 1. Live Classes
@@ -590,6 +593,7 @@ const DashboardRightPanel = {
   },
 
   bindEvents: function (cu) {
+    if (!cu) return;
     // Clear old timers
     if (this._slideInterval) clearInterval(this._slideInterval);
     if (this._timerInterval) clearInterval(this._timerInterval);
@@ -615,6 +619,11 @@ const DashboardRightPanel = {
 
   changeSlide: function (direction, role) {
     const cu = window.db.getCurrentUser();
+    if (!cu) {
+      if (this._slideInterval) clearInterval(this._slideInterval);
+      if (this._timerInterval) clearInterval(this._timerInterval);
+      return;
+    }
     const activeRole = role || (cu ? cu.role : 'student');
     const posters = this._getFilteredPosters(cu);
     if (posters.length <= 1) return;
@@ -645,6 +654,7 @@ const DashboardRightPanel = {
 
   setSlide: function (idx, role) {
     const cu = window.db.getCurrentUser();
+    if (!cu) return;
     const activeRole = role || (cu ? cu.role : 'student');
     const posters = this._getFilteredPosters(cu);
     if (posters.length <= 1) return;

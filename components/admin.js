@@ -1384,154 +1384,285 @@ const AdminComponent = {
   /* ============================================================
      PAYMENTS
   ============================================================ */
+  _activePaymentTab: 'pending',
+
+  setPaymentTab: function (tab) {
+    AdminComponent._activePaymentTab = tab;
+    document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments();
+    AdminComponent._bindSection('payments');
+  },
+
+  zoomScreenshot: function (txnId) {
+    const txn = window.db.getTransactions().find(t => t.id === txnId);
+    if (txn && txn.screenshot) {
+      const zoomImg = document.getElementById('zoomed-screenshot-img');
+      if (zoomImg) zoomImg.src = txn.screenshot;
+      document.getElementById('admin-screenshot-modal')?.classList.add('show');
+    }
+  },
+
   _renderPayments: function (search = '', filter = '', viewingId = null) {
     if (viewingId) return AdminComponent._renderPaymentDetail(viewingId);
     let txns = window.db.getTransactions();
-    if (search) txns = txns.filter(t => (t.username + t.courseTitle + t.id).toLowerCase().includes(search.toLowerCase()));
-    if (filter === 'APPROVED') txns = txns.filter(t => t.status === 'SUCCESS');
-    else if (filter === 'PENDING') txns = txns.filter(t => t.status === 'PENDING');
-    else if (filter === 'DENIED') txns = txns.filter(t => t.status === 'FAILED' || t.status === 'DENIED');
+    
+    // Sort transactions by date descending
+    txns.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    if (search) {
+      txns = txns.filter(t => (t.username + t.courseTitle + (t.utr || '') + t.id).toLowerCase().includes(search.toLowerCase()));
+    }
+
+    // Determine current payment tab
+    const activeTab = AdminComponent._activePaymentTab || 'pending';
+
+    // Filter txns by active sub-tab
+    let filteredTxns = [];
+    if (activeTab === 'pending') {
+      filteredTxns = txns.filter(t => t.adminStatus === 'PENDING');
+    } else if (activeTab === 'verified') {
+      filteredTxns = txns.filter(t => t.status === 'SUCCESS' || t.adminStatus === 'APPROVED');
+    } else if (activeTab === 'rejected') {
+      filteredTxns = txns.filter(t => t.status === 'FAILED' || t.adminStatus === 'DENIED' || t.adminStatus === 'RE_UPLOAD_REQUESTED');
+    }
 
     return `
       <div class="dashboard-welcome">
-        <h1>Payment Management <span style="font-size:1rem;font-weight:500;color:#64748B;">(${txns.length})</span></h1>
-        <p>Monitor student payments and checkout statuses. Successful payments are automatically verified and granted access.</p>
+        <h1>Payment Management <span style="font-size:1.1rem;font-weight:500;color:var(--text-secondary);">(${txns.length} Total)</span></h1>
+        <p>Monitor student transactions and verify manual UPI payments.</p>
       </div>
-      <div class="dashboard-widgets" style="margin-bottom:20px; grid-template-columns: repeat(3, 1fr);">
-        ${[['PENDING', 'gold', 'fa-hourglass-half', 'Pending'], ['APPROVED', 'green', 'fa-circle-check', 'Approved'], ['DENIED', 'red', 'fa-circle-xmark', 'Denied']].map(([st, c, ic, lbl]) => `
-          <div class="widget-card" style="cursor:pointer; display:flex; gap:16px; align-items:center;" onclick="AdminComponent._filterPayments('${st}')">
-            <div class="widget-icon ${c}" style="margin-bottom:0;"><i class="fa-solid ${ic}"></i></div>
-            <div>
-              <div class="widget-number">${window.db.getTransactions().filter(t => st === 'APPROVED' ? t.status === 'SUCCESS' : st === 'PENDING' ? t.status === 'PENDING' : t.status === 'FAILED' || t.status === 'DENIED').length}</div>
-              <div class="widget-label">${lbl}</div>
-            </div>
-          </div>`).join('')}
+
+      <!-- Tab Navigation -->
+      <div class="payment-method-tabs" style="margin-bottom: 24px; max-width: 600px; display:flex; gap:8px;">
+        <div class="payment-tab ${activeTab === 'pending' ? 'active' : ''}" onclick="AdminComponent.setPaymentTab('pending')" style="flex:1;text-align:center;padding:12px;cursor:pointer;border-radius:10px;">
+          <i class="fa-solid fa-hourglass-half"></i> Pending UPI (${txns.filter(t => t.adminStatus === 'PENDING').length})
+        </div>
+        <div class="payment-tab ${activeTab === 'verified' ? 'active' : ''}" onclick="AdminComponent.setPaymentTab('verified')" style="flex:1;text-align:center;padding:12px;cursor:pointer;border-radius:10px;">
+          <i class="fa-solid fa-circle-check"></i> Verified (${txns.filter(t => t.status === 'SUCCESS' || t.adminStatus === 'APPROVED').length})
+        </div>
+        <div class="payment-tab ${activeTab === 'rejected' ? 'active' : ''}" onclick="AdminComponent.setPaymentTab('rejected')" style="flex:1;text-align:center;padding:12px;cursor:pointer;border-radius:10px;">
+          <i class="fa-solid fa-circle-xmark"></i> Rejected (${txns.filter(t => t.status === 'FAILED' || t.adminStatus === 'DENIED' || t.adminStatus === 'RE_UPLOAD_REQUESTED').length})
+        </div>
       </div>
+
       <div class="glass-panel">
         <div class="table-actions-bar">
           <div class="table-actions-left">
-            <div class="search-input-wrapper" style="width: 240px;">
+            <div class="search-input-wrapper" style="width: 320px;">
               <i class="fa-solid fa-magnifying-glass search-icon"></i>
-              <input id="pay-search" placeholder="Search payments..." value="${search}">
+              <input id="pay-search" placeholder="Search by student, course, UTR..." value="${search}">
             </div>
-            <select id="pay-filter" style="width: 160px; height: 46px;">
-              <option value="">All Payments</option>
-              <option value="PENDING" ${filter === 'PENDING' ? 'selected' : ''}>Pending</option>
-              <option value="APPROVED" ${filter === 'APPROVED' ? 'selected' : ''}>Approved</option>
-              <option value="DENIED" ${filter === 'DENIED' ? 'selected' : ''}>Denied</option>
-            </select>
           </div>
           <div class="table-actions-right">
             <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._exportCSV('payments')" style="height: 46px; padding: 0 16px;"><i class="fa-solid fa-download"></i> Export CSV</button>
           </div>
         </div>
+
         <table class="data-table">
-          <thead><tr><th>Invoice</th><th>Student</th><th>Course</th><th>Amount</th><th>Method</th><th>Txn ID</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Student</th>
+              <th>Course</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>UTR / Reference</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
           <tbody>
-            ${txns.map(t => {
-      const adminSt = t.adminStatus || (t.status === 'SUCCESS' ? 'APPROVED' : 'PENDING');
-      return `
-              <tr>
-                <td style="font-family:monospace;font-size:0.72rem;color:#6366F1;font-weight:700;">${t.invoiceNumber || '—'}</td>
-                <td style="font-weight:700;">${t.username}</td>
-                <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.courseTitle}</td>
-                <td style="font-weight:700;color:#059669;">₹${t.amount.toLocaleString('en-IN')}</td>
-                <td style="font-size:0.78rem;">${t.paymentMethod || '—'}</td>
-                <td style="font-family:monospace;font-size:0.68rem;color:#64748B;">${t.id.slice(0, 14)}...</td>
-                <td style="font-size:0.78rem;color:#94A3B8;">${new Date(t.timestamp).toLocaleDateString('en-IN')}</td>
-                <td>
-                  ${t.status === 'SUCCESS' ? '<span class="status-badge badge-success" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block;">🟢 Success</span>' :
-          t.status === 'PENDING' ? '<span class="status-badge badge-pending" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block;">🟡 Pending</span>' :
-            '<span class="status-badge danger" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block;">🔴 Failed</span>'}
-                </td>
-                <td>
-                  <div style="display:flex;gap:6px;">
-                    <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._viewPayment('${t.id}')"><i class="fa-solid fa-eye"></i> View</button>
-                  </div>
-                </td>
-              </tr>`;
-    }).join('')}
-            ${txns.length === 0 ? `<tr><td colspan="9" style="text-align:center;color:#94A3B8;padding:32px;">No transactions found.</td></tr>` : ''}
+            ${filteredTxns.map(t => {
+              let badgeHtml = '';
+              if (t.adminStatus === 'APPROVED' || t.status === 'SUCCESS') {
+                badgeHtml = '<span class="status-badge badge-success" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#DEF7EC; color:#03543F;">🟢 Success</span>';
+              } else if (t.adminStatus === 'PENDING') {
+                badgeHtml = '<span class="status-badge badge-pending" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#FEF08A; color:#854D0E;">🟡 Pending</span>';
+              } else if (t.adminStatus === 'RE_UPLOAD_REQUESTED') {
+                badgeHtml = '<span class="status-badge badge-warning" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#FFF3CD; color:#856404; border:1px solid #FFEBAA;">⚠️ Re-upload</span>';
+              } else {
+                badgeHtml = '<span class="status-badge danger" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#FDE8E8; color:#9B1C1C;">🔴 Failed</span>';
+              }
+
+              return `
+                <tr>
+                  <td style="font-family:monospace;font-size:0.75rem;color:var(--brand-blue);font-weight:700;">${t.invoiceNumber || '—'}</td>
+                  <td>
+                    <div style="font-weight:700;color:var(--text-primary);">${t.studentName || t.username}</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);">@${t.username}</div>
+                  </td>
+                  <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">${t.courseTitle}</td>
+                  <td style="font-weight:800;color:#059669;">₹${t.amount.toLocaleString('en-IN')}</td>
+                  <td style="font-size:0.78rem;font-weight:500;">${t.paymentMethod}</td>
+                  <td style="font-family:monospace;font-size:0.8rem;font-weight:700;color:var(--text-secondary);">${t.utr || t.gatewayReference || '—'}</td>
+                  <td style="font-size:0.78rem;color:var(--text-muted);">${new Date(t.timestamp).toLocaleDateString('en-IN')}</td>
+                  <td>${badgeHtml}</td>
+                  <td>
+                    <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._viewPayment('${t.id}')">
+                      <i class="fa-solid fa-eye"></i> View
+                    </button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+            ${filteredTxns.length === 0 ? `<tr><td colspan="9" style="text-align:center;color:#94A3B8;padding:48px;">No transactions found.</td></tr>` : ''}
           </tbody>
         </table>
-      </div>`;
+      </div>
+    `;
   },
 
   _renderPaymentDetail: function (txnId) {
     const t = window.db.getTransactions().find(x => x.id === txnId);
     if (!t) return `<div style="padding:40px;text-align:center;color:#94A3B8;">Transaction not found. <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._nav('payments')">Back</button></div>`;
-    const adminSt = t.adminStatus || (t.status === 'SUCCESS' ? 'APPROVED' : 'PENDING');
+    
     const course = window.db.getCourseById(t.courseId);
-    const student = window.db.getUsers().find(u => u.username === t.username);
-    const stColors = { APPROVED: ['#059669', '#ECFDF5'], PENDING: ['#D97706', '#FFFBEB'], DENIED: ['#DC2626', '#FEF2F2'] };
-    const [stColor, stBg] = stColors[adminSt] || ['#64748B', '#F1F5F9'];
+    const student = window.db.getUsers().find(u => u.username === t.username) || {};
+
+    let statusBadge = '';
+    if (t.adminStatus === 'APPROVED' || t.status === 'SUCCESS') {
+      statusBadge = '<span class="status-badge badge-success" style="padding:6px 14px; font-weight:800; background:#DEF7EC; color:#03543F;">🟢 Approved</span>';
+    } else if (t.adminStatus === 'PENDING') {
+      statusBadge = '<span class="status-badge badge-pending" style="padding:6px 14px; font-weight:800; background:#FEF08A; color:#854D0E;">🟡 Pending Verification</span>';
+    } else if (t.adminStatus === 'RE_UPLOAD_REQUESTED') {
+      statusBadge = '<span class="status-badge badge-warning" style="padding:6px 14px; font-weight:800; background:#FFF3CD; color:#856404; border:1px solid #FFEBAA;">⚠️ Re-upload Requested</span>';
+    } else {
+      statusBadge = '<span class="status-badge danger" style="padding:6px 14px; font-weight:800; background:#FDE8E8; color:#9B1C1C;">🔴 Rejected</span>';
+    }
+
     return `
-      <div>
+      <div class="payment-detail-container" data-txn-id="${t.id}">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-          <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._nav('payments')"><i class="fa-solid fa-arrow-left"></i> Back</button>
-          <h1 style="font-size:1.3rem;font-weight:800;color:#0F172A;">Payment Detail</h1>
+          <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._nav('payments')"><i class="fa-solid fa-arrow-left"></i> Back to Payments</button>
+          <h1 style="font-size:1.4rem;font-weight:800;color:var(--text-primary);margin:0;">Transaction Details</h1>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;">
-          <!-- Detail card -->
-          <div class="glass-panel">
-            <div style="padding:28px;">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
-                <div>
-                  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94A3B8;margin-bottom:4px;">Invoice</div>
-                  <div style="font-size:1.1rem;font-weight:800;color:#3D46D8;font-family:monospace;">${t.invoiceNumber || 'Not generated'}</div>
-                </div>
-                <div style="background:${stBg};color:${stColor};padding:8px 18px;border-radius:20px;font-weight:700;font-size:0.88rem;">${adminSt}</div>
+
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start;">
+          <!-- Left side: Invoice Details -->
+          <div class="glass-panel" style="padding:28px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-color);padding-bottom:18px;margin-bottom:24px;">
+              <div>
+                <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Invoice Number</div>
+                <div style="font-size:1.15rem;font-weight:800;color:var(--brand-blue);font-family:monospace;">${t.invoiceNumber || 'Not Generated'}</div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
-                <div>
-                  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#94A3B8;margin-bottom:4px;">Student</div>
-                  <div style="font-weight:700;color:#0F172A;">${student ? student.name : t.username}</div>
-                  <div style="font-size:0.78rem;color:#64748B;">@${t.username}</div>
-                </div>
-                <div>
-                  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#94A3B8;margin-bottom:4px;">Course</div>
-                  <div style="font-weight:700;color:#0F172A;">${t.courseTitle}</div>
-                </div>
-                <div>
-                  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#94A3B8;margin-bottom:4px;">Amount</div>
-                  <div style="font-weight:800;color:#059669;font-size:1.2rem;">₹${t.amount.toLocaleString('en-IN')}</div>
-                </div>
-                <div>
-                  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#94A3B8;margin-bottom:4px;">Payment Method</div>
-                  <div style="font-weight:700;color:#0F172A;">${t.paymentMethod || '—'}</div>
-                </div>
-                <div>
-                  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#94A3B8;margin-bottom:4px;">Transaction ID</div>
-                  <div style="font-family:monospace;font-size:0.82rem;color:#374151;word-break:break-all;">${t.id}</div>
-                </div>
-                <div>
-                  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#94A3B8;margin-bottom:4px;">Date & Time</div>
-                  <div style="font-weight:600;color:#0F172A;">${new Date(t.timestamp).toLocaleString('en-IN')}</div>
+              <div>${statusBadge}</div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+              <div>
+                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Student</div>
+                <div style="font-weight:700;color:var(--text-primary);font-size:0.95rem;">${t.studentName || student.name || t.username}</div>
+                <div style="font-size:0.78rem;color:var(--text-secondary);">@${t.username}</div>
+              </div>
+              
+              <div>
+                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Course</div>
+                <div style="font-weight:700;color:var(--text-primary);font-size:0.95rem;">${t.courseTitle}</div>
+                <div style="font-size:0.78rem;color:var(--text-secondary);">ID: ${t.courseId}</div>
+              </div>
+
+              <div>
+                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Amount Paid</div>
+                <div style="font-weight:800;color:#059669;font-size:1.25rem;">₹${t.amount.toLocaleString('en-IN')}</div>
+                ${t.discount ? `<div style="font-size:0.75rem;color:var(--brand-blue);">Discount: -₹${t.discount} (Coupon: ${t.couponCode})</div>` : ''}
+              </div>
+
+              <div>
+                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Payment Method</div>
+                <div style="font-weight:700;color:var(--text-primary);">${t.paymentMethod}</div>
+              </div>
+
+              <div>
+                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Transaction Reference / UTR</div>
+                <div style="font-family:monospace;font-size:0.88rem;color:var(--text-primary);font-weight:700;">${t.utr || t.gatewayReference || '—'}</div>
+              </div>
+
+              <div>
+                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Submitted Date</div>
+                <div style="font-weight:600;color:var(--text-primary);">${new Date(t.timestamp).toLocaleString('en-IN')}</div>
+              </div>
+            </div>
+
+            <!-- Display Uploaded Payment Screenshot if manual UPI -->
+            ${t.screenshot ? `
+              <div style="border-top:1px solid var(--border-color);padding-top:20px;margin-top:20px;">
+                <h4 style="margin-bottom:12px;"><i class="fa-solid fa-image" style="color:var(--brand-blue);margin-right:6px;"></i>Uploaded Payment Screenshot</h4>
+                <div style="background:var(--bg-primary);border:1px solid var(--border-color);border-radius:12px;padding:12px;text-align:center;max-width:320px;overflow:hidden;cursor:zoom-in;" onclick="AdminComponent.zoomScreenshot('${t.id}')">
+                  <img src="${t.screenshot}" style="max-width:100%;height:auto;max-height:240px;object-fit:contain;border-radius:8px;" id="admin-screenshot-img">
+                  <div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;"><i class="fa-solid fa-magnifying-glass-plus"></i> Click to Zoom Fullscreen</div>
                 </div>
               </div>
-              ${adminSt === 'APPROVED' ? `<div style="background:#ECFDF5;border:1.5px solid #A7F3D0;border-radius:12px;padding:16px;font-size:0.83rem;color:#065F46;"><i class="fa-solid fa-circle-check" style="margin-right:6px;"></i><strong>Course Unlocked.</strong> ${t.username} is enrolled in ${t.courseTitle}. Invoice: ${t.invoiceNumber || '—'}.</div>` : ''}
-              ${adminSt === 'PENDING' ? `<div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:12px;padding:16px;font-size:0.83rem;color:#92400E;"><i class="fa-solid fa-hourglass-half" style="margin-right:6px;"></i><strong>Payment Verification Pending.</strong> Course is locked until approved.</div>` : ''}
-              ${adminSt === 'DENIED' ? `<div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:16px;font-size:0.83rem;color:#991B1B;"><i class="fa-solid fa-circle-xmark" style="margin-right:6px;"></i><strong>Payment Rejected.</strong> Course remains locked. Student may re-upload proof.</div>` : ''}
+            ` : ''}
+
+            <!-- Display Reasons if set -->
+            ${t.rejectionReason ? `
+              <div style="background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.15);border-radius:10px;padding:16px;margin-top:24px;font-size:0.83rem;color:#B91C1C;">
+                <strong>Rejection Reason:</strong> ${t.rejectionReason}
+              </div>
+            ` : ''}
+
+            ${t.reuploadReason ? `
+              <div style="background:rgba(217,119,6,0.06);border:1px solid rgba(217,119,6,0.15);border-radius:10px;padding:16px;margin-top:24px;font-size:0.83rem;color:#D97706;">
+                <strong>Re-upload Request Reason:</strong> ${t.reuploadReason}
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Right side: Actions -->
+          <div style="display:flex;flex-direction:column;gap:20px;">
+            <div class="glass-panel" style="padding:20px;">
+              <h4 style="margin-bottom:16px;border-bottom:1px solid var(--border-color);padding-bottom:12px;">Admin Actions</h4>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                
+                ${t.status === 'SUCCESS' ? `
+                  <button class="btn btn-outline" style="justify-content:center;height:42px;" onclick="PhonePeComponent.printInvoice('${t.id}')">
+                    <i class="fa-solid fa-file-invoice"></i> Download Invoice
+                  </button>
+                ` : `
+                  <!-- Pending Verification Actions -->
+                  <button class="btn btn-success" id="btn-approve-payment" style="justify-content:center;height:42px;background:#10B981;border-color:#10B981;color:#fff;">
+                    <i class="fa-solid fa-circle-check"></i> Approve Payment
+                  </button>
+                  <button class="btn btn-danger" id="btn-reject-payment" style="justify-content:center;height:42px;background:#EF4444;border-color:#EF4444;color:#fff;">
+                    <i class="fa-solid fa-circle-xmark"></i> Reject Payment
+                  </button>
+                  <button class="btn btn-warning" id="btn-reupload-payment" style="justify-content:center;height:42px;background:#F59E0B;border-color:#F59E0B;color:#fff;">
+                    <i class="fa-solid fa-rotate"></i> Request Re-upload
+                  </button>
+                `}
+                
+              </div>
+            </div>
+
+            <!-- Student Profile Summary -->
+            <div class="glass-panel" style="padding:20px;">
+              <h4 style="margin-bottom:12px;">Student Profile</h4>
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                <div style="width:48px;height:48px;background:var(--brand-blue-pale);color:var(--brand-blue);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;">
+                  ${(t.studentName || t.username).charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style="font-weight:700;color:var(--text-primary);font-size:0.88rem;">${t.studentName || student.name || t.username}</div>
+                  <div style="font-size:0.75rem;color:var(--text-secondary);">@${t.username}</div>
+                </div>
+              </div>
+              <div style="font-size:0.8rem;display:flex;flex-direction:column;gap:8px;color:var(--text-secondary);">
+                <div><i class="fa-solid fa-envelope" style="width:16px;color:var(--text-muted);"></i> ${t.studentEmail || student.email || 'No email'}</div>
+                <div><i class="fa-solid fa-phone" style="width:16px;color:var(--text-muted);"></i> ${t.studentPhone || student.phone || 'No phone'}</div>
+              </div>
             </div>
           </div>
-          <!-- Actions card -->
-          <div class="glass-panel">
-            <div class="glass-panel-header"><div class="glass-panel-title">Actions</div></div>
-            <div style="padding:20px;display:flex;flex-direction:column;gap:10px;">
-              <button class="btn btn-outline-white" style="justify-content:center;" onclick="window.app.showToast('Invoice download available in full backend version.','info')"><i class="fa-solid fa-file-invoice"></i> Download Invoice</button>
-            </div>
-            ${course ? `
-              <div class="glass-panel-header" style="border-top:1px solid #F1F5F9;"><div class="glass-panel-title" style="font-size:0.82rem;">Course Details</div></div>
-              <div style="padding:16px 20px;display:flex;gap:12px;align-items:center;">
-                <img src="${course.image}" style="width:60px;height:42px;object-fit:cover;border-radius:8px;">
-                <div>
-                  <div style="font-weight:700;font-size:0.83rem;color:#0F172A;">${course.title}</div>
-                  <div style="font-size:0.72rem;color:#94A3B8;">₹${course.price.toLocaleString('en-IN')} · ${course.level || '—'}</div>
-                </div>
-              </div>` : ''}
-          </div>
         </div>
-      </div>`;
+      </div>
+
+      <!-- Screenshot Zoom Modal -->
+      <div class="modal-overlay" id="admin-screenshot-modal" onclick="document.getElementById('admin-screenshot-modal').classList.remove('show')">
+        <div style="max-width:90%;max-height:90%;position:relative;">
+          <img id="zoomed-screenshot-img" style="max-width:100%;max-height:85vh;object-fit:contain;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+          <button style="position:absolute;top:-40px;right:0;background:none;border:none;color:#fff;font-size:2rem;cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+    `;
   },
 
   /* ============================================================
@@ -1721,15 +1852,82 @@ const AdminComponent = {
             <button class="btn btn-primary" onclick="window.app.showToast('Settings saved!','success')"><i class="fa-solid fa-save"></i> Save</button>
           </div>
         </div>
-        <div class="glass-panel">
-          <div class="glass-panel-header"><div class="glass-panel-title"><i class="fa-solid fa-credit-card" style="color:#3D46D8;margin-right:7px;"></i>Payment Management</div></div>
-          <div style="padding:24px;">
-            <div class="form-group" style="margin-bottom:14px;"><label>PhonePe Merchant ID</label><input class="form-control" value="M_CUBAZE_2026" style="width:100%;box-sizing:border-box;"></div>
-            <div class="form-group" style="margin-bottom:14px;"><label>API Secret Key</label><input class="form-control" type="password" value="***********************" style="width:100%;box-sizing:border-box;"></div>
-            <div class="form-group" style="margin-bottom:20px;"><label>Environment</label><select class="form-control" style="width:100%;"><option>Sandbox (Testing)</option><option>Production</option></select></div>
-            <button class="btn btn-primary" onclick="window.app.showToast('API settings saved!','success')"><i class="fa-solid fa-save"></i> Save</button>
+
+        <div class="glass-panel" style="grid-column:span 2;">
+          <div class="glass-panel-header"><div class="glass-panel-title"><i class="fa-solid fa-credit-card" style="color:var(--brand-blue);margin-right:8px;"></i>Payment Gateways & Methods Settings</div></div>
+          <div style="padding:28px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;">
+              <!-- PhonePe Section -->
+              <div>
+                <h3 style="border-bottom:1.5px solid var(--border-color);padding-bottom:10px;margin-bottom:20px;color:var(--text-primary);"><span style="background:#5f259f;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.8rem;margin-right:8px;font-weight:900;">Pe</span>PhonePe Gateway API</h3>
+                
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label>Merchant ID</label>
+                  <input class="form-control" id="adm-phpe-merchant-id" value="${window.db.getPaymentSettings().phonepe.merchantId}" style="width:100%;">
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label>Client ID</label>
+                  <input class="form-control" id="adm-phpe-client-id" value="${window.db.getPaymentSettings().phonepe.clientId || ''}" style="width:100%;">
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label>Client Secret Key</label>
+                  <input class="form-control" type="password" id="adm-phpe-client-secret" value="${window.db.getPaymentSettings().phonepe.clientSecret || ''}" style="width:100%;">
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label>API Version</label>
+                  <input class="form-control" id="adm-phpe-client-version" value="${window.db.getPaymentSettings().phonepe.clientVersion || 'v1'}" style="width:100%;">
+                </div>
+                <div class="form-group" style="margin-bottom:20px;">
+                  <label>Environment</label>
+                  <select class="form-control" id="adm-phpe-env" style="width:100%;">
+                    <option value="Sandbox" ${window.db.getPaymentSettings().phonepe.environment === 'Sandbox' ? 'selected' : ''}>Sandbox (Testing)</option>
+                    <option value="Production" ${window.db.getPaymentSettings().phonepe.environment === 'Production' ? 'selected' : ''}>Production (Live)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Direct UPI Section -->
+              <div>
+                <h3 style="border-bottom:1.5px solid var(--border-color);padding-bottom:10px;margin-bottom:20px;color:var(--text-primary);"><i class="fa-solid fa-mobile-screen" style="color:var(--brand-blue);margin-right:8px;"></i>Direct UPI Settings</h3>
+                
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label>Enable UPI Payments</label>
+                  <select class="form-control" id="adm-upi-enabled" style="width:100%;">
+                    <option value="true" ${window.db.getPaymentSettings().upi.enabled ? 'selected' : ''}>Enabled</option>
+                    <option value="false" ${!window.db.getPaymentSettings().upi.enabled ? 'selected' : ''}>Disabled</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label>UPI ID</label>
+                  <input class="form-control" id="adm-upi-id" value="${window.db.getPaymentSettings().upi.upiId}" style="width:100%;">
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label>Account Name</label>
+                  <input class="form-control" id="adm-upi-account-name" value="${window.db.getPaymentSettings().upi.accountName}" style="width:100%;">
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                  <label>QR Code Image</label>
+                  <div style="display:flex;gap:12px;align-items:center;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('adm-upi-qr-file').click()" style="margin-bottom:0;"><i class="fa-solid fa-image"></i> Select QR Image</button>
+                    <input type="file" id="adm-upi-qr-file" accept="image/*" style="display:none;">
+                    <div id="adm-upi-qr-preview-container" style="width:36px;height:36px;border-radius:4px;overflow:hidden;border:1px solid var(--border-color);${window.db.getPaymentSettings().upi.qrCodeImage ? '' : 'display:none;'}">
+                      <img id="adm-upi-qr-preview" src="${window.db.getPaymentSettings().upi.qrCodeImage || ''}" style="width:100%;height:100%;object-fit:cover;">
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom:20px;">
+                  <label>Instructions</label>
+                  <textarea class="form-control" id="adm-upi-instructions" rows="3" style="width:100%;">${window.db.getPaymentSettings().upi.instructions}</textarea>
+                </div>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--border-color);padding-top:20px;margin-top:20px;text-align:right;">
+              <button class="btn btn-primary btn-lg" id="btn-save-payment-settings"><i class="fa-solid fa-save"></i> Save Payment Configuration</button>
+            </div>
           </div>
         </div>
+
         <div class="glass-panel">
           <div class="glass-panel-header"><div class="glass-panel-title"><i class="fa-solid fa-key" style="color:#3D46D8;margin-right:7px;"></i>Change Password</div></div>
           <div style="padding:24px;">
@@ -1952,6 +2150,51 @@ const AdminComponent = {
     document.getElementById('adm-main').innerHTML = AdminComponent._renderPaymentDetail(txnId);
     AdminComponent._bindSection('payments');
   },
+
+  _savePaymentSettings: function () {
+    const merchantId = document.getElementById('adm-phpe-merchant-id')?.value.trim();
+    const clientId = document.getElementById('adm-phpe-client-id')?.value.trim();
+    const clientSecret = document.getElementById('adm-phpe-client-secret')?.value.trim();
+    const clientVersion = document.getElementById('adm-phpe-client-version')?.value.trim();
+    const env = document.getElementById('adm-phpe-env')?.value;
+
+    const upiEnabled = document.getElementById('adm-upi-enabled')?.value === 'true';
+    const upiId = document.getElementById('adm-upi-id')?.value.trim();
+    const upiName = document.getElementById('adm-upi-account-name')?.value.trim();
+    const upiInstructions = document.getElementById('adm-upi-instructions')?.value.trim();
+    const qrCode = AdminComponent._selectedSettingsQR || window.db.getPaymentSettings().upi.qrCodeImage;
+
+    if (!merchantId) {
+      window.app.showToast('PhonePe Merchant ID is required.', 'danger');
+      return;
+    }
+    if (upiEnabled && (!upiId || !upiName)) {
+      window.app.showToast('UPI ID and Account Name are required when UPI is enabled.', 'danger');
+      return;
+    }
+
+    const settings = {
+      phonepe: {
+        merchantId,
+        clientId,
+        clientSecret,
+        clientVersion,
+        environment: env
+      },
+      upi: {
+        enabled: upiEnabled,
+        upiId,
+        accountName: upiName,
+        qrCodeImage: qrCode,
+        instructions: upiInstructions
+      }
+    };
+
+    window.db.savePaymentSettings(settings);
+    window.app.showToast('Payment settings saved successfully! ⚙️', 'success');
+  },
+
+  _selectedSettingsQR: null,
 
   _filterPayments: function (status) {
     document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments('', status);
@@ -3249,12 +3492,86 @@ const AdminComponent = {
     }
     if (sec === 'payments') {
       document.getElementById('pay-search')?.addEventListener('input', e => {
-        document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments(e.target.value, document.getElementById('pay-filter')?.value || '');
+        document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments(e.target.value);
         AdminComponent._bindSection('payments');
       });
-      document.getElementById('pay-filter')?.addEventListener('change', e => {
-        document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments(document.getElementById('pay-search')?.value || '', e.target.value);
-        AdminComponent._bindSection('payments');
+
+      // Actions in details view
+      const detailContainer = document.querySelector('.payment-detail-container');
+      if (detailContainer) {
+        const tId = detailContainer.getAttribute('data-txn-id');
+        
+        document.getElementById('btn-approve-payment')?.addEventListener('click', () => {
+          if (confirm("Are you sure you want to approve this payment and enroll the student?")) {
+            const res = window.db.updatePaymentAdminStatus(tId, 'APPROVED');
+            if (res.success) {
+              window.app.showToast('Payment approved! Student enrolled successfully. 🎓', 'success');
+              document.getElementById('adm-main').innerHTML = AdminComponent._renderPaymentDetail(tId);
+              AdminComponent._bindSection('payments');
+            } else {
+              window.app.showToast(res.error || 'Failed to approve payment.', 'danger');
+            }
+          }
+        });
+
+        document.getElementById('btn-reject-payment')?.addEventListener('click', () => {
+          const reason = prompt("Please enter the reason for rejecting this payment proof:");
+          if (reason !== null) {
+            if (!reason.trim()) {
+              window.app.showToast('Rejection reason is required.', 'danger');
+              return;
+            }
+            const res = window.db.updatePaymentAdminStatus(tId, 'DENIED', reason.trim());
+            if (res.success) {
+              window.app.showToast('Payment proof rejected. Student notified. ❌', 'success');
+              document.getElementById('adm-main').innerHTML = AdminComponent._renderPaymentDetail(tId);
+              AdminComponent._bindSection('payments');
+            } else {
+              window.app.showToast(res.error || 'Failed to reject payment.', 'danger');
+            }
+          }
+        });
+
+        document.getElementById('btn-reupload-payment')?.addEventListener('click', () => {
+          const reason = prompt("Enter instructions/reasons for requesting proof re-upload:");
+          if (reason !== null) {
+            if (!reason.trim()) {
+              window.app.showToast('Instructions for re-upload are required.', 'danger');
+              return;
+            }
+            const res = window.db.updatePaymentAdminStatus(tId, 'RE_UPLOAD_REQUESTED', reason.trim());
+            if (res.success) {
+              window.app.showToast('Re-upload request sent to student. ⚠️', 'success');
+              document.getElementById('adm-main').innerHTML = AdminComponent._renderPaymentDetail(tId);
+              AdminComponent._bindSection('payments');
+            } else {
+              window.app.showToast(res.error || 'Failed to request re-upload.', 'danger');
+            }
+          }
+        });
+      }
+    }
+    if (sec === 'settings') {
+      // Save settings binding
+      document.getElementById('btn-save-payment-settings')?.addEventListener('click', () => {
+        AdminComponent._savePaymentSettings();
+      });
+
+      // QR file selector binding
+      document.getElementById('adm-upi-qr-file')?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            AdminComponent._selectedSettingsQR = evt.target.result;
+            const preview = document.getElementById('adm-upi-qr-preview');
+            if (preview) {
+              preview.src = evt.target.result;
+              document.getElementById('adm-upi-qr-preview-container').style.display = 'block';
+            }
+          };
+          reader.readAsDataURL(file);
+        }
       });
     }
     if (sec === 'coupons') {

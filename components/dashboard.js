@@ -93,6 +93,218 @@ const DashboardComponent = {
     }
   },
 
+  _getPendingTxns: function (cu) {
+    const txns = window.db.getTransactions();
+    return txns.filter(t => t.username.toLowerCase() === cu.username.toLowerCase() && (t.adminStatus === 'PENDING' || t.adminStatus === 'RE_UPLOAD_REQUESTED'));
+  },
+
+  _reuploadScreenshot: null,
+
+  showReuploadModal: function (courseId) {
+    const course = window.db.getCourseById(courseId);
+    if (!course) return;
+    
+    const cu = window.db.getCurrentUser();
+    if (!cu) return;
+
+    const txn = window.db.getTransactions().find(t => t.username === cu.username && t.courseId === courseId && t.adminStatus === 'RE_UPLOAD_REQUESTED');
+    if (!txn) return;
+
+    DashboardComponent._reuploadScreenshot = null;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay show';
+    overlay.id = 'reupload-proof-modal';
+    overlay.style.zIndex = '9999';
+    overlay.innerHTML = `
+      <div class="payment-card" style="width:100%; max-width:540px; margin: 80px auto; background:var(--bg-card); border-radius:var(--radius-xl); box-shadow:0 20px 50px rgba(0,0,0,0.25); border:1px solid var(--border-color); overflow:hidden;">
+        <div style="background:var(--brand-blue); color:#fff; padding:18px 24px; display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="margin:0; font-size:1.15rem; color:#fff;"><i class="fa-solid fa-cloud-arrow-up"></i> Re-upload Payment Proof</h3>
+          <button class="btn-close-reupload" style="background:none; border:none; color:#fff; font-size:1.2rem; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div style="padding:24px;">
+          <div style="background:rgba(220,38,38,0.06); border:1px solid rgba(220,38,38,0.15); border-radius:8px; padding:14px; margin-bottom:20px; font-size:0.82rem; color:#DC2626; line-height:1.5;">
+            <i class="fa-solid fa-triangle-exclamation"></i> <strong>Rejection Reason:</strong> ${txn.reuploadReason}
+          </div>
+
+          <div class="form-group" style="margin-bottom:16px;">
+            <label style="font-weight:700; font-size:0.82rem;">Course</label>
+            <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">${course.title}</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="reupload-utr"><i class="fa-solid fa-hashtag"></i> 12-Digit UTR Number</label>
+              <input type="text" id="reupload-utr" value="${txn.utr || ''}" placeholder="e.g. 629104829104" maxlength="12" style="width:100%;">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="reupload-date"><i class="fa-solid fa-calendar"></i> Transaction Date</label>
+              <input type="date" id="reupload-date" value="${txn.paymentDate || new Date().toISOString().split('T')[0]}" style="width:100%;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:24px;">
+            <label><i class="fa-solid fa-image"></i> Payment Screenshot</label>
+            <div class="screenshot-dropzone" id="reupload-drop-area" style="padding:24px; border:2px dashed var(--border-color); border-radius:10px; text-align:center; cursor:pointer;">
+              <i class="fa-solid fa-cloud-arrow-up" style="font-size:2rem; color:var(--text-muted); margin-bottom:8px;"></i>
+              <div style="font-weight:600; font-size:0.85rem; color:var(--text-primary); margin-bottom:4px;">Drag & drop new screenshot here</div>
+              <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:8px;">Supports JPEG, PNG up to 5MB</div>
+              <input type="file" id="reupload-screenshot-input" accept="image/*" style="display:none;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('reupload-screenshot-input').click()">Browse Files</button>
+            </div>
+            <!-- Preview Container -->
+            <div id="reupload-preview-container" style="display:none; margin-top:12px; position:relative; width:120px; height:120px; border-radius:8px; overflow:hidden; border:1px solid var(--border-color);">
+              <img id="reupload-preview-img" style="width:100%; height:100%; object-fit:cover;">
+              <button type="button" style="position:absolute; top:4px; right:4px; width:24px; height:24px; border-radius:50%; background:rgba(220,38,38,0.85); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:0.72rem;" onclick="DashboardComponent.clearReuploadScreenshot()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:12px; justify-content:flex-end;">
+            <button class="btn btn-secondary btn-modal-close">Cancel</button>
+            <button class="btn btn-primary" id="btn-submit-reupload" onclick="DashboardComponent.submitReupload('${courseId}')"><i class="fa-solid fa-paper-plane"></i> Submit Verification</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Bind inner elements
+    overlay.querySelectorAll('.btn-modal-close, .btn-close-reupload').forEach(b => {
+      b.addEventListener('click', () => overlay.remove());
+    });
+
+    const dropArea = overlay.querySelector('#reupload-drop-area');
+    const fileInput = overlay.querySelector('#reupload-screenshot-input');
+
+    if (dropArea && fileInput) {
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropArea.style.borderColor = 'var(--brand-blue)';
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropArea.style.borderColor = 'var(--border-color)';
+        }, false);
+      });
+
+      dropArea.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files[0]) {
+          DashboardComponent.handleReuploadFileSelection(files[0]);
+        }
+      }, false);
+
+      fileInput.addEventListener('change', (e) => {
+        if (fileInput.files && fileInput.files[0]) {
+          DashboardComponent.handleReuploadFileSelection(fileInput.files[0]);
+        }
+      });
+    }
+  },
+
+  handleReuploadFileSelection: function (file) {
+    if (!file.type.startsWith('image/')) {
+      window.app.showToast('Invalid file format. Please upload an image.', 'danger');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      window.app.showToast('File size exceeds 5MB limit.', 'danger');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      DashboardComponent._reuploadScreenshot = e.target.result;
+      const previewImg = document.getElementById('reupload-preview-img');
+      if (previewImg) previewImg.src = e.target.result;
+      const dropArea = document.getElementById('reupload-drop-area');
+      if (dropArea) dropArea.style.display = 'none';
+      const previewContainer = document.getElementById('reupload-preview-container');
+      if (previewContainer) previewContainer.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  },
+
+  clearReuploadScreenshot: function () {
+    DashboardComponent._reuploadScreenshot = null;
+    const dropArea = document.getElementById('reupload-drop-area');
+    if (dropArea) dropArea.style.display = 'block';
+    const previewContainer = document.getElementById('reupload-preview-container');
+    if (previewContainer) previewContainer.style.display = 'none';
+    const input = document.getElementById('reupload-screenshot-input');
+    if (input) input.value = '';
+  },
+
+  submitReupload: function (courseId) {
+    const cu = window.db.getCurrentUser();
+    if (!cu) return;
+
+    const utr = document.getElementById('reupload-utr')?.value.trim();
+    const date = document.getElementById('reupload-date')?.value;
+    const screenshot = DashboardComponent._reuploadScreenshot;
+
+    if (!utr || utr.length !== 12 || !/^\d+$/.test(utr)) {
+      window.app.showToast('Please enter a valid 12-digit UTR/Transaction Number.', 'danger');
+      return;
+    }
+
+    if (!date) {
+      window.app.showToast('Please select the payment date.', 'danger');
+      return;
+    }
+
+    if (!screenshot) {
+      window.app.showToast('Please upload a screenshot of your payment receipt.', 'danger');
+      return;
+    }
+
+    const btn = document.getElementById('btn-submit-reupload');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+    }
+
+    setTimeout(() => {
+      // Find the old transaction
+      const txns = window.db.getTransactions();
+      const oldTxn = txns.find(t => t.username === cu.username && t.courseId === courseId && t.adminStatus === 'RE_UPLOAD_REQUESTED');
+      
+      const details = {
+        id: oldTxn ? oldTxn.id : null,
+        discount: oldTxn ? oldTxn.discount : 0,
+        couponCode: oldTxn ? oldTxn.couponCode : "",
+        screenshot: screenshot,
+        utr: utr,
+        paymentDate: date,
+        adminStatus: 'PENDING'
+      };
+
+      if (oldTxn) {
+        // Remove the old transaction before updating
+        let allTxns = window.db.getTransactions();
+        allTxns = allTxns.filter(t => t.id !== oldTxn.id);
+        localStorage.setItem("cubaze_transactions", JSON.stringify(allTxns));
+      }
+
+      window.db.addTransaction(cu.username, courseId, oldTxn ? oldTxn.amount : 0, 'Direct UPI QR Payment', 'PENDING', details);
+      
+      // Remove modal
+      document.getElementById('reupload-proof-modal')?.remove();
+      
+      window.app.showToast('Payment proof re-submitted successfully! ⏳', 'success');
+      
+      // Reload Dashboard
+      window.location.reload();
+    }, 1200);
+  },
+
   _renderOverview: function (cu, enrolledCourses, totalProgress) {
     const certsEarned = enrolledCourses.filter(c => window.db.getUserProgress(cu.username, c.id).certificateEarned).length;
     const totalHoursLearned = enrolledCourses.reduce((sum, c) => {
@@ -101,6 +313,54 @@ const DashboardComponent = {
       const done = (p.completedLessons || []).length;
       return sum + (total > 0 ? (done / total) * parseFloat(c.duration) : 0);
     }, 0);
+
+    const pendingTxns = DashboardComponent._getPendingTxns(cu);
+    let pendingAlertsHtml = '';
+    
+    if (pendingTxns.length > 0) {
+      pendingAlertsHtml = `
+        <div style="margin-bottom:28px;">
+          <h3 style="margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-circle-exclamation" style="color:var(--brand-blue);"></i> Action Required / Pending Verification</h3>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            ${pendingTxns.map(t => {
+              const course = window.db.getCourseById(t.courseId);
+              if (!course) return '';
+              const isReupload = t.adminStatus === 'RE_UPLOAD_REQUESTED';
+              
+              return `
+                <div style="background:var(--bg-card);border:1px solid ${isReupload ? 'rgba(239,68,68,0.2)' : 'var(--border-color)'};border-radius:var(--radius-xl);padding:20px;display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center;">
+                  <img src="${course.image}" style="width:100px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border-color);">
+                  <div>
+                    <h4 style="margin:0 0 6px 0;font-weight:700;color:var(--text-primary);">${course.title}</h4>
+                    <div style="font-size:0.78rem;display:flex;gap:12px;color:var(--text-muted);flex-wrap:wrap;">
+                      <span>Amount: <strong>₹${t.amount.toLocaleString('en-IN')}</strong></span>
+                      <span>UTR: <code>${t.utr || 'N/A'}</code></span>
+                      <span>Date: ${new Date(t.timestamp).toLocaleDateString('en-IN')}</span>
+                    </div>
+                    ${isReupload ? `
+                      <div style="margin-top:10px;font-size:0.8rem;background:rgba(239,68,68,0.06);color:#DC2626;border:1px dashed rgba(239,68,68,0.25);padding:10px 14px;border-radius:8px;line-height:1.4;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> <strong>Re-upload requested:</strong> ${t.reuploadReason}
+                      </div>
+                    ` : `
+                      <div style="margin-top:10px;font-size:0.8rem;background:rgba(245,158,11,0.06);color:#D97706;padding:8px 12px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;">
+                        <i class="fa-solid fa-spinner fa-spin"></i> <span>Verification in progress. Access will be unlocked shortly.</span>
+                      </div>
+                    `}
+                  </div>
+                  <div>
+                    ${isReupload ? `
+                      <button class="btn btn-primary btn-sm" onclick="DashboardComponent.showReuploadModal('${t.courseId}')"><i class="fa-solid fa-cloud-arrow-up"></i> Re-upload Proof</button>
+                    ` : `
+                      <button class="btn btn-outline btn-sm" disabled style="opacity:0.75;"><i class="fa-solid fa-hourglass"></i> Pending</button>
+                    `}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
 
     return `
       <div class="dashboard-overview-container">
@@ -116,6 +376,9 @@ const DashboardComponent = {
             <div class="widget-card"><div class="widget-icon gold"><i class="fa-solid fa-clock"></i></div><div class="widget-number">${Math.round(totalHoursLearned)}h</div><div class="widget-label">Hours Learned</div></div>
             <div class="widget-card"><div class="widget-icon purple"><i class="fa-solid fa-certificate"></i></div><div class="widget-number">${certsEarned}</div><div class="widget-label">Certificates</div></div>
           </div>
+
+          <!-- Pending manual enrollments -->
+          ${pendingAlertsHtml}
 
           ${(() => {
         const nextMeeting = window.db.getCommonMeetingsForUser(cu.username)
@@ -280,10 +543,47 @@ const DashboardComponent = {
   },
 
   _renderMyCourses: function (cu, enrolledCourses) {
+    const pendingTxns = DashboardComponent._getPendingTxns(cu);
+    const pendingHtml = pendingTxns.map(t => {
+      const course = window.db.getCourseById(t.courseId);
+      if (!course) return '';
+      const isReupload = t.adminStatus === 'RE_UPLOAD_REQUESTED';
+      
+      return `
+        <div class="enrolled-course-card" style="opacity:0.85;border-color:${isReupload ? 'rgba(239,68,68,0.3)' : 'var(--border-color)'};">
+          <div class="enrolled-course-left" style="position:relative;">
+            <div class="enrolled-course-thumb" style="filter:grayscale(60%);">
+              <img src="${course.image}" alt="${course.title}">
+            </div>
+            <div style="position:absolute;top:8px;left:8px;background:${isReupload ? '#EF4444' : '#F59E0B'};color:#fff;padding:4px 8px;font-size:0.68rem;font-weight:800;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.15);z-index:1;">
+              ${isReupload ? '⚠️ Action Required' : '⏳ Pending Approval'}
+            </div>
+          </div>
+          <div class="enrolled-course-body" style="text-align:left;">
+            <div class="enrolled-course-title" style="color:var(--text-muted);">${course.title}</div>
+            <div class="enrolled-course-meta" style="margin-bottom:12px;">Amount: ₹${t.amount.toLocaleString('en-IN')} · UTR: ${t.utr || 'N/A'}</div>
+            
+            ${isReupload ? `
+              <div style="font-size:0.78rem;background:rgba(239,68,68,0.06);color:#DC2626;padding:10px;border-radius:8px;margin-bottom:14px;border:1px dashed rgba(239,68,68,0.15);line-height:1.4;">
+                <strong>Reason:</strong> ${t.reuploadReason}
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="DashboardComponent.showReuploadModal('${t.courseId}')"><i class="fa-solid fa-cloud-arrow-up"></i> Re-upload Proof</button>
+            ` : `
+              <div style="font-size:0.78rem;background:rgba(245,158,11,0.06);color:#D97706;padding:10px;border-radius:8px;margin-bottom:14px;display:inline-flex;align-items:center;gap:6px;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Pending administrative verification
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const count = enrolledCourses.length + pendingTxns.length;
+
     return `
       <div>
-        <h2 style="margin-bottom:24px;">My Courses (${enrolledCourses.length})</h2>
-        ${enrolledCourses.length === 0 ? `
+        <h2 style="margin-bottom:24px;">My Courses (${count})</h2>
+        ${count === 0 ? `
           <div style="text-align:center;padding:64px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-xl);">
             <div style="font-size:3rem;margin-bottom:16px;">📚</div>
             <h3>No courses enrolled yet</h3>
@@ -291,6 +591,7 @@ const DashboardComponent = {
           </div>
         ` : `
           <div style="display:flex;flex-direction:column;gap:16px;">
+            ${pendingHtml}
             ${enrolledCourses.map(c => DashboardComponent._renderEnrolledCard(cu, c)).join('')}
           </div>
         `}
@@ -374,19 +675,49 @@ const DashboardComponent = {
         <h2 style="margin-bottom:24px;">Purchase History (${txns.length})</h2>
         <div class="glass-panel" style="padding:0;overflow:hidden;">
           <table class="data-table">
-            <thead><tr><th>Transaction</th><th>Course</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Transaction ID</th>
+                <th>Course</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>UTR / Ref</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Invoice</th>
+              </tr>
+            </thead>
             <tbody>
-              ${txns.length === 0 ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px;">No purchases yet.</td></tr>' : ''}
-              ${txns.map(t => `
-                <tr>
-                  <td style="font-family:monospace;font-size:0.72rem;">${t.id.slice(0, 16)}...</td>
-                  <td style="font-weight:600;">${t.courseTitle}</td>
-                  <td style="font-weight:700;color:var(--success);">₹${t.amount.toLocaleString('en-IN')}</td>
-                  <td>${t.paymentMethod}</td>
-                  <td><span class="status-badge ${t.status === 'SUCCESS' ? 'success' : 'pending'}">${t.status}</span></td>
-                  <td>${new Date(t.timestamp).toLocaleDateString('en-IN')}</td>
-                </tr>
-              `).join('')}
+              ${txns.length === 0 ? '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px;">No purchases yet.</td></tr>' : ''}
+              ${txns.map(t => {
+                let badgeHtml = '';
+                if (t.adminStatus === 'APPROVED' || t.status === 'SUCCESS') {
+                  badgeHtml = '<span class="status-badge success">Success</span>';
+                } else if (t.adminStatus === 'PENDING') {
+                  badgeHtml = '<span class="status-badge pending">Pending</span>';
+                } else if (t.adminStatus === 'RE_UPLOAD_REQUESTED') {
+                  badgeHtml = '<span class="status-badge warning" style="background:#FEF3C7;color:#D97706;border-color:#FDE68A;">Re-upload</span>';
+                } else {
+                  badgeHtml = '<span class="status-badge danger">Failed</span>';
+                }
+
+                const invoiceBtn = (t.status === 'SUCCESS' || t.adminStatus === 'APPROVED')
+                  ? `<button class="btn btn-ghost btn-sm" onclick="PhonePeComponent.printInvoice('${t.id}')" style="margin-bottom:0;padding:6px 12px;height:30px;"><i class="fa-solid fa-file-invoice"></i> Receipt</button>`
+                  : '—';
+
+                return `
+                  <tr>
+                    <td style="font-family:monospace;font-size:0.75rem;font-weight:700;">${t.id}</td>
+                    <td style="font-weight:600;">${t.courseTitle}</td>
+                    <td style="font-weight:700;color:var(--success);">₹${t.amount.toLocaleString('en-IN')}</td>
+                    <td style="font-size:0.8rem;">${t.paymentMethod}</td>
+                    <td style="font-family:monospace;font-size:0.78rem;">${t.utr || t.gatewayReference || '—'}</td>
+                    <td>${badgeHtml}</td>
+                    <td style="font-size:0.8rem;color:var(--text-secondary);">${new Date(t.timestamp).toLocaleDateString('en-IN')}</td>
+                    <td>${invoiceBtn}</td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>
