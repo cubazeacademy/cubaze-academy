@@ -35,3 +35,15 @@ CREATE POLICY "Allow public select support_msg" ON public.cubaze_support_message
 CREATE POLICY "Allow public insert support_msg" ON public.cubaze_support_messages FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public update support_msg" ON public.cubaze_support_messages FOR UPDATE USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public delete support_msg" ON public.cubaze_support_messages FOR DELETE USING (true);
+
+-- Drop old policies for posters if they exist
+DROP POLICY IF EXISTS "Allow public select posters" ON public.cubaze_posters;
+DROP POLICY IF EXISTS "Allow public insert posters" ON public.cubaze_posters;
+DROP POLICY IF EXISTS "Allow public update posters" ON public.cubaze_posters;
+DROP POLICY IF EXISTS "Allow public delete posters" ON public.cubaze_posters;
+
+-- Create policies for posters
+CREATE POLICY "Allow public select posters" ON public.cubaze_posters FOR SELECT USING (true);
+CREATE POLICY "Allow public insert posters" ON public.cubaze_posters FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update posters" ON public.cubaze_posters FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete posters" ON public.cubaze_posters FOR DELETE USING (true);
