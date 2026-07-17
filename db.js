@@ -2673,18 +2673,24 @@ class CubazeDB {
   }
 
   async deleteSupportConversation(id) {
+    console.log("🗑️ Attempting to delete support conversation:", id);
     if (this.sb) {
       try {
         // Delete messages first to satisfy foreign key constraints if CASCADE isn't working
-        await this.sb.from('cubaze_support_messages').delete().eq('conversation_id', id);
+        const { error: msgErr } = await this.sb.from('cubaze_support_messages').delete().eq('conversation_id', id);
+        if (msgErr) {
+          console.warn("⚠️ Supabase message deletion warning/error:", msgErr);
+        }
+        
         // Then delete the conversation
         const { error } = await this.sb.from('cubaze_support_conversations').delete().eq('id', id);
         if (error) {
-          console.error("Failed to delete conversation from Supabase:", error);
+          console.error("❌ Failed to delete conversation from Supabase:", error);
           return { success: false, error: error.message };
         }
+        console.log("✅ Successfully deleted conversation from Supabase:", id);
       } catch (err) {
-        console.error("Failed to delete conversation from Supabase:", err);
+        console.error("❌ Failed to delete conversation from Supabase:", err);
         return { success: false, error: err.message };
       }
     }
@@ -2706,20 +2712,26 @@ class CubazeDB {
   }
 
   async deleteSupportConversations(ids) {
+    console.log("🗑️ Attempting to bulk delete conversations:", ids);
     if (!Array.isArray(ids) || ids.length === 0) return { success: true };
 
     if (this.sb) {
       try {
         // Delete messages first
-        await this.sb.from('cubaze_support_messages').delete().in('conversation_id', ids);
+        const { error: msgErr } = await this.sb.from('cubaze_support_messages').delete().in('conversation_id', ids);
+        if (msgErr) {
+          console.warn("⚠️ Supabase bulk message deletion warning/error:", msgErr);
+        }
+        
         // Then delete the conversations
         const { error } = await this.sb.from('cubaze_support_conversations').delete().in('id', ids);
         if (error) {
-          console.error("Failed to bulk delete conversations from Supabase:", error);
+          console.error("❌ Failed to bulk delete conversations from Supabase:", error);
           return { success: false, error: error.message };
         }
+        console.log("✅ Successfully bulk deleted conversations from Supabase:", ids);
       } catch (err) {
-        console.error("Failed to bulk delete conversations from Supabase:", err);
+        console.error("❌ Failed to bulk delete conversations from Supabase:", err);
         return { success: false, error: err.message };
       }
     }
