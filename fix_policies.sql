@@ -47,3 +47,16 @@ CREATE POLICY "Allow public select posters" ON public.cubaze_posters FOR SELECT 
 CREATE POLICY "Allow public insert posters" ON public.cubaze_posters FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public update posters" ON public.cubaze_posters FOR UPDATE USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public delete posters" ON public.cubaze_posters FOR DELETE USING (true);
+
+-- Drop old policies for live classes if they exist
+DROP POLICY IF EXISTS "Allow public select live_classes" ON public.cubaze_live_classes;
+DROP POLICY IF EXISTS "Allow public insert live_classes" ON public.cubaze_live_classes;
+DROP POLICY IF EXISTS "Allow public update live_classes" ON public.cubaze_live_classes;
+DROP POLICY IF EXISTS "Allow public delete live_classes" ON public.cubaze_live_classes;
+
+-- Create policies for live classes
+CREATE POLICY "Allow public select live_classes" ON public.cubaze_live_classes FOR SELECT USING (true);
+CREATE POLICY "Allow public insert live_classes" ON public.cubaze_live_classes FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update live_classes" ON public.cubaze_live_classes FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete live_classes" ON public.cubaze_live_classes FOR DELETE USING (true);
+

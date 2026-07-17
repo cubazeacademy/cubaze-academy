@@ -389,3 +389,48 @@ CREATE TRIGGER trg_cm_updated_at
 -- ALTER TABLE public.cubaze_common_meetings ADD COLUMN IF NOT EXISTS google_drive_resources TEXT NOT NULL DEFAULT '';
 -- ALTER TABLE public.cubaze_common_meetings ADD COLUMN IF NOT EXISTS notes                  TEXT NOT NULL DEFAULT '';
 -- ALTER TABLE public.cubaze_common_meetings ADD COLUMN IF NOT EXISTS updated_at             TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
+
+-- =========================================================================
+-- TABLE: cubaze_live_classes
+-- Scheduled live class sessions
+-- =========================================================================
+
+CREATE TABLE IF NOT EXISTS public.cubaze_live_classes (
+    id            TEXT PRIMARY KEY,
+    course_id     TEXT,
+    batch_id      TEXT,
+    module_id     INTEGER DEFAULT 0,
+    tutor_id      TEXT,
+    title         TEXT NOT NULL,
+    description   TEXT NOT NULL DEFAULT '',
+    meet_link     TEXT NOT NULL DEFAULT '',
+    date          TEXT NOT NULL,
+    start_time    TEXT NOT NULL DEFAULT '',
+    end_time      TEXT NOT NULL DEFAULT '',
+    status        TEXT NOT NULL DEFAULT 'draft',
+    recording_url TEXT NOT NULL DEFAULT '',
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Enable Row Level Security
+ALTER TABLE public.cubaze_live_classes ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Allow public select live_classes" ON public.cubaze_live_classes;
+DROP POLICY IF EXISTS "Allow public insert live_classes" ON public.cubaze_live_classes;
+DROP POLICY IF EXISTS "Allow public update live_classes" ON public.cubaze_live_classes;
+DROP POLICY IF EXISTS "Allow public delete live_classes" ON public.cubaze_live_classes;
+
+-- Create policies for public access (matching rest of database)
+CREATE POLICY "Allow public select live_classes" ON public.cubaze_live_classes FOR SELECT USING (true);
+CREATE POLICY "Allow public insert live_classes" ON public.cubaze_live_classes FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update live_classes" ON public.cubaze_live_classes FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete live_classes" ON public.cubaze_live_classes FOR DELETE USING (true);
+
+-- Auto-update updated_at on every UPDATE
+DROP TRIGGER IF EXISTS trg_lc_updated_at ON public.cubaze_live_classes;
+CREATE TRIGGER trg_lc_updated_at
+    BEFORE UPDATE ON public.cubaze_live_classes
+    FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
