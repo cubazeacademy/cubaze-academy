@@ -1193,13 +1193,13 @@ const DashboardComponent = {
           ` : `
             <div class="support-chat-input-wrapper">
               <div class="support-chat-input-row">
-                <button class="support-chat-emoji-btn" title="Emoji">😊</button>
+                <button class="support-chat-emoji-btn" id="btn-support-emoji" title="Emoji">😊</button>
                 <textarea class="support-chat-input-textarea" id="chat-message-text" placeholder="Message" rows="1"></textarea>
                 <div class="support-chat-attach-btn" title="Attach file">
                   <i class="fa-solid fa-paperclip"></i>
                   <input type="file" id="chat-upload-file">
                 </div>
-                <button class="btn btn-primary" id="btn-send-message"><i class="fa-solid fa-microphone" style="font-size:1rem;"></i></button>
+                <button class="btn btn-primary" id="btn-send-message"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
               </div>
               <div id="chat-file-selected-chip" style="display:none; padding:4px 0 0 8px; font-size:0.72rem; color:#00a884;"></div>
             </div>
@@ -1444,6 +1444,8 @@ const DashboardComponent = {
         handleSend();
       }
     });
+
+    window.initEmojiPicker('btn-support-emoji', 'chat-message-text');
 
     const stars = document.querySelectorAll('#support-rating-stars i');
     const feedbackArea = document.getElementById('rating-feedback-area');
@@ -2042,13 +2044,13 @@ const DashboardComponent = {
           ` : `
             <div class="support-chat-input-wrapper">
               <div class="support-chat-input-row">
-                <button class="support-chat-emoji-btn" title="Emoji">😊</button>
+                <button class="support-chat-emoji-btn" id="btn-tutor-emoji" title="Emoji">😊</button>
                 <textarea class="support-chat-input-textarea" id="tutor-chat-message-text" placeholder="Message" rows="1"></textarea>
                 <div class="support-chat-attach-btn" title="Attach file">
                   <i class="fa-solid fa-paperclip"></i>
                   <input type="file" id="tutor-chat-upload-file">
                 </div>
-                <button class="btn btn-primary" id="btn-tutor-send-message"><i class="fa-solid fa-microphone" style="font-size:1rem;"></i></button>
+                <button class="btn btn-primary" id="btn-tutor-send-message"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
               </div>
               <div id="tutor-chat-file-selected-chip" style="display:none; padding:4px 0 0 8px; font-size:0.72rem; color:#00a884;"></div>
             </div>
@@ -2170,6 +2172,8 @@ const DashboardComponent = {
         handleSend();
       }
     });
+
+    window.initEmojiPicker('btn-tutor-emoji', 'tutor-chat-message-text');
   },
 
   _renderCommonMeetings: function (cu) {

@@ -5386,6 +5386,42 @@ body.dark-mode .support-chat-input-wrapper {
 body.dark-mode .support-chat-emoji-btn { color: #8696a0; }
 .support-chat-emoji-btn:hover { color: #00a884; }
 
+/* Emoji Picker Container */
+.emoji-picker-popover {
+  position: absolute;
+  bottom: 50px;
+  left: 10px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  padding: 10px;
+  z-index: 1000;
+  width: 200px;
+  box-sizing: border-box;
+}
+
+body.dark-mode .emoji-picker-popover {
+  background: #2a3942;
+  border-color: #3b4a54;
+}
+
+.emoji-picker-popover span {
+  font-size: 1.25rem;
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.1s;
+  user-select: none;
+}
+
+.emoji-picker-popover span:hover {
+  transform: scale(1.2);
+}
+
+
 /* Pill text input */
 .support-chat-input-textarea {
   flex: 1;

@@ -502,3 +502,61 @@ window.resizeAndCropTo3x4 = function (file, callback) {
   };
   reader.readAsDataURL(file);
 };
+
+window.initEmojiPicker = function(btnId, textareaId) {
+  const btn = document.getElementById(btnId);
+  const textarea = document.getElementById(textareaId);
+  if (!btn || !textarea) return;
+
+  const existingPickerId = `picker-${btnId}`;
+
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    let picker = document.getElementById(existingPickerId);
+    if (picker) {
+      picker.remove();
+      return;
+    }
+
+    // Close any other open pickers
+    document.querySelectorAll('.emoji-picker-popover').forEach(p => p.remove());
+
+    // Create picker
+    picker = document.createElement('div');
+    picker.id = existingPickerId;
+    picker.className = 'emoji-picker-popover';
+
+    const emojis = ['😊', '😂', '🤣', '👍', '❤️', '🔥', '😍', '🤔', '😢', '🙌', '👏', '🎉', '🚀', '✨', '🙏', '💯', '👋', '👀'];
+    emojis.forEach(emoji => {
+      const span = document.createElement('span');
+      span.textContent = emoji;
+      span.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        
+        // Insert emoji at cursor position
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        textarea.value = text.substring(0, start) + emoji + text.substring(end);
+        textarea.focus();
+        // Move cursor after the emoji
+        textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+        
+        picker.remove();
+      });
+      picker.appendChild(span);
+    });
+
+    const parentRow = btn.closest('.support-chat-input-row') || btn.parentElement;
+    parentRow.style.position = 'relative';
+    parentRow.appendChild(picker);
+  };
+
+  // Close picker on outside click
+  document.addEventListener('click', (e) => {
+    const picker = document.getElementById(existingPickerId);
+    if (picker && !picker.contains(e.target) && e.target !== btn) {
+      picker.remove();
+    }
+  });
+};

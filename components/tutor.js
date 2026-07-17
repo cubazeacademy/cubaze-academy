@@ -658,24 +658,36 @@ const TutorComponent = {
     const cu = window.db.getCurrentUser();
 
     return `
-      <div class="support-chat-header" style="border-bottom:1px solid var(--border-color); padding:16px;">
-        <div class="support-chat-header-info">
-          <h3 class="support-chat-title" style="margin:0 0 4px 0; font-size:1.05rem; font-weight:800;">${conv.subject}</h3>
-          <div style="display:flex; align-items:center; gap:8px; font-size:0.75rem; color:var(--text-muted);">
-            <span>Student: <strong>@${conv.student_username}</strong></span>
-            <span>·</span>
-            <span class="support-cat-badge" style="font-size:0.65rem;">${conv.category}</span>
+      <div class="support-chat-header" style="background:#075e54; color:#fff; display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:none;">
+        <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+          <div class="support-chat-header-avatar" style="width:36px; height:36px; border-radius:50%; background:#25d366; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.95rem; color:#fff; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.3);">
+            ${conv.student_username ? conv.student_username.charAt(0).toUpperCase() : 'S'}
+          </div>
+          <div class="support-chat-header-info" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:1px;">
+            <div class="support-chat-title" style="font-weight:700; font-size:0.95rem; color:#fff; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@${conv.student_username}</div>
+            <div class="support-chat-subtitle" style="font-size:0.72rem; color:rgba(255, 255, 255, 0.8); margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              ${conv.subject} · <span style="color:${conv.status === 'Resolved' ? '#a8f0c6' : '#fca5a5'}; font-weight:700;">${conv.status}</span>
+            </div>
           </div>
         </div>
-        <div style="display:flex; align-items:center; gap:12px;">
-          <button class="btn ${conv.status === 'Resolved' ? 'btn-outline-white' : 'btn-success'} btn-sm" id="btn-tutor-toggle-resolve" style="font-size:0.75rem;">
+        <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
+          <button class="btn ${conv.status === 'Resolved' ? 'btn-outline-white' : 'btn-success'} btn-sm" id="btn-tutor-toggle-resolve" style="font-size:0.75rem; border-radius:16px;">
             <i class="fa-solid ${conv.status === 'Resolved' ? 'fa-envelope-open' : 'fa-circle-check'}" style="margin-right:6px;"></i>
-            ${conv.status === 'Resolved' ? 'Reopen Chat' : 'Resolve Chat'}
+            ${conv.status === 'Resolved' ? 'Reopen' : 'Resolve'}
           </button>
+          <div class="support-chat-header-actions" style="display:flex; align-items:center; gap:6px; color:rgba(255,255,255,0.9);">
+            <button title="Search" style="background:none; border:none; color:#fff; font-size:1rem; cursor:pointer; padding:6px; border-radius:50%;"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <button title="More" style="background:none; border:none; color:#fff; font-size:1rem; cursor:pointer; padding:6px; border-radius:50%;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+          </div>
         </div>
       </div>
 
       <div class="support-chat-messages" id="tutor-chat-thread" style="flex:1; padding:20px; overflow-y:auto; max-height:380px;">
+        <div class="support-chat-date-label">Today</div>
+        <div class="support-chat-encrypt-notice">
+          <i class="fa-solid fa-lock" style="margin-right:4px; font-size:0.65rem;"></i>
+          Messages and calls are secured with end-to-end encryption. Your student will respond shortly.
+        </div>
         ${messages.map(m => {
       const isOwn = m.sender === cu.username;
       const isStudent = m.sender === conv.student_username;
@@ -758,8 +770,9 @@ const TutorComponent = {
         </div>
 
         <div class="support-chat-input-row">
+          <button class="support-chat-emoji-btn" id="btn-tutor-pane-emoji" title="Emoji">😊</button>
           <textarea class="support-chat-input-textarea" id="tutor-msg-message-text" placeholder="Type reply or internal note..."></textarea>
-          <button class="btn btn-primary" id="btn-tutor-send-reply" style="height:48px; width:48px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-lg); flex-shrink:0;"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
+          <button class="btn btn-primary" id="btn-tutor-send-reply"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
         </div>
       </div>
     `;
@@ -777,7 +790,13 @@ const TutorComponent = {
 
       const cu = window.db.getCurrentUser();
 
-      thread.innerHTML = messages.map(m => {
+      thread.innerHTML = `
+        <div class="support-chat-date-label">Today</div>
+        <div class="support-chat-encrypt-notice">
+          <i class="fa-solid fa-lock" style="margin-right:4px; font-size:0.65rem;"></i>
+          Messages and calls are secured with end-to-end encryption. Your student will respond shortly.
+        </div>
+      ` + messages.map(m => {
         const isOwn = m.sender === cu.username;
         const isStudent = m.sender === conv.student_username;
         const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
@@ -961,6 +980,8 @@ const TutorComponent = {
           handleSend();
         }
       });
+
+      window.initEmojiPicker('btn-tutor-pane-emoji', 'tutor-msg-message-text');
     }
   },
 

@@ -2835,11 +2835,16 @@ class CubazeDB {
       const tutorBatches = this.getBatches().filter(b => b.tutorIds && b.tutorIds.includes(cu.username));
       const users = this.getUsers();
       return rawConvs.filter(c => {
-        const matchingBatch = tutorBatches.find(b => b.courseId === c.course_id);
-        if (!matchingBatch) return false;
         const student = users.find(u => u.username === c.student_username);
-        if (!student || !student.enrolledBatches) return false;
-        return student.enrolledBatches[c.course_id] === matchingBatch.id;
+        if (!student) return false;
+        if (!student.enrolledBatches) return true;
+        const studentBatchId = student.enrolledBatches[c.course_id];
+        if (!studentBatchId) return true;
+
+        const courseBatches = tutorBatches.filter(b => b.courseId === c.course_id);
+        if (courseBatches.length === 0) return true;
+
+        return courseBatches.some(b => b.id === studentBatchId);
       }).sort((a, b) => new Date(b.last_reply_at) - new Date(a.last_reply_at));
     }
 

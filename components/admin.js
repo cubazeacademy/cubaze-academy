@@ -4098,7 +4098,6 @@ const AdminComponent = {
 
     return `
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-        <button class="btn btn-outline-white btn-sm" id="btn-back-to-requests" style="width:36px; height:36px; padding:0; border-radius:50%;"><i class="fa-solid fa-arrow-left"></i></button>
         <div>
           <h2 style="margin:0; font-weight:800; font-size:1.3rem;">Request Details</h2>
           <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">ID: <span style="font-family:monospace;">${conv.id}</span> · Student: <strong>@${conv.student_username}</strong></p>
@@ -4107,24 +4106,43 @@ const AdminComponent = {
 
       <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px; align-items: start;">
         <div class="support-chat-container">
+          
+          <!-- Status Bar -->
+          <div class="support-chat-statusbar">
+            <span class="support-chat-statusbar-time">12:00</span>
+            <div class="support-chat-statusbar-icons">
+              <i class="fa-solid fa-signal"></i>
+              <i class="fa-solid fa-wifi"></i>
+              <i class="fa-solid fa-battery-full"></i>
+            </div>
+          </div>
+
+          <!-- Contact Header Bar -->
           <div class="support-chat-header">
+            <button class="support-chat-header-back" id="btn-back-to-requests">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="support-chat-header-avatar">
+              <i class="fa-solid fa-headset" style="font-size:1rem;"></i>
+            </div>
             <div class="support-chat-header-info">
-              <h3 class="support-chat-title">${conv.subject}</h3>
-              <div class="support-chat-meta">
-                <span class="support-cat-badge">${conv.category}</span>
-                <span class="support-prio-badge ${conv.priority.toLowerCase()}">${conv.priority}</span>
+              <div class="support-chat-title">Cubaze Support</div>
+              <div class="support-chat-subtitle">
+                ${conv.category} · <span style="color:${conv.status === 'Resolved' ? '#a8f0c6' : conv.status === 'Pending' ? '#fde68a' : '#fca5a5'}; font-weight:600;">${conv.status}</span>
               </div>
             </div>
-            <div>
-              <select id="adm-chat-status-select" style="padding:6px 12px; font-size:0.82rem; font-weight:700; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); cursor:pointer;">
-                <option value="Open" ${conv.status === 'Open' ? 'selected' : ''}>Open</option>
-                <option value="Pending" ${conv.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                <option value="Resolved" ${conv.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
-              </select>
+            <div class="support-chat-header-actions">
+              <button title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+              <button title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
             </div>
           </div>
 
           <div class="support-chat-messages" id="support-chat-thread">
+            <div class="support-chat-date-label">Today</div>
+            <div class="support-chat-encrypt-notice">
+              <i class="fa-solid fa-lock" style="margin-right:4px; font-size:0.65rem;"></i>
+              Messages and calls are secured with end-to-end encryption. Your admin will respond shortly.
+            </div>
             ${messages.map(m => {
       const isOwn = m.sender === cu.username;
       const isStudent = m.sender === conv.student_username;
@@ -4207,8 +4225,9 @@ const AdminComponent = {
             </div>
 
             <div class="support-chat-input-row">
-              <textarea class="support-chat-input-textarea" id="chat-message-text" placeholder="Type response or internal note..."></textarea>
-              <button class="btn btn-primary" id="btn-send-message" style="height:48px; width:48px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-lg); flex-shrink:0;"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
+              <button class="support-chat-emoji-btn" id="btn-admin-support-emoji" title="Emoji">😊</button>
+              <textarea class="support-chat-input-textarea" id="chat-message-text" placeholder="Type response or internal note..." rows="1"></textarea>
+              <button class="btn btn-primary" id="btn-send-message"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
             </div>
           </div>
         </div>
@@ -4222,6 +4241,14 @@ const AdminComponent = {
           <div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Subject</div>
             <div style="font-weight:600; font-size:0.86rem; color:var(--text-primary);">${conv.subject}</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">Status</div>
+            <select id="adm-chat-status-select" style="width:100%; padding:8px 12px; font-size:0.85rem; font-weight:700; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); cursor:pointer;">
+              <option value="Open" ${conv.status === 'Open' ? 'selected' : ''}>Open</option>
+              <option value="Pending" ${conv.status === 'Pending' ? 'selected' : ''}>Pending</option>
+              <option value="Resolved" ${conv.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+            </select>
           </div>
           <div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Priority</div>
@@ -4514,6 +4541,8 @@ const AdminComponent = {
         handleSend();
       }
     });
+
+    window.initEmojiPicker('btn-admin-support-emoji', 'chat-message-text');
   },
 
   _renderCommonMeetings: function (searchQuery = '') {
