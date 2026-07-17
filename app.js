@@ -479,6 +479,28 @@ class CubazeApp {
 // Initialize the app
 window.app = new CubazeApp();
 
+window.getAvatarColor = function (username) {
+  if (!username) return '#3b82f6';
+  const colors = [
+    '#3b82f6', // blue
+    '#6366f1', // indigo
+    '#8b5cf6', // purple
+    '#ec4899', // pink
+    '#f43f5e', // rose
+    '#10b981', // emerald
+    '#14b8a6', // teal
+    '#f59e0b', // amber
+    '#0284c7', // sky
+    '#059669', // dark emerald
+    '#7c3aed'  // violet
+  ];
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
 window.resizeAndCropTo3x4 = function (file, callback) {
   const reader = new FileReader();
   reader.onload = function (e) {

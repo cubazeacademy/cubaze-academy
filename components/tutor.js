@@ -614,7 +614,7 @@ const TutorComponent = {
 
       return `
                 <div class="tutor-chat-list-item ${activeClass}" data-conv-id="${c.id}">
-                  <div class="tutor-chat-list-item-avatar">
+                  <div class="tutor-chat-list-item-avatar" style="background:${window.getAvatarColor(c.student_username)};">
                     ${c.student_username.charAt(0).toUpperCase()}
                   </div>
                   <div class="tutor-chat-list-item-content">
@@ -658,100 +658,100 @@ const TutorComponent = {
     const cu = window.db.getCurrentUser();
 
     return `
-      <div class="support-chat-header" style="background:#075e54; color:#fff; display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:none;">
+      <div class="support-chat-header">
         <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
-          <div class="support-chat-header-avatar" style="width:36px; height:36px; border-radius:50%; background:#25d366; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.95rem; color:#fff; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.3);">
+          <div class="support-chat-header-avatar" style="background:${window.getAvatarColor(conv.student_username)};">
             ${conv.student_username ? conv.student_username.charAt(0).toUpperCase() : 'S'}
           </div>
-          <div class="support-chat-header-info" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:1px;">
-            <div class="support-chat-title" style="font-weight:700; font-size:0.95rem; color:#fff; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@${conv.student_username}</div>
-            <div class="support-chat-subtitle" style="font-size:0.72rem; color:rgba(255, 255, 255, 0.8); margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-              ${conv.subject} · <span style="color:${conv.status === 'Resolved' ? '#a8f0c6' : '#fca5a5'}; font-weight:700;">${conv.status}</span>
+          <div class="support-chat-header-info">
+            <div class="support-chat-title">@${conv.student_username}</div>
+            <div class="support-chat-subtitle">
+              ${conv.subject} · <span style="font-weight:700;">${conv.status}</span>
             </div>
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
-          <button class="btn ${conv.status === 'Resolved' ? 'btn-outline-white' : 'btn-success'} btn-sm" id="btn-tutor-toggle-resolve" style="font-size:0.75rem; border-radius:16px;">
-            <i class="fa-solid ${conv.status === 'Resolved' ? 'fa-envelope-open' : 'fa-circle-check'}" style="margin-right:6px;"></i>
-            ${conv.status === 'Resolved' ? 'Reopen' : 'Resolve'}
+          <button class="${conv.status === 'Resolved' ? 'btn-reopen-pill' : 'btn-resolve-pill'}" id="btn-tutor-toggle-resolve">
+            <i class="fa-solid ${conv.status === 'Resolved' ? 'fa-envelope-open' : 'fa-circle-check'}"></i>
+            <span>${conv.status === 'Resolved' ? 'Reopen' : 'Resolve'}</span>
           </button>
-          <div class="support-chat-header-actions" style="display:flex; align-items:center; gap:6px; color:rgba(255,255,255,0.9);">
-            <button title="Search" style="background:none; border:none; color:#fff; font-size:1rem; cursor:pointer; padding:6px; border-radius:50%;"><i class="fa-solid fa-magnifying-glass"></i></button>
-            <button title="More" style="background:none; border:none; color:#fff; font-size:1rem; cursor:pointer; padding:6px; border-radius:50%;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+          <div class="support-chat-header-actions">
+            <button title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <button title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
           </div>
         </div>
       </div>
 
-      <div class="support-chat-messages" id="tutor-chat-thread" style="flex:1; padding:20px; overflow-y:auto; max-height:380px;">
+      <div class="support-chat-messages" id="tutor-chat-thread">
         <div class="support-chat-date-label">Today</div>
         <div class="support-chat-encrypt-notice">
-          <i class="fa-solid fa-lock" style="margin-right:4px; font-size:0.65rem;"></i>
+          <i class="fa-solid fa-lock" style="margin-right:6px; font-size:0.75rem;"></i>
           Messages and calls are secured with end-to-end encryption. Your student will respond shortly.
         </div>
         ${messages.map(m => {
-      const isOwn = m.sender === cu.username;
-      const isStudent = m.sender === conv.student_username;
-      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+          const isOwn = m.sender === cu.username;
+          const isStudent = m.sender === conv.student_username;
+          const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
-      let attachmentHtml = '';
-      if (m.file_url) {
-        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-        if (isImg) {
-          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-        } else {
-          attachmentHtml = `
-                <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
-                  <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
-                  <div class="support-chat-attachment-info">
-                    <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
-                    <span class="support-chat-attachment-size">Download Attachment</span>
+          let attachmentHtml = '';
+          if (m.file_url) {
+            const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+            if (isImg) {
+              attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+            } else {
+              attachmentHtml = `
+                    <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
+                      <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
+                      <div class="support-chat-attachment-info">
+                        <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
+                        <span class="support-chat-attachment-size">Download Attachment</span>
+                      </div>
+                    </a>
+                  `;
+            }
+          }
+
+          let linkHtml = '';
+          if (m.external_link) {
+            linkHtml = `
+                  <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
+                    <i class="fa-solid fa-cloud"></i>
+                    <span>Shared File Link</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
+                  </a>
+                `;
+          }
+
+          let alignClass = 'admin-align';
+          if (m.is_internal) {
+            alignClass = 'internal-note-align';
+          } else if (isStudent) {
+            alignClass = 'admin-align';
+          } else {
+            alignClass = 'student-align';
+          }
+
+          return `
+                <div class="support-msg-wrapper ${alignClass}">
+                  <div class="support-msg-bubble">
+                    <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${m.is_internal ? '#92400e' : isStudent ? '#0B5A43' : '#3b82f6'};">
+                      ${m.is_internal ? '<i class="fa-solid fa-lock"></i> Internal Tutor Note' : isStudent ? `@${conv.student_username} (Student)` : 'You (Tutor)'}
+                    </div>
+                    <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
+                    ${attachmentHtml}
+                    ${linkHtml}
                   </div>
-                </a>
-              `;
-        }
-      }
-
-      let linkHtml = '';
-      if (m.external_link) {
-        linkHtml = `
-              <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
-                <i class="fa-solid fa-cloud"></i>
-                <span>Shared File Link</span>
-                <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
-              </a>
-            `;
-      }
-
-      let alignClass = 'admin-align';
-      if (m.is_internal) {
-        alignClass = 'internal-note-align';
-      } else if (isStudent) {
-        alignClass = 'admin-align';
-      } else {
-        alignClass = 'student-align';
-      }
-
-      return `
-            <div class="support-msg-wrapper ${alignClass}">
-              <div class="support-msg-bubble">
-                <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px;">
-                  ${m.is_internal ? '<i class="fa-solid fa-lock"></i> Internal Tutor Note' : isStudent ? `@${conv.student_username} (Student)` : 'You (Tutor)'}
+                  <div class="support-msg-meta">
+                    <span>${dateStr}</span>
+                    ${(!m.is_internal && !isStudent) ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
+                  </div>
                 </div>
-                <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
-                ${attachmentHtml}
-                ${linkHtml}
-              </div>
-              <div class="support-msg-meta">
-                <span>${dateStr}</span>
-                ${(!m.is_internal && !isStudent) ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
-              </div>
-            </div>
-          `;
-    }).join('')}
+              `;
+        }).join('')}
       </div>
 
-      <div class="support-chat-input-wrapper" style="border-top:1px solid var(--border-color); background:var(--bg-card); padding:16px;">
-        <div class="support-chat-attachments-row" style="margin-bottom:8px;">
+      <div class="support-chat-input-wrapper">
+        <div class="support-chat-attachments-row">
           <div class="support-chat-attach-btn" title="Attach file">
             <i class="fa-solid fa-paperclip"></i>
             <input type="file" id="tutor-msg-upload-file">
@@ -771,7 +771,7 @@ const TutorComponent = {
 
         <div class="support-chat-input-row">
           <button class="support-chat-emoji-btn" id="btn-tutor-pane-emoji" title="Emoji">😊</button>
-          <textarea class="support-chat-input-textarea" id="tutor-msg-message-text" placeholder="Type reply or internal note..."></textarea>
+          <textarea class="support-chat-input-textarea" id="tutor-msg-message-text" placeholder="Type reply or internal note..." rows="1"></textarea>
           <button class="btn btn-primary" id="btn-tutor-send-reply"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
         </div>
       </div>
@@ -793,7 +793,7 @@ const TutorComponent = {
       thread.innerHTML = `
         <div class="support-chat-date-label">Today</div>
         <div class="support-chat-encrypt-notice">
-          <i class="fa-solid fa-lock" style="margin-right:4px; font-size:0.65rem;"></i>
+          <i class="fa-solid fa-lock" style="margin-right:6px; font-size:0.75rem;"></i>
           Messages and calls are secured with end-to-end encryption. Your student will respond shortly.
         </div>
       ` + messages.map(m => {
@@ -842,7 +842,7 @@ const TutorComponent = {
         return `
           <div class="support-msg-wrapper ${alignClass}">
             <div class="support-msg-bubble">
-              <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px;">
+              <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${m.is_internal ? '#92400e' : isStudent ? '#0B5A43' : '#3b82f6'};">
                 ${m.is_internal ? '<i class="fa-solid fa-lock"></i> Internal Tutor Note' : isStudent ? `@${conv.student_username} (Student)` : 'You (Tutor)'}
               </div>
               <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>

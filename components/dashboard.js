@@ -1240,20 +1240,137 @@ const DashboardComponent = {
 
     try {
       const convs = await window.db.getSupportConversations();
-      if (DashboardComponent._activeConvId) {
-        container.innerHTML = await DashboardComponent._renderChatView(DashboardComponent._activeConvId);
-        DashboardComponent._bindChatViewEvents(DashboardComponent._activeConvId);
-        await window.db.markMessagesAsSeen(DashboardComponent._activeConvId, 'student');
-        DashboardComponent.updateSupportBadge();
-      } else if (DashboardComponent._showNewForm) {
-        container.innerHTML = DashboardComponent._renderNewFormView();
-        DashboardComponent._bindNewFormEvents();
-      } else {
-        container.innerHTML = DashboardComponent._renderSupportList(convs);
-        DashboardComponent._bindSupportListEvents();
-      }
+      container.innerHTML = await DashboardComponent._renderSupportPortalHTML(convs);
+      DashboardComponent._bindSupportPortalEvents(convs);
     } catch (err) {
       container.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+    }
+  },
+
+  _renderSupportPortalHTML: async function (convs) {
+    const activeFilter = DashboardComponent._supportFilter || 'all';
+    const search = DashboardComponent._supportSearch || '';
+    
+    let filtered = convs;
+    if (activeFilter !== 'all') {
+      filtered = convs.filter(c => c.status.toLowerCase() === activeFilter);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(c => c.subject.toLowerCase().includes(q) || c.category.toLowerCase().includes(q));
+    }
+
+    let rightPaneHtml = `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:400px; color:var(--text-muted); text-align:center; padding:32px;">
+        <i class="fa-solid fa-headset" style="font-size:3.5rem; margin-bottom:16px; opacity:0.3; color:#0B5A43;"></i>
+        <h3 style="margin:0 0 8px 0; font-weight:700;">No Conversation Selected</h3>
+        <p style="margin:0; font-size:0.84rem; max-width:280px;">Select a support ticket from the sidebar list or click "Start New Conversation" to get help.</p>
+      </div>
+    `;
+
+    if (DashboardComponent._activeConvId) {
+      rightPaneHtml = await DashboardComponent._renderChatView(DashboardComponent._activeConvId);
+    } else if (DashboardComponent._showNewForm) {
+      rightPaneHtml = DashboardComponent._renderNewFormView();
+    }
+
+    return `
+      <div class="dashboard-welcome">
+        <h1>Talk with Admin</h1>
+        <p>Need help? Contact the Cubaze Academy Admin directly.</p>
+      </div>
+
+      <div class="tutor-chat-layout" style="margin-top: 20px;">
+        <div class="tutor-chat-sidebar">
+          <div class="tutor-chat-sidebar-header">
+            <div style="display:flex; gap:10px; align-items:center; width:100%;">
+              <div class="search-input-wrapper" style="flex:1; box-sizing:border-box; margin:0;">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input id="support-conv-search" placeholder="Search requests..." value="${search}">
+              </div>
+              <button class="btn btn-primary" id="btn-start-new-conv-icon" title="New Conversation" style="width:38px; height:38px; min-width:38px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+            <select id="support-conv-status-filter" style="width:100%; height:38px; padding:0 8px; border:1px solid var(--border-color); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--text-primary); cursor:pointer;">
+              <option value="all" ${activeFilter === 'all' ? 'selected' : ''}>All Statuses</option>
+              <option value="open" ${activeFilter === 'open' ? 'selected' : ''}>Open</option>
+              <option value="pending" ${activeFilter === 'pending' ? 'selected' : ''}>Pending</option>
+              <option value="resolved" ${activeFilter === 'resolved' ? 'selected' : ''}>Resolved</option>
+            </select>
+          </div>
+          <div class="tutor-chat-list">
+            ${filtered.length === 0 ? `
+              <div style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.8rem; font-style:italic;">No support tickets found.</div>
+            ` : filtered.map(c => {
+              const activeClass = DashboardComponent._activeConvId === c.id ? 'active' : '';
+              const relativeTime = DashboardComponent._getRelativeTime(c.last_reply_at);
+              return `
+                <div class="tutor-chat-list-item ${activeClass}" data-conv-id="${c.id}">
+                  <div class="tutor-chat-list-item-avatar" style="background:#0B5A43;">
+                    <i class="fa-solid fa-headset" style="font-size:0.95rem;"></i>
+                  </div>
+                  <div class="tutor-chat-list-item-content">
+                    <div class="tutor-chat-list-item-meta">
+                      <span class="tutor-chat-list-item-name" style="font-weight:700;">${c.category}</span>
+                      <span class="tutor-chat-list-item-time">${relativeTime}</span>
+                    </div>
+                    <div class="tutor-chat-list-item-msg" style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      Subject: ${c.subject}
+                    </div>
+                    <div class="tutor-chat-list-item-badges">
+                      <span class="support-prio-badge ${c.priority.toLowerCase()}" style="font-size:0.62rem; padding:1px 6px;">${c.priority}</span>
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <span class="status-badge ${c.status === 'Resolved' ? 'success' : c.status === 'Pending' ? 'pending' : 'danger'}" style="font-size:0.62rem; padding:1px 6px;">${c.status}</span>
+                        ${c.unread_by_student ? `<span class="tutor-chat-list-item-badge">1</span>` : ''}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="glass-panel" style="padding:0; overflow:hidden; display:flex; flex-direction:column; height:100%;">
+          ${rightPaneHtml}
+        </div>
+      </div>
+    `;
+  },
+
+  _bindSupportPortalEvents: function (convs) {
+    const searchInput = document.getElementById('support-conv-search');
+    searchInput?.addEventListener('input', (e) => {
+      DashboardComponent._supportSearch = e.target.value;
+      DashboardComponent._loadAndRenderSupport();
+    });
+
+    const filterSelect = document.getElementById('support-conv-status-filter');
+    filterSelect?.addEventListener('change', (e) => {
+      DashboardComponent._supportFilter = e.target.value;
+      DashboardComponent._loadAndRenderSupport();
+    });
+
+    document.getElementById('btn-start-new-conv-icon')?.addEventListener('click', () => {
+      DashboardComponent._showNewForm = true;
+      DashboardComponent._activeConvId = null;
+      DashboardComponent._loadAndRenderSupport();
+    });
+
+    document.querySelectorAll('.tutor-chat-list-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const convId = item.getAttribute('data-conv-id');
+        DashboardComponent._activeConvId = convId;
+        DashboardComponent._showNewForm = false;
+        DashboardComponent._loadAndRenderSupport();
+      });
+    });
+
+    if (DashboardComponent._activeConvId) {
+      DashboardComponent._bindChatViewEvents(DashboardComponent._activeConvId);
+    } else if (DashboardComponent._showNewForm) {
+      DashboardComponent._bindNewFormEvents();
     }
   },
 
@@ -1410,138 +1527,131 @@ const DashboardComponent = {
     const hasBeenRated = conv.rating !== null && conv.rating !== undefined;
 
     return `
-      <div style="display:flex; flex-direction:column; align-items:center; gap:0; height:100%;">
+      <div class="support-chat-container">
 
-        <div class="support-chat-phone-frame">
-        <div class="support-chat-container">
-
-
-          <!-- Status Bar -->
-          <div class="support-chat-statusbar">
-            <span class="support-chat-statusbar-time">12:00</span>
-            <div class="support-chat-statusbar-icons">
-              <i class="fa-solid fa-signal"></i>
-              <i class="fa-solid fa-wifi"></i>
-              <i class="fa-solid fa-battery-full"></i>
-            </div>
-          </div>
-
-          <!-- Contact Header Bar -->
-          <div class="support-chat-header">
-            <button class="support-chat-header-back" id="btn-back-to-list-chat">
+        <!-- Contact Header Bar -->
+        <div class="support-chat-header">
+          <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+            <button class="support-chat-header-back" id="btn-back-to-list-chat" style="margin-right:4px;">
               <i class="fa-solid fa-arrow-left"></i>
             </button>
-            <div class="support-chat-header-avatar">
-              <i class="fa-solid fa-headset" style="font-size:1rem;"></i>
+            <div class="support-chat-header-avatar" style="background:#0b5a43;">
+              <i class="fa-solid fa-headset" style="font-size:1rem; color:#fff;"></i>
             </div>
             <div class="support-chat-header-info">
               <div class="support-chat-title">Cubaze Support</div>
-              <div class="support-chat-subtitle">${conv.category} · <span style="color:${conv.status==='Resolved'?'#a8f0c6':conv.status==='Pending'?'#fde68a':'#fca5a5'};">${conv.status}</span></div>
-            </div>
-            <div class="support-chat-header-actions">
-              <button title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
-              <button title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div class="support-chat-subtitle">${conv.category} · <span style="font-weight:700;">${conv.status}</span></div>
             </div>
           </div>
+          <div class="support-chat-header-actions">
+            <button title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <button title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+          </div>
+        </div>
 
-          <!-- Messages -->
-          <div class="support-chat-messages" id="support-chat-thread">
-            <div class="support-chat-date-label">Today</div>
-            <div class="support-chat-encrypt-notice">
-              <i class="fa-solid fa-lock" style="margin-right:4px; font-size:0.65rem;"></i>
-              Messages and calls are secured with end-to-end encryption. Your admin will respond shortly.
-            </div>
-            ${messages.map(m => {
-      const isOwn = m.sender === cu.username;
-      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        <!-- Messages -->
+        <div class="support-chat-messages" id="support-chat-thread">
+          <div class="support-chat-date-label">Today</div>
+          <div class="support-chat-encrypt-notice">
+            <i class="fa-solid fa-lock" style="margin-right:6px; font-size:0.75rem;"></i>
+            Messages and calls are secured with end-to-end encryption. Your admin will respond shortly.
+          </div>
+          ${messages.map(m => {
+            const isOwn = m.sender === cu.username;
+            const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
+            let attachmentHtml = '';
+            if (m.file_url) {
+              const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+              if (isImg) {
+                attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+              } else {
+                attachmentHtml = `
+                          <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
+                            <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
+                            <div class="support-chat-attachment-info">
+                              <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
+                              <span class="support-chat-attachment-size">Download Attachment</span>
+                            </div>
+                          </a>
+                        `;
+              }
+            }
 
-      let attachmentHtml = '';
-      if (m.file_url) {
-        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-        if (isImg) {
-          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-        } else {
-          attachmentHtml = `
-                    <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
-                      <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
-                      <div class="support-chat-attachment-info">
-                        <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
-                        <span class="support-chat-attachment-size">Download Attachment</span>
+            let linkHtml = '';
+            if (m.external_link) {
+              linkHtml = `
+                        <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
+                          <i class="fa-solid fa-cloud"></i>
+                          <span>Shared File Link</span>
+                          <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
+                        </a>
+                      `;
+            }
+
+            return `
+                      <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
+                        <div class="support-msg-bubble">
+                          <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${isOwn ? '#3b82f6' : '#0B5A43'};">${isOwn ? 'You' : 'Cubaze Admin'}</div>
+                          <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
+                          ${attachmentHtml}
+                          ${linkHtml}
+                        </div>
+                        <div class="support-msg-meta">
+                          <span>${dateStr}</span>
+                          ${isOwn ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
+                        </div>
                       </div>
-                    </a>
-                  `;
-        }
-      }
+                    `;
+          }).join('')}
+        </div>
 
-      let linkHtml = '';
-      if (m.external_link) {
-        linkHtml = `
-                  <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
-                    <i class="fa-solid fa-cloud"></i>
-                    <span>Shared File Link</span>
-                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
-                  </a>
-                `;
-      }
-
-      return `
-                <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
-                  <div class="support-msg-bubble">
-                    <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px;">${isOwn ? 'You' : 'Cubaze Admin'}</div>
-                    <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
-                    ${attachmentHtml}
-                    ${linkHtml}
-                  </div>
-                  <div class="support-msg-meta">
-                    <span>${dateStr}</span>
-                    ${isOwn ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
-                  </div>
-                </div>
-              `;
-    }).join('')}
-          </div>
-
-          ${conv.status === 'Resolved' ? `
-            <div style="padding:24px; background:var(--bg-card); border-top:1px solid var(--border-color); text-align:center;">
-              <h4 style="margin:0 0 8px 0; font-weight:700;"><i class="fa-solid fa-circle-check" style="color:var(--success); margin-right:6px;"></i>This ticket has been marked as Resolved</h4>
-              
-              ${hasBeenRated ? `
-                <p style="color:var(--text-muted); font-size:0.83rem; margin:8px 0;">You rated this support session <strong>${conv.rating} Stars</strong></p>
-                ${conv.feedback ? `<p style="font-size:0.83rem; color:var(--text-secondary); background:var(--bg-primary); padding:10px; border-radius:6px; display:inline-block; max-width:400px; margin:0; border:1px solid var(--border-color); font-style:italic;">"${conv.feedback}"</p>` : ''}
-              ` : `
-                <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:12px;">How would you rate the support you received?</p>
-                <div class="support-star-rating" id="support-rating-stars">
-                  <i class="fa-regular fa-star" data-val="1"></i>
-                  <i class="fa-regular fa-star" data-val="2"></i>
-                  <i class="fa-regular fa-star" data-val="3"></i>
-                  <i class="fa-regular fa-star" data-val="4"></i>
-                  <i class="fa-regular fa-star" data-val="5"></i>
-                </div>
-                <div style="margin-top:12px; display:none;" id="rating-feedback-area">
-                  <textarea id="rating-feedback-text" placeholder="Share your experience (Optional)..." style="width:100%; max-width:450px; min-height:60px; border-radius:8px; padding:10px; font-size:0.8rem; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); resize:vertical; box-sizing:border-box; margin-bottom:12px; font-family:inherit;"></textarea>
-                  <div>
-                    <button class="btn btn-primary btn-sm" id="btn-submit-rating" style="padding:8px 18px;">Submit Feedback</button>
-                  </div>
-                </div>
-              `}
-            </div>
-          ` : `
-            <div class="support-chat-input-wrapper">
-              <div class="support-chat-input-row">
-                <button class="support-chat-emoji-btn" id="btn-support-emoji" title="Emoji">😊</button>
-                <textarea class="support-chat-input-textarea" id="chat-message-text" placeholder="Message" rows="1"></textarea>
-                <div class="support-chat-attach-btn" title="Attach file">
-                  <i class="fa-solid fa-paperclip"></i>
-                  <input type="file" id="chat-upload-file">
-                </div>
-                <button class="btn btn-primary" id="btn-send-message"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
+        ${conv.status === 'Resolved' ? `
+          <div style="padding:24px; background:var(--bg-card); border-top:1px solid var(--border-color); text-align:center;">
+            <h4 style="margin:0 0 8px 0; font-weight:700;"><i class="fa-solid fa-circle-check" style="color:var(--success); margin-right:6px;"></i>This ticket has been marked as Resolved</h4>
+            
+            ${hasBeenRated ? `
+              <p style="color:var(--text-muted); font-size:0.83rem; margin:8px 0;">You rated this support session <strong>${conv.rating} Stars</strong></p>
+              ${conv.feedback ? `<p style="font-size:0.83rem; color:var(--text-secondary); background:var(--bg-primary); padding:10px; border-radius:6px; display:inline-block; max-width:400px; margin:0; border:1px solid var(--border-color); font-style:italic;">"${conv.feedback}"</p>` : ''}
+            ` : `
+              <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:12px;">How would you rate the support you received?</p>
+              <div class="support-star-rating" id="support-rating-stars">
+                <i class="fa-regular fa-star" data-val="1"></i>
+                <i class="fa-regular fa-star" data-val="2"></i>
+                <i class="fa-regular fa-star" data-val="3"></i>
+                <i class="fa-regular fa-star" data-val="4"></i>
+                <i class="fa-regular fa-star" data-val="5"></i>
               </div>
-              <div id="chat-file-selected-chip" style="display:none; padding:4px 0 0 8px; font-size:0.72rem; color:#00a884;"></div>
+              <div style="margin-top:12px; display:none;" id="rating-feedback-area">
+                <textarea id="rating-feedback-text" placeholder="Share your experience (Optional)..." style="width:100%; max-width:450px; min-height:60px; border-radius:8px; padding:10px; font-size:0.8rem; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); resize:vertical; box-sizing:border-box; margin-bottom:12px; font-family:inherit;"></textarea>
+                <div>
+                  <button class="btn btn-primary btn-sm" id="btn-submit-rating" style="padding:8px 18px;">Submit Feedback</button>
+                </div>
+              </div>
+            `}
+          </div>
+        ` : `
+          <div class="support-chat-input-wrapper">
+            <div class="support-chat-attachments-row">
+              <div class="support-chat-attach-btn" title="Attach file">
+                <i class="fa-solid fa-paperclip"></i>
+                <input type="file" id="chat-upload-file">
+              </div>
+              <div id="chat-file-selected-chip" style="display:none;"></div>
+
+              <div class="support-link-input-wrapper">
+                <i class="fa-solid fa-link"></i>
+                <input type="url" id="chat-external-link" placeholder="Cloud Storage File Link">
+              </div>
             </div>
-          `}
-        </div>
-        </div>
+
+            <div class="support-chat-input-row">
+              <button class="support-chat-emoji-btn" id="btn-support-emoji" title="Emoji">😊</button>
+              <textarea class="support-chat-input-textarea" id="chat-message-text" placeholder="Type reply..." rows="1"></textarea>
+              <button class="btn btn-primary" id="btn-send-message"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
+            </div>
+          </div>
+        `}
       </div>
     `;
   },
@@ -1554,7 +1664,13 @@ const DashboardComponent = {
       const messages = await window.db.getSupportMessages(convId);
       const cu = window.db.getCurrentUser();
 
-      thread.innerHTML = messages.map(m => {
+      thread.innerHTML = `
+        <div class="support-chat-date-label">Today</div>
+        <div class="support-chat-encrypt-notice">
+          <i class="fa-solid fa-lock" style="margin-right:6px; font-size:0.75rem;"></i>
+          Messages and calls are secured with end-to-end encryption. Your admin will respond shortly.
+        </div>
+      ` + messages.map(m => {
         const isOwn = m.sender === cu.username;
         const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
@@ -1590,7 +1706,7 @@ const DashboardComponent = {
         return `
           <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
             <div class="support-msg-bubble">
-              <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px;">${isOwn ? 'You' : 'Cubaze Admin'}</div>
+              <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${isOwn ? '#3b82f6' : '#0B5A43'};">${isOwn ? 'You' : 'Cubaze Admin'}</div>
               <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
               ${attachmentHtml}
               ${linkHtml}
@@ -1903,14 +2019,6 @@ const DashboardComponent = {
     const cu = window.db.getCurrentUser();
     if (!cu) return;
 
-    if (DashboardComponent._activeTutorConvId) {
-      content.innerHTML = await DashboardComponent._renderTutorConversationView(DashboardComponent._activeTutorConvId);
-      DashboardComponent._bindTutorConversationEvents(DashboardComponent._activeTutorConvId);
-      await window.db.markTutorMessagesAsSeen(DashboardComponent._activeTutorConvId, 'student');
-      DashboardComponent.updateTutorChatBadge();
-      return;
-    }
-
     if (DashboardComponent._showNewTutorForm) {
       content.innerHTML = DashboardComponent._renderNewTutorConvForm();
       DashboardComponent._bindNewTutorFormEvents();
@@ -1948,8 +2056,12 @@ const DashboardComponent = {
         const b = bid ? window.db.getBatchById(bid) : null;
         return b && (b.status === 'Active' || b.status === 'Completed');
       });
-      content.innerHTML = DashboardComponent._renderTutorChatPortal(tutors, convs);
+      content.innerHTML = await DashboardComponent._renderTutorChatPortal(tutors, convs);
       DashboardComponent._bindTutorChatPortalEvents(tutors, convs);
+
+      if (DashboardComponent._activeTutorConvId) {
+        await window.db.markTutorMessagesAsSeen(DashboardComponent._activeTutorConvId, 'student');
+      }
       DashboardComponent.updateTutorChatBadge();
     } catch (err) {
       content.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
@@ -1986,9 +2098,17 @@ const DashboardComponent = {
 
     try {
       const messages = await window.db.getTutorMessages(convId);
+      const convs = await window.db.getTutorConversations();
+      const conv = convs.find(c => c.id === convId);
       const cu = window.db.getCurrentUser();
 
-      thread.innerHTML = messages.map(m => {
+      thread.innerHTML = `
+        <div class="support-chat-date-label">Today</div>
+        <div class="support-chat-encrypt-notice">
+          <i class="fa-solid fa-lock" style="margin-right:6px; font-size:0.75rem;"></i>
+          Messages with your instructor are end-to-end secured. Only you and your tutor can read them.
+        </div>
+      ` + messages.map(m => {
         const isOwn = m.sender === cu.username;
         const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
@@ -2024,6 +2144,7 @@ const DashboardComponent = {
         return `
           <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
             <div class="support-msg-bubble">
+              <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${isOwn ? '#3b82f6' : '#0B5A43'};">${isOwn ? 'You' : (conv ? `@${conv.tutor_username} (Tutor)` : 'Tutor')}</div>
               <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
               ${attachmentHtml}
               ${linkHtml}
@@ -2042,8 +2163,79 @@ const DashboardComponent = {
     }
   },
 
-  _renderTutorChatPortal: function (tutors, convs) {
+  _renderTutorChatPortal: async function (tutors, convs) {
     const activeSubTab = DashboardComponent._tutorSubTab || 'tutors';
+    const search = DashboardComponent._tutorConvSearch || '';
+
+    let filteredConvs = convs;
+    if (search) {
+      const q = search.toLowerCase();
+      filteredConvs = filteredConvs.filter(c => c.tutor_username.toLowerCase().includes(q) || c.subject.toLowerCase().includes(q));
+    }
+
+    let chatsContentHtml = '';
+    if (activeSubTab === 'chats') {
+      let rightPaneHtml = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:400px; color:var(--text-muted); text-align:center; padding:32px;">
+          <i class="fa-solid fa-comments" style="font-size:3.5rem; margin-bottom:16px; opacity:0.3; color:var(--brand-blue);"></i>
+          <h3 style="margin:0 0 8px 0; font-weight:700;">No Conversation Selected</h3>
+          <p style="margin:0; font-size:0.84rem; max-width:280px;">Select a tutor conversation from the sidebar list to view the message thread and reply.</p>
+        </div>
+      `;
+
+      if (DashboardComponent._activeTutorConvId) {
+        rightPaneHtml = await DashboardComponent._renderTutorConversationView(DashboardComponent._activeTutorConvId);
+      }
+
+      chatsContentHtml = `
+        <div class="tutor-chat-layout">
+          <div class="tutor-chat-sidebar">
+            <div class="tutor-chat-sidebar-header">
+              <div class="search-input-wrapper" style="width:100%; box-sizing:border-box; margin:0;">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input id="tutor-conv-search" placeholder="Search chats..." value="${search}">
+              </div>
+            </div>
+            <div class="tutor-chat-list">
+              ${filteredConvs.length === 0 ? `
+                <div style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.8rem; font-style:italic;">No active chats found.</div>
+              ` : filteredConvs.map(c => {
+                const activeClass = DashboardComponent._activeTutorConvId === c.id ? 'active' : '';
+                const lastActiveStr = DashboardComponent._getRelativeTime(c.last_reply_at);
+                const isUnread = c.unread_by_student;
+                return `
+                  <div class="tutor-chat-list-item ${activeClass}" data-conv-id="${c.id}">
+                    <div class="tutor-chat-list-item-avatar" style="background:${window.getAvatarColor(c.tutor_username)};">
+                      ${c.tutor_username ? c.tutor_username.charAt(0).toUpperCase() : 'T'}
+                    </div>
+                    <div class="tutor-chat-list-item-content">
+                      <div class="tutor-chat-list-item-meta">
+                        <span class="tutor-chat-list-item-name">@${c.tutor_username}</span>
+                        <span class="tutor-chat-list-item-time">${lastActiveStr}</span>
+                      </div>
+                      <div class="tutor-chat-list-item-msg" style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        Subject: ${c.subject}
+                      </div>
+                      <div class="tutor-chat-list-item-badges">
+                        <span class="support-cat-badge" style="font-size:0.62rem; padding:1px 6px;">${c.category}</span>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                          <span class="status-badge ${c.status === 'Resolved' ? 'success' : 'danger'}" style="font-size:0.62rem; padding:1px 6px;">${c.status}</span>
+                          ${isUnread ? `<span class="tutor-chat-list-item-badge">1</span>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <div class="glass-panel" style="padding:0; overflow:hidden; display:flex; flex-direction:column; height:100%;">
+            ${rightPaneHtml}
+          </div>
+        </div>
+      `;
+    }
 
     return `
       <div class="dashboard-welcome">
@@ -2073,14 +2265,14 @@ const DashboardComponent = {
         ` : `
           <div class="tutors-grid">
             ${tutors.map(t => {
-      const coursesStr = t.courses.join(', ');
-      return `
+              const coursesStr = t.courses.join(', ');
+              return `
                 <div class="tutor-card-chat">
                   <div class="tutor-avatar-wrapper">
                     ${t.photo ? `
                       <img src="${t.photo}" class="tutor-card-chat-avatar" style="object-fit: cover; border: 2px solid var(--brand-blue-pale);" alt="${t.name}">
                     ` : `
-                      <div class="tutor-card-chat-avatar">${t.name.charAt(0).toUpperCase()}</div>
+                      <div class="tutor-card-chat-avatar" style="background:${window.getAvatarColor(t.username)};">${t.name.charAt(0).toUpperCase()}</div>
                     `}
                     <span class="tutor-status-indicator ${t.online ? 'online' : 'offline'}"></span>
                   </div>
@@ -2094,54 +2286,10 @@ const DashboardComponent = {
                   </button>
                 </div>
               `;
-    }).join('')}
+            }).join('')}
           </div>
         `}
-      ` : `
-        <div class="glass-panel" style="padding:0; overflow:hidden;">
-          ${convs.length === 0 ? `
-            <div style="text-align:center; padding:48px; color:var(--text-muted);">No active chats with tutors yet. Go to "My Tutors" to start a conversation.</div>
-          ` : `
-            <table class="data-table" style="margin-bottom:0;">
-              <thead>
-                <tr>
-                  <th>Tutor</th>
-                  <th>Subject</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                  <th>Last Reply</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${convs.map(c => {
-      const lastActiveStr = DashboardComponent._getRelativeTime(c.last_reply_at);
-      const isUnread = c.unread_by_student;
-      return `
-                    <tr style="${isUnread ? 'background: rgba(61, 70, 216, 0.04); font-weight: 600;' : ''}">
-                      <td>
-                        <div style="font-weight:700; color:var(--text-primary);">@${c.tutor_username}</div>
-                      </td>
-                      <td>${c.subject}</td>
-                      <td><span class="support-cat-badge">${c.category}</span></td>
-                      <td>
-                        <span class="status-badge ${c.status === 'Resolved' ? 'success' : 'danger'}">${c.status}</span>
-                      </td>
-                      <td style="font-size:0.8rem; color:var(--text-muted);">${lastActiveStr}</td>
-                      <td>
-                        <button class="btn btn-outline-white btn-sm btn-view-tutor-chat" data-conv-id="${c.id}">
-                          View Chat
-                          ${isUnread ? `<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#ef4444; margin-left:6px;"></span>` : ''}
-                        </button>
-                      </td>
-                    </tr>
-                  `;
-    }).join('')}
-              </tbody>
-            </table>
-          `}
-        </div>
-      `}
+      ` : chatsContentHtml}
     `;
   },
 
@@ -2164,6 +2312,7 @@ const DashboardComponent = {
         const existing = convs.find(c => c.tutor_username === tutorUsername);
         if (existing) {
           DashboardComponent._activeTutorConvId = existing.id;
+          DashboardComponent._tutorSubTab = 'chats';
           DashboardComponent._loadAndRenderTutorChat();
         } else {
           DashboardComponent._newTutorChatData = { tutorUsername, courseId };
@@ -2173,15 +2322,24 @@ const DashboardComponent = {
       });
     });
 
-    document.querySelectorAll('.btn-view-tutor-chat').forEach(btn => {
-      btn.addEventListener('click', () => {
-        DashboardComponent._activeTutorConvId = btn.getAttribute('data-conv-id');
-        // Immediately clear tutor badge (optimistic UI) when student opens a chat
+    const searchInput = document.getElementById('tutor-conv-search');
+    searchInput?.addEventListener('input', (e) => {
+      DashboardComponent._tutorConvSearch = e.target.value;
+      DashboardComponent._loadAndRenderTutorChat();
+    });
+
+    document.querySelectorAll('.tutor-chat-list-item').forEach(item => {
+      item.addEventListener('click', () => {
+        DashboardComponent._activeTutorConvId = item.getAttribute('data-conv-id');
         const badge = document.getElementById('tutor-chat-unread-badge');
         if (badge) badge.style.display = 'none';
         DashboardComponent._loadAndRenderTutorChat();
       });
     });
+
+    if (DashboardComponent._activeTutorConvId && DashboardComponent._tutorSubTab === 'chats') {
+      DashboardComponent._bindTutorConversationEvents(DashboardComponent._activeTutorConvId);
+    }
   },
 
   _renderNewTutorConvForm: function () {
@@ -2283,31 +2441,22 @@ const DashboardComponent = {
     const cu = window.db.getCurrentUser();
 
     return `
-      <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px; align-items: start;">
-        <div class="support-chat-phone-frame">
+      <div style="display:grid; grid-template-columns: 2.2fr 1fr; gap:0; align-items: stretch; height:100%;">
         <div class="support-chat-container">
-
-          <!-- Status Bar -->
-          <div class="support-chat-statusbar">
-            <span class="support-chat-statusbar-time">12:00</span>
-            <div class="support-chat-statusbar-icons">
-              <i class="fa-solid fa-signal"></i>
-              <i class="fa-solid fa-wifi"></i>
-              <i class="fa-solid fa-battery-full"></i>
-            </div>
-          </div>
 
           <!-- Tutor Contact Header -->
           <div class="support-chat-header">
-            <button class="support-chat-header-back" id="btn-tutor-chat-back">
-              <i class="fa-solid fa-arrow-left"></i>
-            </button>
-            <div class="support-chat-header-avatar">
-              ${conv.tutor_username ? conv.tutor_username.charAt(0).toUpperCase() : 'T'}
-            </div>
-            <div class="support-chat-header-info">
-              <div class="support-chat-title">@${conv.tutor_username}</div>
-              <div class="support-chat-subtitle"><span style="color:#a8f0c6;">Online</span> · ${conv.category}</div>
+            <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+              <button class="support-chat-header-back" id="btn-tutor-chat-back" style="margin-right:4px;">
+                <i class="fa-solid fa-arrow-left"></i>
+              </button>
+              <div class="support-chat-header-avatar" style="background:${window.getAvatarColor(conv.tutor_username)};">
+                ${conv.tutor_username ? conv.tutor_username.charAt(0).toUpperCase() : 'T'}
+              </div>
+              <div class="support-chat-header-info">
+                <div class="support-chat-title">@${conv.tutor_username}</div>
+                <div class="support-chat-subtitle"><span style="color:#a8f0c6;">Online</span> · ${conv.category}</div>
+              </div>
             </div>
             <div class="support-chat-header-actions">
               <button title="Video Call"><i class="fa-solid fa-video"></i></button>
@@ -2320,57 +2469,57 @@ const DashboardComponent = {
           <div class="support-chat-messages" id="tutor-chat-thread">
             <div class="support-chat-date-label">Today</div>
             <div class="support-chat-encrypt-notice">
-              <i class="fa-solid fa-lock" style="margin-right:4px; font-size:0.65rem;"></i>
+              <i class="fa-solid fa-lock" style="margin-right:6px; font-size:0.75rem;"></i>
               Messages with your instructor are end-to-end secured. Only you and your tutor can read them.
             </div>
             ${messages.map(m => {
-      const isOwn = m.sender === cu.username;
-      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+              const isOwn = m.sender === cu.username;
+              const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
-      let attachmentHtml = '';
-      if (m.file_url) {
+              let attachmentHtml = '';
+              if (m.file_url) {
+                const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+                if (isImg) {
+                  attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+                } else {
+                  attachmentHtml = `
+                            <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
+                              <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
+                              <div class="support-chat-attachment-info">
+                                <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
+                                <span class="support-chat-attachment-size">Download Attachment</span>
+                              </div>
+                            </a>
+                          `;
+                }
+              }
 
-        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-        if (isImg) {
-          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-        } else {
-          attachmentHtml = `
-                    <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
-                      <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
-                      <div class="support-chat-attachment-info">
-                        <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
-                        <span class="support-chat-attachment-size">Download Attachment</span>
-                      </div>
-                    </a>
-                  `;
-        }
-      }
+              let linkHtml = '';
+              if (m.external_link) {
+                linkHtml = `
+                          <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
+                            <i class="fa-solid fa-cloud"></i>
+                            <span>Shared File Link</span>
+                            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
+                          </a>
+                        `;
+              }
 
-      let linkHtml = '';
-      if (m.external_link) {
-        linkHtml = `
-                  <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
-                    <i class="fa-solid fa-cloud"></i>
-                    <span>Shared File Link</span>
-                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
-                  </a>
-                `;
-      }
-
-      return `
-                <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
-                  <div class="support-msg-bubble">
-                    <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
-                    ${attachmentHtml}
-                    ${linkHtml}
-                  </div>
-                  <div class="support-msg-meta">
-                    <span>${dateStr}</span>
-                    ${isOwn ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
-                  </div>
-                </div>
-              `;
-    }).join('')}
+              return `
+                        <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
+                          <div class="support-msg-bubble">
+                            <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${isOwn ? '#3b82f6' : '#0B5A43'};">${isOwn ? 'You' : `@${conv.tutor_username} (Tutor)`}</div>
+                            <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
+                            ${attachmentHtml}
+                            ${linkHtml}
+                          </div>
+                          <div class="support-msg-meta">
+                            <span>${dateStr}</span>
+                            ${isOwn ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
+                          </div>
+                        </div>
+                      `;
+            }).join('')}
           </div>
 
           ${conv.status === 'Resolved' ? `
@@ -2379,24 +2528,29 @@ const DashboardComponent = {
             </div>
           ` : `
             <div class="support-chat-input-wrapper">
-              <div class="support-chat-input-row">
-                <button class="support-chat-emoji-btn" id="btn-tutor-emoji" title="Emoji">😊</button>
-                <textarea class="support-chat-input-textarea" id="tutor-chat-message-text" placeholder="Message" rows="1"></textarea>
+              <div class="support-chat-attachments-row">
                 <div class="support-chat-attach-btn" title="Attach file">
                   <i class="fa-solid fa-paperclip"></i>
                   <input type="file" id="tutor-chat-upload-file">
                 </div>
-                <button class="btn btn-primary" id="btn-tutor-send-message"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
+                <div id="tutor-chat-file-selected-chip" style="display:none;"></div>
+
+                <div class="support-link-input-wrapper">
+                  <i class="fa-solid fa-link"></i>
+                  <input type="url" id="tutor-chat-external-link" placeholder="Cloud Storage File Link">
+                </div>
               </div>
-              <div id="tutor-chat-file-selected-chip" style="display:none; padding:4px 0 0 8px; font-size:0.72rem; color:#00a884;"></div>
-            </div>
+
+              <div class="support-chat-input-row">
+                <button class="support-chat-emoji-btn" id="btn-tutor-emoji" title="Emoji">😊</button>
+                <textarea class="support-chat-input-textarea" id="tutor-chat-message-text" placeholder="Message" rows="1"></textarea>
+                <button class="btn btn-primary" id="btn-tutor-send-message"><i class="fa-solid fa-paper-plane" style="font-size:1rem;"></i></button>
               </div>
             </div>
           `}
         </div>
-        </div>
 
-        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px;">
+        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px; border:none; border-left:1px solid var(--border-color); border-radius:0; background:var(--bg-secondary); margin:0;">
           <h3 style="margin:0 0 8px 0; font-weight:700; font-size:1rem; border-bottom:1px solid var(--border-color); padding-bottom:8px;">Conversation Info</h3>
           <div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Instructor</div>

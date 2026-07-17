@@ -4447,31 +4447,21 @@ const AdminComponent = {
         </div>
       </div>
 
-      <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px; align-items: start;">
-        <div class="support-chat-container">
+      <div style="display:grid; grid-template-columns: 2.2fr 1fr; gap:0; align-items: stretch; height:calc(100vh - 200px); min-height:550px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:var(--radius-lg); overflow:hidden;">
+        <div class="support-chat-container" style="border:none; border-radius:0;">
           
-          <!-- Status Bar -->
-          <div class="support-chat-statusbar">
-            <span class="support-chat-statusbar-time">12:00</span>
-            <div class="support-chat-statusbar-icons">
-              <i class="fa-solid fa-signal"></i>
-              <i class="fa-solid fa-wifi"></i>
-              <i class="fa-solid fa-battery-full"></i>
-            </div>
-          </div>
-
           <!-- Contact Header Bar -->
-          <div class="support-chat-header">
+          <div class="support-chat-header" style="border-radius:0;">
             <button class="support-chat-header-back" id="btn-back-to-requests">
               <i class="fa-solid fa-arrow-left"></i>
             </button>
-            <div class="support-chat-header-avatar">
-              <i class="fa-solid fa-headset" style="font-size:1rem;"></i>
+            <div class="support-chat-header-avatar" style="background:${window.getAvatarColor(conv.student_username)};">
+              ${conv.student_username ? conv.student_username.charAt(0).toUpperCase() : 'S'}
             </div>
             <div class="support-chat-header-info">
-              <div class="support-chat-title">Cubaze Support</div>
+              <div class="support-chat-title">@${conv.student_username} (Student Request)</div>
               <div class="support-chat-subtitle">
-                ${conv.category} · <span style="color:${conv.status === 'Resolved' ? '#a8f0c6' : conv.status === 'Pending' ? '#fde68a' : '#fca5a5'}; font-weight:600;">${conv.status}</span>
+                ${conv.category} · <span style="font-weight:700;">${conv.status}</span>
               </div>
             </div>
             <div class="support-chat-header-actions">
@@ -4483,69 +4473,69 @@ const AdminComponent = {
           <div class="support-chat-messages" id="support-chat-thread">
             <div class="support-chat-date-label">Today</div>
             <div class="support-chat-encrypt-notice">
-              <i class="fa-solid fa-lock" style="margin-right:4px; font-size:0.65rem;"></i>
-              Messages and calls are secured with end-to-end encryption. Your admin will respond shortly.
+              <i class="fa-solid fa-lock" style="margin-right:6px; font-size:0.75rem;"></i>
+              Messages and calls are secured with end-to-end encryption. Your student will respond shortly.
             </div>
             ${messages.map(m => {
-      const isOwn = m.sender === cu.username;
-      const isStudent = m.sender === conv.student_username;
-      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+              const isOwn = m.sender === cu.username;
+              const isStudent = m.sender === conv.student_username;
+              const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
-      let attachmentHtml = '';
-      if (m.file_url) {
-        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-        if (isImg) {
-          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-        } else {
-          attachmentHtml = `
-                    <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
-                      <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
-                      <div class="support-chat-attachment-info">
-                        <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
-                        <span class="support-chat-attachment-size">Download Attachment</span>
-                      </div>
-                    </a>
-                  `;
-        }
-      }
+              let attachmentHtml = '';
+              if (m.file_url) {
+                const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+                if (isImg) {
+                  attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+                } else {
+                  attachmentHtml = `
+                            <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
+                              <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
+                              <div class="support-chat-attachment-info">
+                                <span class="support-chat-attachment-name">${m.file_name || 'Attached File'}</span>
+                                <span class="support-chat-attachment-size">Download Attachment</span>
+                              </div>
+                            </a>
+                          `;
+                }
+              }
 
-      let linkHtml = '';
-      if (m.external_link) {
-        linkHtml = `
-                  <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
-                    <i class="fa-solid fa-cloud"></i>
-                    <span>Shared File Link</span>
-                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
-                  </a>
-                `;
-      }
+              let linkHtml = '';
+              if (m.external_link) {
+                linkHtml = `
+                          <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
+                            <i class="fa-solid fa-cloud"></i>
+                            <span>Shared File Link</span>
+                            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
+                          </a>
+                        `;
+              }
 
-      let alignClass = 'admin-align';
-      if (m.is_internal) {
-        alignClass = 'internal-note-align';
-      } else if (isStudent) {
-        alignClass = 'admin-align';
-      } else {
-        alignClass = 'student-align';
-      }
+              let alignClass = 'admin-align';
+              if (m.is_internal) {
+                alignClass = 'internal-note-align';
+              } else if (isStudent) {
+                alignClass = 'admin-align';
+              } else {
+                alignClass = 'student-align';
+              }
 
-      return `
-                <div class="support-msg-wrapper ${alignClass}">
-                  <div class="support-msg-bubble">
-                    <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px;">
-                      ${m.is_internal ? '<i class="fa-solid fa-lock"></i> Internal Admin Note' : isStudent ? `@${conv.student_username} (Student)` : 'You (Admin)'}
-                    </div>
-                    <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
-                    ${attachmentHtml}
-                    ${linkHtml}
-                  </div>
-                  <div class="support-msg-meta">
-                    <span>${dateStr}</span>
-                    ${(!m.is_internal && !isStudent) ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
-                  </div>
-                </div>
-              `;
-    }).join('')}
+              return `
+                        <div class="support-msg-wrapper ${alignClass}">
+                          <div class="support-msg-bubble">
+                            <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${m.is_internal ? '#92400e' : isStudent ? '#0B5A43' : '#3b82f6'};">
+                              ${m.is_internal ? '<i class="fa-solid fa-lock"></i> Internal Admin Note' : isStudent ? `@${conv.student_username} (Student)` : 'You (Admin)'}
+                            </div>
+                            <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
+                            ${attachmentHtml}
+                            ${linkHtml}
+                          </div>
+                          <div class="support-msg-meta">
+                            <span>${dateStr}</span>
+                            ${(!m.is_internal && !isStudent) ? `<i class="fa-solid ${m.seen ? 'fa-check-double seen' : 'fa-check unseen'} support-msg-seen-icon"></i>` : ''}
+                          </div>
+                        </div>
+                      `;
+            }).join('')}
           </div>
 
           <div class="support-chat-input-wrapper">
@@ -4575,7 +4565,7 @@ const AdminComponent = {
           </div>
         </div>
 
-        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px;">
+        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px; border:none; border-left:1px solid var(--border-color); border-radius:0; background:var(--bg-secondary); margin:0; height:100%; box-sizing:border-box;">
           <h3 style="margin:0 0 8px 0; font-weight:700; font-size:1rem; border-bottom:1px solid var(--border-color); padding-bottom:8px;">Conversation Info</h3>
           <div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Student Username</div>
@@ -4636,7 +4626,13 @@ const AdminComponent = {
 
       const cu = window.db.getCurrentUser();
 
-      thread.innerHTML = messages.map(m => {
+      thread.innerHTML = `
+        <div class="support-chat-date-label">Today</div>
+        <div class="support-chat-encrypt-notice">
+          <i class="fa-solid fa-lock" style="margin-right:6px; font-size:0.75rem;"></i>
+          Messages and calls are secured with end-to-end encryption. Your student will respond shortly.
+        </div>
+      ` + messages.map(m => {
         const isOwn = m.sender === cu.username;
         const isStudent = m.sender === conv.student_username;
         const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
@@ -4682,7 +4678,7 @@ const AdminComponent = {
         return `
           <div class="support-msg-wrapper ${alignClass}">
             <div class="support-msg-bubble">
-              <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px;">
+              <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${m.is_internal ? '#92400e' : isStudent ? '#0B5A43' : '#3b82f6'};">
                 ${m.is_internal ? '<i class="fa-solid fa-lock"></i> Internal Admin Note' : isStudent ? `@${conv.student_username} (Student)` : 'You (Admin)'}
               </div>
               <div style="font-size:0.86rem; white-space:pre-wrap;">${m.message}</div>
