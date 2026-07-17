@@ -504,11 +504,10 @@ const DashboardComponent = {
 
   init: function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    DashboardComponent._activeTab = 'overview';
-    DashboardComponent._activeConvId = null;
-    DashboardComponent._activeTutorConvId = null;
-    DashboardComponent._showNewForm = false;
-    DashboardComponent._showNewTutorForm = false;
+    
+    // Preserve active tab, default to 'overview'
+    const tab = DashboardComponent._activeTab || 'overview';
+    DashboardComponent._activeTab = tab;
 
     // Initial badge fetch
     DashboardComponent.updateSupportBadge();
@@ -563,12 +562,18 @@ const DashboardComponent = {
       });
     });
 
-    // Initial binding on load
+    // Initial binding on load or route refresh
     const cu = window.db.getCurrentUser();
-    if (cu && DashboardComponent._activeTab === 'overview') {
-      setTimeout(() => {
-        if (window.DashboardRightPanel) window.DashboardRightPanel.bindEvents(cu);
-      }, 100);
+    if (cu) {
+      if (tab === 'support') {
+        DashboardComponent._loadAndRenderSupport();
+      } else if (tab === 'tutor_chat') {
+        DashboardComponent._loadAndRenderTutorChat();
+      } else if (tab === 'overview') {
+        setTimeout(() => {
+          if (window.DashboardRightPanel) window.DashboardRightPanel.bindEvents(cu);
+        }, 100);
+      }
     }
   },
 

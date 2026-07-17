@@ -3108,13 +3108,24 @@ const AdminComponent = {
   ============================================================ */
   init: function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    AdminComponent._sec = 'dashboard';
-    AdminComponent._activeConvId = null;
+    
+    // Preserve active section and conversation ID, defaulting to 'dashboard'
+    const sec = AdminComponent._sec || 'dashboard';
+    AdminComponent._sec = sec;
+    
     AdminComponent._bindSidebar();
-    AdminComponent._bindSection('dashboard');
+    
+    // Bind and render the correct active section
+    if (sec === 'requests') {
+      AdminComponent._loadAndRenderRequests();
+    } else {
+      AdminComponent._bindSection(sec);
+    }
+    
     AdminComponent.updateAdminBadge();
+    
     const cu = window.db.getCurrentUser();
-    if (cu && AdminComponent._sec === 'dashboard') {
+    if (cu && sec === 'dashboard') {
       setTimeout(() => {
         if (window.DashboardRightPanel) window.DashboardRightPanel.bindEvents(cu);
       }, 100);

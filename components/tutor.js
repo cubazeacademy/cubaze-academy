@@ -1372,21 +1372,36 @@ const TutorComponent = {
   // =====================================================
   init: function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    TutorComponent._openCourseId = null;
-    TutorComponent._activeTab = 'dashboard';
-    TutorComponent._activeConvId = null;
+    
+    // Preserve active tab, default to 'dashboard'
+    const tab = TutorComponent._activeTab || 'dashboard';
+    TutorComponent._activeTab = tab;
 
     TutorComponent._bindSidebar();
-    TutorComponent._bindCourseCards();
-    TutorComponent._bindUploadForm();
-    TutorComponent.updateTutorBadge();
-
-    const cu = window.db.getCurrentUser();
-    if (cu && TutorComponent._activeTab === 'dashboard') {
-      setTimeout(() => {
-        if (window.DashboardRightPanel) window.DashboardRightPanel.bindEvents(cu);
-      }, 100);
+    
+    // Bind correct event handlers for active tab
+    if (tab === 'messages') {
+      TutorComponent._loadAndRenderMessages();
+    } else {
+      TutorComponent._bindCourseCards();
+      TutorComponent._bindUploadForm();
+      if (tab === 'liveclasses') {
+        TutorComponent._bindLiveClassesEvents();
+      }
+      if (tab === 'batches') {
+        TutorComponent._bindBatchesEvents();
+      }
+      if (TutorComponent._openCourseId) {
+        TutorComponent._bindLessonManagerEvents(TutorComponent._openCourseId);
+      }
+      const cu = window.db.getCurrentUser();
+      if (cu && tab === 'dashboard') {
+        setTimeout(() => {
+          if (window.DashboardRightPanel) window.DashboardRightPanel.bindEvents(cu);
+        }, 100);
+      }
     }
+    TutorComponent.updateTutorBadge();
   },
 
   _bindSidebar: function () {
