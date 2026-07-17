@@ -1455,7 +1455,7 @@ const DashboardComponent = {
 
   _renderNewFormView: function () {
     return `
-      <div style="display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; flex-direction:column; gap:20px; padding:24px; overflow-y:auto; height:100%; box-sizing:border-box;">
         <div style="display:flex; align-items:center; gap:12px;">
           <button class="btn btn-outline-white btn-sm" id="btn-back-to-list" style="width:36px; height:36px; padding:0; border-radius:50%;"><i class="fa-solid fa-arrow-left"></i></button>
           <h2 style="margin:0; font-weight:800; font-size:1.4rem;">New Support Conversation</h2>
