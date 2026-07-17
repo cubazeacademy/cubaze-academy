@@ -4022,6 +4022,12 @@ const AdminComponent = {
             <span style="font-size:0.78rem; color:var(--text-muted);">to</span>
             <input type="date" id="req-filter-end-date" value="${endDate}" style="padding:8px 12px; border:1px solid var(--border-color); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--text-primary);">
           </div>
+          
+          <div id="req-bulk-actions" style="display:none; align-items:center; gap:8px; margin-left:16px;">
+            <span id="req-bulk-count" style="font-size:0.8rem; font-weight:700; color:#475569; margin-right:8px; white-space:nowrap;">0 selected</span>
+            <button class="btn btn-outline-white btn-sm" id="btn-bulk-delete-requests" style="height: 38px; padding: 0 16px; border-color:#dc2626; color:#dc2626;"><i class="fa-solid fa-trash-can" style="margin-right:6px;"></i>Delete Selected</button>
+          </div>
+
           <button class="btn btn-outline-white btn-sm" id="btn-reset-req-filters" style="margin-left:auto;"><i class="fa-solid fa-arrow-rotate-left" style="margin-right:6px;"></i>Reset Filters</button>
         </div>
       </div>
@@ -4030,6 +4036,7 @@ const AdminComponent = {
         <table class="data-table" style="margin-bottom:0;">
           <thead>
             <tr>
+              <th style="width: 40px; text-align: center;"><input type="checkbox" id="req-check-all"></th>
               <th>Request ID</th>
               <th>Student Name</th>
               <th>Subject</th>
@@ -4043,12 +4050,15 @@ const AdminComponent = {
           </thead>
           <tbody>
             ${filtered.length === 0 ? `
-              <tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted);">No student requests found matching these filters.</td></tr>
+              <tr><td colspan="10" style="text-align:center; padding:32px; color:var(--text-muted);">No student requests found matching these filters.</td></tr>
             ` : filtered.map(c => {
       const relativeReply = DashboardComponent._getRelativeTime(c.last_reply_at);
       const createdDateStr = new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
       return `
                 <tr style="${c.unread_by_admin ? 'background: rgba(61, 70, 216, 0.04); font-weight: 600;' : ''}">
+                  <td style="text-align: center; width: 40px;">
+                    <input type="checkbox" class="req-check" data-conv-id="${c.id}">
+                  </td>
                   <td style="font-family: monospace; font-size: 0.8rem; color: var(--text-secondary); max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     ${c.id}
                   </td>
@@ -4074,10 +4084,15 @@ const AdminComponent = {
                     ${createdDateStr}
                   </td>
                   <td>
-                    <button class="btn btn-outline-white btn-sm btn-adm-view-conv" data-conv-id="${c.id}" style="padding: 6px 12px; font-size:0.75rem;">
-                      <i class="fa-solid fa-comments" style="color:var(--brand-blue); margin-right:6px;"></i>View
-                      ${c.unread_by_admin ? `<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#ef4444; margin-left:6px;"></span>` : ''}
-                    </button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                      <button class="btn btn-outline-white btn-sm btn-adm-view-conv" data-conv-id="${c.id}" style="padding: 6px 12px; font-size:0.75rem;">
+                        <i class="fa-solid fa-comments" style="color:var(--brand-blue); margin-right:6px;"></i>View
+                        ${c.unread_by_admin ? `<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#ef4444; margin-left:6px;"></span>` : ''}
+                      </button>
+                      <button class="btn btn-outline-white btn-sm btn-adm-delete-conv" data-conv-id="${c.id}" style="padding: 6px 8px; font-size:0.75rem; border-color: #dc2626; color: #dc2626; background: transparent;" title="Delete request">
+                        <i class="fa-solid fa-trash-can"></i>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               `;
@@ -4434,6 +4449,94 @@ const AdminComponent = {
       btn.addEventListener('click', () => {
         AdminComponent._activeConvId = btn.getAttribute('data-conv-id');
         AdminComponent._loadAndRenderRequests();
+      });
+    });
+
+    // Checkboxes and Bulk Actions
+    const checkAll = document.getElementById('req-check-all');
+    const checks = document.querySelectorAll('.req-check');
+    const bulkActions = document.getElementById('req-bulk-actions');
+    const bulkCount = document.getElementById('req-bulk-count');
+    const btnBulkDelete = document.getElementById('btn-bulk-delete-requests');
+
+    function updateBulkActions() {
+      const checkedCount = document.querySelectorAll('.req-check:checked').length;
+      if (checkedCount > 0) {
+        bulkActions.style.display = 'flex';
+        bulkCount.innerText = `${checkedCount} selected`;
+      } else {
+        bulkActions.style.display = 'none';
+      }
+    }
+
+    checkAll?.addEventListener('change', e => {
+      checks.forEach(cb => cb.checked = e.target.checked);
+      updateBulkActions();
+    });
+
+    checks.forEach(cb => {
+      cb.addEventListener('change', () => {
+        updateBulkActions();
+        if (!cb.checked && checkAll) {
+          checkAll.checked = false;
+        } else if (checkAll && document.querySelectorAll('.req-check:checked').length === checks.length) {
+          checkAll.checked = true;
+        }
+      });
+    });
+
+    // Bulk Delete Action
+    btnBulkDelete?.addEventListener('click', async () => {
+      const checked = [...document.querySelectorAll('.req-check:checked')].map(cb => cb.getAttribute('data-conv-id'));
+      if (checked.length === 0) return;
+
+      if (!confirm(`Are you sure you want to permanently delete the ${checked.length} selected requests and all their associated messages? This action cannot be undone and will delete from Supabase.`)) {
+        return;
+      }
+
+      btnBulkDelete.disabled = true;
+      btnBulkDelete.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i>Deleting...';
+
+      try {
+        const res = await window.db.deleteSupportConversations(checked);
+        if (res.success) {
+          window.app.showToast(`Successfully deleted ${checked.length} requests.`, 'success');
+        } else {
+          window.app.showToast(res.error || "Failed to delete requests.", "danger");
+        }
+      } catch (err) {
+        window.app.showToast(err.message || "An error occurred.", "danger");
+      } finally {
+        AdminComponent._loadAndRenderRequests();
+      }
+    });
+
+    // Individual Delete Action
+    document.querySelectorAll('.btn-adm-delete-conv').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const convId = btn.getAttribute('data-conv-id');
+        if (!convId) return;
+
+        if (!confirm('Are you sure you want to permanently delete this support request and all its messages? This action cannot be undone and will delete from Supabase.')) {
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+          const res = await window.db.deleteSupportConversation(convId);
+          if (res.success) {
+            window.app.showToast("Request deleted successfully.", 'success');
+          } else {
+            window.app.showToast(res.error || "Failed to delete request.", "danger");
+          }
+        } catch (err) {
+          window.app.showToast(err.message || "An error occurred.", "danger");
+        } finally {
+          AdminComponent._loadAndRenderRequests();
+        }
       });
     });
   },

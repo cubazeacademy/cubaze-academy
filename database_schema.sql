@@ -173,7 +173,9 @@ CREATE POLICY "Allow public update tutor_msg" ON public.cubaze_tutor_messages FO
 CREATE POLICY "Allow public select support_conv" ON public.cubaze_support_conversations FOR SELECT USING (true);
 CREATE POLICY "Allow public insert support_conv" ON public.cubaze_support_conversations FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public update support_conv" ON public.cubaze_support_conversations FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete support_conv" ON public.cubaze_support_conversations FOR DELETE USING (true);
 
 CREATE POLICY "Allow public select support_msg" ON public.cubaze_support_messages FOR SELECT USING (true);
 CREATE POLICY "Allow public insert support_msg" ON public.cubaze_support_messages FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public update support_msg" ON public.cubaze_support_messages FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete support_msg" ON public.cubaze_support_messages FOR DELETE USING (true);

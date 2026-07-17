@@ -2672,6 +2672,74 @@ class CubazeDB {
     if (updatedConvs) localStorage.setItem("cubaze_support_conversations", JSON.stringify(conversations));
   }
 
+  async deleteSupportConversation(id) {
+    if (this.sb) {
+      try {
+        // Delete messages first to satisfy foreign key constraints if CASCADE isn't working
+        await this.sb.from('cubaze_support_messages').delete().eq('conversation_id', id);
+        // Then delete the conversation
+        const { error } = await this.sb.from('cubaze_support_conversations').delete().eq('id', id);
+        if (error) {
+          console.error("Failed to delete conversation from Supabase:", error);
+          return { success: false, error: error.message };
+        }
+      } catch (err) {
+        console.error("Failed to delete conversation from Supabase:", err);
+        return { success: false, error: err.message };
+      }
+    }
+
+    // Fallback/Local Storage Sync
+    try {
+      const convs = JSON.parse(localStorage.getItem("cubaze_support_conversations") || "[]");
+      const filteredConvs = convs.filter(c => c.id !== id);
+      localStorage.setItem("cubaze_support_conversations", JSON.stringify(filteredConvs));
+
+      const msgs = JSON.parse(localStorage.getItem("cubaze_support_messages") || "[]");
+      const filteredMsgs = msgs.filter(m => m.conversation_id !== id);
+      localStorage.setItem("cubaze_support_messages", JSON.stringify(filteredMsgs));
+    } catch (err) {
+      console.error("Failed to update localStorage after deletion:", err);
+    }
+
+    return { success: true };
+  }
+
+  async deleteSupportConversations(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) return { success: true };
+
+    if (this.sb) {
+      try {
+        // Delete messages first
+        await this.sb.from('cubaze_support_messages').delete().in('conversation_id', ids);
+        // Then delete the conversations
+        const { error } = await this.sb.from('cubaze_support_conversations').delete().in('id', ids);
+        if (error) {
+          console.error("Failed to bulk delete conversations from Supabase:", error);
+          return { success: false, error: error.message };
+        }
+      } catch (err) {
+        console.error("Failed to bulk delete conversations from Supabase:", err);
+        return { success: false, error: err.message };
+      }
+    }
+
+    // Fallback/Local Storage Sync
+    try {
+      const convs = JSON.parse(localStorage.getItem("cubaze_support_conversations") || "[]");
+      const filteredConvs = convs.filter(c => !ids.includes(c.id));
+      localStorage.setItem("cubaze_support_conversations", JSON.stringify(filteredConvs));
+
+      const msgs = JSON.parse(localStorage.getItem("cubaze_support_messages") || "[]");
+      const filteredMsgs = msgs.filter(m => !ids.includes(m.conversation_id));
+      localStorage.setItem("cubaze_support_messages", JSON.stringify(filteredMsgs));
+    } catch (err) {
+      console.error("Failed to update localStorage after bulk deletion:", err);
+    }
+
+    return { success: true };
+  }
+
   async uploadSupportAttachment(file) {
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
