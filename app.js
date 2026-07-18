@@ -104,9 +104,7 @@ class CubazeApp {
       } else if (path === '/lesson' && parts[1] && parts[2]) {
         this.view.innerHTML = window.VideoPlayerComponent.render(parts[1], parts[2]);
         window.VideoPlayerComponent.init(parts[1], parts[2]);
-      } else if (path === '/quiz' && parts[1]) {
-        this.view.innerHTML = window.QuizComponent.render(parts[1]);
-        window.QuizComponent.init(parts[1]);
+
       } else if (path === '/certificate' && parts[1]) {
         this.view.innerHTML = window.CertificateComponent.render(parts[1]);
         window.CertificateComponent.init(parts[1]);

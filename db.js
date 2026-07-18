@@ -2163,16 +2163,21 @@ class CubazeDB {
     const index = completed.indexOf(lessonId);
     if (index > -1) completed.splice(index, 1);
     else completed.push(lessonId);
-    this.setItemAndSync("cubaze_progress", progress);
-    return progress[username][courseId];
-  }
 
-  saveQuizProgress(username, courseId, score, passed) {
-    const progress = this.getProgress();
-    if (!progress[username]) progress[username] = {};
-    if (!progress[username][courseId]) progress[username][courseId] = { completedLessons: [], quizScore: null, certificateEarned: false };
-    progress[username][courseId].quizScore = score;
-    if (passed) progress[username][courseId].certificateEarned = true;
+    // Auto-earn certificate when all course lessons are marked completed
+    const course = this.getCourseById(courseId);
+    if (course && course.modules) {
+      let totalLessons = 0;
+      course.modules.forEach(m => {
+        if (m.lessons) totalLessons += m.lessons.length;
+      });
+      if (totalLessons > 0 && completed.length >= totalLessons) {
+        progress[username][courseId].certificateEarned = true;
+      } else {
+        progress[username][courseId].certificateEarned = false;
+      }
+    }
+
     this.setItemAndSync("cubaze_progress", progress);
     return progress[username][courseId];
   }

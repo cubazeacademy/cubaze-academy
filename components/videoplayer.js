@@ -927,7 +927,7 @@ const VideoPlayerComponent = {
           <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; padding:10px 16px;">
             ${prevLesson ? `<a href="#/lesson/${course.id}/${prevLesson.id}" class="btn btn-secondary btn-xs" style="margin-bottom:0;"><i class="fa-solid fa-arrow-left"></i> Previous</a>` : '<span></span>'}
             <div style="font-size:0.8rem; font-weight:700; color:var(--text-secondary);"><i class="fa-regular fa-clock"></i> Current Lesson: ${currentLesson.title}</div>
-            ${nextLesson ? `<a href="#/lesson/${course.id}/${nextLesson.id}" class="btn btn-secondary btn-xs" style="margin-bottom:0;">Next <i class="fa-solid fa-arrow-right"></i></a>` : `<a href="#/quiz/${course.id}" class="btn btn-success btn-xs" style="margin-bottom:0;"><i class="fa-solid fa-trophy"></i> Start Quiz</a>`}
+            ${nextLesson ? `<a href="#/lesson/${course.id}/${nextLesson.id}" class="btn btn-secondary btn-xs" style="margin-bottom:0;">Next <i class="fa-solid fa-arrow-right"></i></a>` : '<span></span>'}
           </div>
 
           <!-- Tabs Navigation under player -->
