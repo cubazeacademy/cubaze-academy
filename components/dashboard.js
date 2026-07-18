@@ -24,6 +24,7 @@ const DashboardComponent = {
       ['mycourses', 'fa-book-open', 'My Courses'],
       ['liveclasses', 'fa-video', 'Live Classes'],
       ['common_meeting', 'fa-calendar-days', 'Common Meeting'],
+      ['projects', 'fa-tasks', 'Projects'],
       ['wishlist', 'fa-heart', 'Wishlist'],
       ['certificates', 'fa-certificate', 'Certificates'],
       ['orders', 'fa-receipt', 'Orders'],
@@ -83,6 +84,7 @@ const DashboardComponent = {
       case 'mycourses': return DashboardComponent._renderMyCourses(cu, enrolledCourses);
       case 'liveclasses': return DashboardComponent._renderLiveClasses(cu, enrolledCourses);
       case 'common_meeting': return DashboardComponent._renderCommonMeetings(cu);
+      case 'projects': return DashboardComponent._renderProjects(cu, enrolledCourses);
       case 'wishlist': return DashboardComponent._renderWishlist(cu, wishlist);
       case 'certificates': return DashboardComponent._renderCertificates(cu, enrolledCourses);
       case 'orders': return DashboardComponent._renderOrders(txns);
@@ -2846,6 +2848,324 @@ const DashboardComponent = {
         window.DashboardRightPanel.bindEvents(cu);
       }
     }
+  },
+
+  _activeProjectSubTab: 'active',
+  _viewingProjectId: null,
+
+  selectProjectSubTab: function (subTab) {
+    DashboardComponent._activeProjectSubTab = subTab;
+    DashboardComponent.refreshActiveTab();
+  },
+
+  viewProjectDetail: function (projId) {
+    DashboardComponent._viewingProjectId = projId;
+    DashboardComponent.refreshActiveTab();
+  },
+
+  backToProjects: function () {
+    DashboardComponent._viewingProjectId = null;
+    DashboardComponent.refreshActiveTab();
+  },
+
+  submitProjectLink: function (event, projId) {
+    event.preventDefault();
+    const link = document.getElementById('student-proj-link').value.trim();
+    const notes = document.getElementById('student-proj-notes').value.trim();
+
+    if (!link) {
+      window.app.showToast('Please provide a Google Drive submission link!', 'danger');
+      return;
+    }
+
+    if (!link.includes('drive.google.com') && !link.includes('google.com/drive')) {
+      window.app.showToast('Please enter a valid Google Drive sharing link!', 'danger');
+      return;
+    }
+
+    const cu = window.db.getCurrentUser();
+    if (!cu) return;
+
+    const existingSub = window.db.getStudentSubmission(projId, cu.username);
+    const subId = existingSub ? existingSub.id : 'SUB-' + Math.floor(100000 + Math.random() * 900000);
+
+    const submissionData = {
+      id: subId,
+      project_id: projId,
+      student_id: cu.username,
+      google_drive_submission_link: link,
+      notes: notes,
+      submission_status: 'Submitted',
+      submitted_at: existingSub ? existingSub.submitted_at : new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const res = window.db.saveSubmission(submissionData);
+    if (res.success) {
+      window.app.showToast('Project submitted successfully! 🚀', 'success');
+      
+      // Notify tutors of this batch
+      const proj = window.db.getProjectById(projId);
+      if (proj) {
+        const batch = window.db.getBatchById(proj.batch_id);
+        if (batch && batch.tutorIds) {
+          batch.tutorIds.forEach(tutorId => {
+            window.db.addNotification(tutorId, "New Submission 📥", `${cu.name} submitted their project: ${proj.title}`, "info");
+          });
+        }
+        // Log activity
+        window.db.addActivity(cu.username, "SUBMIT_PROJECT", "project", projId, `${cu.name} submitted project "${proj.title}"`);
+      }
+
+      DashboardComponent.refreshActiveTab();
+    } else {
+      window.app.showToast('Failed to submit project.', 'danger');
+    }
+  },
+
+  _renderProjects: function (cu, enrolledCourses) {
+    if (DashboardComponent._viewingProjectId) {
+      return DashboardComponent._renderProjectDetail(cu, DashboardComponent._viewingProjectId);
+    }
+
+    const allProjects = window.db.getProjects();
+    const enrolledBatches = cu.enrolledBatches || {};
+    const enrolledBatchIds = Object.values(enrolledBatches);
+
+    // Filter projects matching student's enrolled batches and published status
+    const studentProjects = allProjects.filter(p => p.status === 'Published' && enrolledBatchIds.includes(p.batch_id));
+
+    const activeTab = DashboardComponent._activeProjectSubTab || 'active';
+    
+    // Categorize projects
+    const categorized = {
+      active: [],
+      submitted: [],
+      completed: [],
+      grades: []
+    };
+
+    studentProjects.forEach(p => {
+      const sub = window.db.getStudentSubmission(p.id, cu.username);
+      const status = sub ? sub.submission_status : 'Not Started';
+
+      if (status === 'Completed') {
+        categorized.completed.push(p);
+      } else if (status === 'Submitted' || status === 'Under Review') {
+        categorized.submitted.push(p);
+      } else {
+        // Not Started or Revision Required
+        categorized.active.push(p);
+      }
+
+      // Add to grades if reviewed
+      if (sub) {
+        const review = window.db.getSubmissionReview(sub.id);
+        if (review) {
+          categorized.grades.push(p);
+        }
+      }
+    });
+
+    const activeList = categorized[activeTab] || [];
+
+    const subTabs = [
+      ['active', `Active (${categorized.active.length})`],
+      ['submitted', `Submitted (${categorized.submitted.length})`],
+      ['completed', `Completed (${categorized.completed.length})`],
+      ['grades', `Grades & Feedback (${categorized.grades.length})`]
+    ];
+
+    return `
+      <div class="dashboard-welcome">
+        <h1>Projects & Submissions</h1>
+        <p>Complete your practical assignments, download resource templates, and submit Google Drive project links.</p>
+      </div>
+
+      <div class="lms-tabs-nav" style="margin-top: 24px;">
+        ${subTabs.map(([tabId, label]) => `
+          <button class="lms-tab-btn ${activeTab === tabId ? 'active' : ''}" onclick="DashboardComponent.selectProjectSubTab('${tabId}')">${label}</button>
+        `).join('')}
+      </div>
+
+      <div class="project-grid">
+        ${activeList.map(p => {
+          const sub = window.db.getStudentSubmission(p.id, cu.username);
+          const status = sub ? sub.submission_status : 'Not Started';
+          const course = window.db.getCourseById(p.course_id);
+          const batch = window.db.getBatchById(p.batch_id);
+          
+          let statusClass = 'not_started';
+          if (status === 'Submitted') statusClass = 'submitted';
+          if (status === 'Under Review') statusClass = 'under_review';
+          if (status === 'Revision Required') statusClass = 'revision_required';
+          if (status === 'Completed') statusClass = 'completed';
+
+          return `
+            <div class="project-card" onclick="DashboardComponent.viewProjectDetail('${p.id}')">
+              <div class="project-thumbnail-wrap">
+                <img class="project-thumbnail" src="${p.thumbnail || 'cubaze-logo.png'}" onerror="this.src='cubaze-logo.png'">
+                <span class="project-diff-badge ${p.difficulty.toLowerCase()}">${p.difficulty}</span>
+              </div>
+              <div class="project-card-content">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                  <span class="project-status-tag ${statusClass}">${status.replace('_', ' ')}</span>
+                  <span style="font-size:0.7rem; color:var(--text-muted); font-weight:700;">Max: ${p.max_marks || p.maxMarks || 100} Marks</span>
+                </div>
+                <h3 class="project-card-title">${p.title}</h3>
+                <p style="font-size:0.8rem; color:var(--text-secondary); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:12px;">${p.description}</p>
+                <div class="project-card-meta">
+                  <div class="project-card-meta-item"><i class="fa-solid fa-graduation-cap"></i> ${course ? course.title : 'Course'}</div>
+                  <div class="project-card-meta-item"><i class="fa-solid fa-hourglass-half"></i> ${p.estimated_time || p.estimatedTime || '1h'}</div>
+                </div>
+                <div style="font-size:0.72rem; color:var(--text-muted); font-weight:600; margin-top:8px; border-top:1px solid var(--border-color); padding-top:8px; text-align:left;">
+                  Due: ${p.due_date || p.dueDate}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+        ${activeList.length === 0 ? `
+          <div style="grid-column: 1 / -1; text-align:center; padding: 48px; color: var(--text-muted);">
+            <div style="font-size:3rem; margin-bottom:12px;">📁</div>
+            <div style="font-size:0.9rem; font-weight:700;">No projects in this category</div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  },
+
+  _renderProjectDetail: function (cu, projId) {
+    const p = window.db.getProjectById(projId);
+    if (!p) return `<p>Project not found.</p>`;
+
+    const course = window.db.getCourseById(p.course_id);
+    const batch = window.db.getBatchById(p.batch_id);
+    
+    const tutorUser = window.db.getUsers().find(u => u.username === p.tutor_id);
+    const tutorName = tutorUser ? tutorUser.name : 'Your Instructor';
+
+    const assets = window.db.getProjectAssets(p.id);
+    const sub = window.db.getStudentSubmission(p.id, cu.username);
+    const review = sub ? window.db.getSubmissionReview(sub.id) : null;
+    const status = sub ? sub.submission_status : 'Not Started';
+
+    let statusClass = 'not_started';
+    if (status === 'Submitted') statusClass = 'submitted';
+    if (status === 'Under Review') statusClass = 'under_review';
+    if (status === 'Revision Required') statusClass = 'revision_required';
+    if (status === 'Completed') statusClass = 'completed';
+
+    const isOverdue = p.due_date ? (new Date() > new Date(p.due_date)) : false;
+    const allowSubmit = !isOverdue || (sub && status === 'Revision Required');
+
+    return `
+      <div style="text-align: left;">
+        <button class="btn btn-outline-white btn-sm" onclick="DashboardComponent.backToProjects()" style="margin-bottom:20px; display:inline-flex; align-items:center; gap:6px;"><i class="fa-solid fa-arrow-left"></i> Back to Projects</button>
+        
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+          <!-- Left Column: Details -->
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <div class="glass-panel" style="padding:24px; border-radius:16px; position:relative; overflow:hidden;">
+              <span class="project-diff-badge ${p.difficulty.toLowerCase()}" style="top:24px; right:24px;">${p.difficulty}</span>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <span class="project-status-tag ${statusClass}">${status.replace('_', ' ')}</span>
+              </div>
+              <h2 style="font-size:1.35rem; font-weight:800; color:var(--text-primary); margin-bottom:12px;">${p.title}</h2>
+              <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:0.78rem; color:var(--text-secondary); margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+                <div><i class="fa-solid fa-graduation-cap"></i> Course: <strong>${course ? course.title : 'Course'}</strong></div>
+                <div><i class="fa-solid fa-users"></i> Batch: <strong>${batch ? batch.name : 'Batch'}</strong></div>
+                <div><i class="fa-solid fa-chalkboard-user"></i> Tutor: <strong>${tutorName}</strong></div>
+              </div>
+              
+              <h4 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin-bottom:8px;">Project Description</h4>
+              <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6; margin-bottom:20px; white-space:pre-wrap;">${p.description}</p>
+              
+              <h4 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin-bottom:8px;">Instructions</h4>
+              <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6; margin-bottom:20px; white-space:pre-wrap;">${p.instructions}</p>
+              
+              ${p.learning_objectives ? `
+                <h4 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin-bottom:8px;">Learning Objectives</h4>
+                <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6; margin-bottom:0; white-space:pre-wrap;">${p.learning_objectives}</p>
+              ` : ''}
+            </div>
+            
+            <!-- Assets Section -->
+            <div class="glass-panel" style="padding:20px; border-radius:16px;">
+              <h3 style="font-size:1rem; font-weight:800; color:var(--text-primary); margin-bottom:12px;"><i class="fa-solid fa-folder-open" style="color:var(--brand-blue); margin-right:6px;"></i> Provided Resources / Assets</h3>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                ${assets.map(a => `
+                  <div class="project-asset-item">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <div class="project-asset-icon"><i class="fa-solid fa-file-lines"></i></div>
+                      <div style="text-align:left;">
+                        <div style="font-size:0.83rem; font-weight:700; color:var(--text-primary);">${a.asset_name}</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted);">${a.asset_type || 'Asset Resource'}</div>
+                      </div>
+                    </div>
+                    <a href="${a.google_drive_link}" target="_blank" class="btn btn-outline btn-xs" style="margin:0;"><i class="fa-solid fa-download"></i> Download</a>
+                  </div>
+                `).join('')}
+                ${assets.length === 0 ? '<p style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">No custom assets shared for this project.</p>' : ''}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Right Column: Submission Status & Action -->
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <div class="glass-panel" style="padding:20px; border-radius:16px; text-align:left;">
+              <h3 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">Project Deadlines</h3>
+              <div style="display:flex; flex-direction:column; gap:10px; font-size:0.82rem; color:var(--text-secondary);">
+                <div>Due Date: <strong style="color:var(--text-primary);">${p.due_date}</strong></div>
+                <div>Time Estimate: <strong style="color:var(--text-primary);">${p.estimated_time || '2h'}</strong></div>
+                <div>Max Marks: <strong style="color:var(--brand-blue);">${p.max_marks || 100} Marks</strong></div>
+              </div>
+            </div>
+
+            <!-- Grades & Feedback -->
+            ${review ? `
+              <div class="glass-panel" style="padding:20px; border-radius:16px; text-align:left; border: 1.5px solid var(--success-border); background:var(--brand-blue-pale);">
+                <h3 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin-bottom:10px;"><i class="fa-solid fa-award" style="color:var(--success); margin-right:6px;"></i> Graded Results</h3>
+                <div style="font-size:1.5rem; font-weight:900; color:var(--brand-blue); margin-bottom:8px;">${review.marks} <span style="font-size:0.85rem; font-weight:500; color:var(--text-secondary);">/ ${p.max_marks || 100} Marks</span></div>
+                <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; margin-bottom:4px;">Tutor Feedback:</div>
+                <p style="font-size:0.82rem; color:var(--text-secondary); line-height:1.5; margin:0; padding:10px; background:var(--bg-secondary); border-radius:8px; border:1px solid var(--border-color);">${review.feedback || 'Excellent work!'}</p>
+              </div>
+            ` : ''}
+
+            <!-- Submission Area -->
+            <div class="glass-panel" style="padding:20px; border-radius:16px; text-align:left;">
+              <h3 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:8px;"><i class="fa-solid fa-cloud-arrow-up" style="color:var(--brand-blue); margin-right:6px;"></i> Submission</h3>
+              
+              ${sub ? `
+                <div style="background:var(--bg-secondary); border:1px solid var(--border-color); padding:10px 14px; border-radius:10px; margin-bottom:14px; font-size:0.8rem;">
+                  <div style="font-weight:700; color:var(--text-secondary); margin-bottom:4px;">Submitted Link:</div>
+                  <a href="${sub.google_drive_submission_link}" target="_blank" style="word-break:break-all; font-weight:600; color:var(--brand-blue); text-decoration:none;"><i class="fa-solid fa-link"></i> Open Submitted Work</a>
+                  ${sub.notes ? `<div style="margin-top:8px; color:var(--text-secondary); font-style:italic;">Notes: "${sub.notes}"</div>` : ''}
+                </div>
+              ` : ''}
+
+              ${allowSubmit ? `
+                <form onsubmit="DashboardComponent.submitProjectLink(event, '${p.id}')">
+                  <div class="form-group" style="margin-bottom:12px;">
+                    <label style="font-weight:700; font-size:0.76rem; color:var(--text-secondary); display:block; margin-bottom:4px;">Google Drive Submission Link *</label>
+                    <input type="url" id="student-proj-link" value="${sub ? sub.google_drive_submission_link : ''}" class="form-control" placeholder="https://drive.google.com/..." required style="font-family:inherit; font-size:0.8rem;">
+                  </div>
+                  <div class="form-group" style="margin-bottom:14px;">
+                    <label style="font-weight:700; font-size:0.76rem; color:var(--text-secondary); display:block; margin-bottom:4px;">Comments / Notes (Optional)</label>
+                    <textarea id="student-proj-notes" class="form-control" rows="3" placeholder="Add some notes for your tutor..." style="font-family:inherit; font-size:0.8rem; resize:vertical;">${sub && sub.notes ? sub.notes : ''}</textarea>
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-block btn-sm" style="margin:0;"><i class="fa-solid fa-paper-plane"></i> ${sub ? 'Update Submission' : 'Submit Project'}</button>
+                </form>
+              ` : `
+                <div style="text-align:center; padding:12px; background:#fee2e2; color:#ef4444; border-radius:10px; font-size:0.8rem; font-weight:700;">
+                  <i class="fa-solid fa-circle-exclamation"></i> Project Deadline Expired
+                </div>
+              `}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 };
 window.DashboardComponent = DashboardComponent;

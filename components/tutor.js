@@ -33,6 +33,7 @@ const TutorComponent = {
         ['courses', 'fa-book-open', 'My Assigned Courses'],
         ['batches', 'fa-cubes', 'My Batches'],
         ['common_meeting', 'fa-calendar-days', 'Common Meeting'],
+        ['projects', 'fa-folder-tree', 'Projects'],
         ['lessons', 'fa-list-check', 'Lesson Manager'],
         ['liveclasses', 'fa-video', 'Live Classes'],
         ['upload', 'fa-cloud-arrow-up', 'Upload Content'],
@@ -82,6 +83,7 @@ const TutorComponent = {
       case 'courses': return TutorComponent._renderCourses(assignedCourses);
       case 'batches': return TutorComponent._renderBatches(cu);
       case 'common_meeting': return TutorComponent._renderCommonMeetings(cu);
+      case 'projects': return TutorComponent._renderProjectsTab(cu, assignedCourses);
       case 'lessons':
         if (TutorComponent._openCourseId) {
           const c = assignedCourses.find(x => x.id === TutorComponent._openCourseId)
@@ -1449,6 +1451,10 @@ const TutorComponent = {
         const tab = item.getAttribute('data-tutor-tab');
         TutorComponent._activeTab = tab;
         if (tab !== 'lessons') TutorComponent._openCourseId = null;
+        if (tab !== 'projects') {
+          TutorComponent._editingProjectId = null;
+          TutorComponent._viewingSubProjectId = null;
+        }
 
         document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('active'));
         item.classList.add('active');
@@ -2748,10 +2754,553 @@ const TutorComponent = {
       if (TutorComponent._openCourseId) {
         TutorComponent._bindLessonManagerEvents(TutorComponent._openCourseId);
       }
+      }
       if (TutorComponent._activeTab === 'dashboard' && window.DashboardRightPanel) {
         window.DashboardRightPanel.bindEvents(cu);
       }
     }
+  },
+
+  _activeProjSubTab: 'list',
+  _editingProjectId: null,
+  _viewingSubProjectId: null,
+
+  selectTutorProjTab: function (tabId) {
+    TutorComponent._activeProjSubTab = tabId;
+    if (tabId !== 'create') {
+      TutorComponent._editingProjectId = null;
+    }
+    TutorComponent.refreshActiveTab();
+  },
+
+  editTutorProject: function (projId) {
+    TutorComponent._editingProjectId = projId;
+    TutorComponent._activeProjSubTab = 'create';
+    TutorComponent.refreshActiveTab();
+  },
+
+  deleteTutorProject: async function (projId) {
+    if (!confirm("Are you sure you want to delete this project? This will also delete all student submissions.")) return;
+    const res = await window.db.deleteProject(projId);
+    if (res.success) {
+      window.app.showToast("Project deleted successfully.", "success");
+      TutorComponent.refreshActiveTab();
+    } else {
+      window.app.showToast(res.error || "Failed to delete project.", "danger");
+    }
+  },
+
+  viewTutorSubmissions: function (projId) {
+    TutorComponent._viewingSubProjectId = projId;
+    TutorComponent._activeProjSubTab = 'submissions';
+    TutorComponent.refreshActiveTab();
+  },
+
+  addAssetRow: function () {
+    const container = document.getElementById('tutor-assets-inputs');
+    if (!container) return;
+    const row = document.createElement('div');
+    row.className = 'assets-row';
+    row.style.display = 'grid';
+    row.style.gridTemplateColumns = '1fr 1fr 2fr auto';
+    row.style.gap = '10px';
+    row.style.marginBottom = '10px';
+    row.innerHTML = `
+      <input type="text" class="form-control asset-name" placeholder="Asset Name" required style="font-family:inherit; font-size:0.8rem;">
+      <input type="text" class="form-control asset-type" placeholder="File Type (e.g. PSD, Blender)" required style="font-family:inherit; font-size:0.8rem;">
+      <input type="url" class="form-control asset-link" placeholder="Google Drive Link" required style="font-family:inherit; font-size:0.8rem;">
+      <button type="button" class="btn btn-outline btn-sm btn-icon" onclick="this.parentElement.remove()" style="margin:0; height:36px; width:36px; border-radius:50%;"><i class="fa-solid fa-trash-can"></i></button>
+    `;
+    container.appendChild(row);
+  },
+
+  saveTutorProject: function (event) {
+    event.preventDefault();
+    const cu = window.db.getCurrentUser();
+    if (!cu) return;
+
+    const projId = TutorComponent._editingProjectId || 'PRJ-' + Math.floor(100000 + Math.random() * 900000);
+    const title = document.getElementById('proj-title').value.trim();
+    const thumbnail = document.getElementById('proj-thumb').value.trim();
+    const courseId = document.getElementById('proj-course').value;
+    const batchId = document.getElementById('proj-batch').value;
+    const difficulty = document.getElementById('proj-diff').value;
+    const desc = document.getElementById('proj-desc').value.trim();
+    const inst = document.getElementById('proj-inst').value.trim();
+    const obj = document.getElementById('proj-obj').value.trim();
+    const dueDate = document.getElementById('proj-due-date').value;
+    const dueTime = document.getElementById('proj-due-time').value;
+    const maxMarks = parseInt(document.getElementById('proj-marks').value) || 100;
+    const estTime = document.getElementById('proj-est-time').value.trim();
+    const status = document.getElementById('proj-status').value;
+
+    const assetsList = [];
+    document.querySelectorAll('#tutor-assets-inputs .assets-row').forEach(row => {
+      const name = row.querySelector('.asset-name').value.trim();
+      const type = row.querySelector('.asset-type').value.trim();
+      const link = row.querySelector('.asset-link').value.trim();
+      if (name && link) {
+        assetsList.push({
+          asset_name: name,
+          asset_type: type,
+          google_drive_link: link
+        });
+      }
+    });
+
+    const projectData = {
+      id: projId,
+      title: title,
+      thumbnail: thumbnail,
+      description: desc,
+      instructions: inst,
+      learning_objectives: obj,
+      difficulty: difficulty,
+      course_id: courseId,
+      batch_id: batchId,
+      tutor_id: cu.username,
+      due_date: `${dueDate}T${dueTime || '23:59'}`,
+      max_marks: maxMarks,
+      estimated_time: estTime,
+      status: status
+    };
+
+    const res = window.db.saveProject(projectData, assetsList);
+    if (res.success) {
+      window.app.showToast(TutorComponent._editingProjectId ? 'Project updated!' : 'Project created!', 'success');
+      
+      if (status === 'Published' && !TutorComponent._editingProjectId) {
+        const students = window.db.getUsers().filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[courseId] === batchId);
+        students.forEach(stud => {
+          window.db.addNotification(stud.username, "New Project Assigned 📂", `Tutor ${cu.name} assigned a new project: "${title}". Due date: ${dueDate}`, "info");
+        });
+        window.db.addActivity(cu.username, "CREATE_PROJECT", "project", projId, `Tutor ${cu.name} created project "${title}"`);
+      }
+
+      TutorComponent._editingProjectId = null;
+      TutorComponent._activeProjSubTab = 'list';
+      TutorComponent.refreshActiveTab();
+    } else {
+      window.app.showToast('Failed to save project.', 'danger');
+    }
+  },
+
+  openReviewModal: function (subId) {
+    const sub = window.db.getSubmissionById(subId);
+    if (!sub) return;
+
+    const studentUser = window.db.getUsers().find(u => u.username === sub.student_id);
+    const studentName = studentUser ? studentUser.name : sub.student_id;
+    const proj = window.db.getProjectById(sub.project_id);
+    const review = window.db.getSubmissionReview(subId);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'tutor-modal-overlay';
+    overlay.id = 'project-review-modal';
+    overlay.innerHTML = `
+      <div class="tutor-modal" style="max-width: 500px; text-align:left;">
+        <div class="glass-panel-header" style="border-bottom:1px solid var(--border-color); padding-bottom:12px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+          <div class="glass-panel-title" style="font-size:1.05rem; font-weight:800; color:var(--text-primary);"><i class="fa-solid fa-file-signature" style="color:var(--brand-blue); margin-right:8px;"></i>Review Project Submission</div>
+          <button type="button" class="btn btn-outline-white btn-sm btn-icon" style="width:32px; height:32px; border-radius:50%; margin:0; display:flex; align-items:center; justify-content:center;" onclick="document.getElementById('project-review-modal').remove()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form id="form-tutor-project-review" onsubmit="TutorComponent.submitTutorReview(event, '${subId}', '${proj ? proj.id : ''}')">
+          <div style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:14px; background:var(--bg-primary); padding:10px; border-radius:8px; border:1px solid var(--border-color);">
+            <div>Student: <strong>${studentName}</strong></div>
+            <div>Submitted link: <a href="${sub.google_drive_submission_link}" target="_blank" style="color:var(--brand-blue); font-weight:700; text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Google Drive</a></div>
+            ${sub.notes ? `<div style="margin-top:4px;">Notes: "${sub.notes}"</div>` : ''}
+          </div>
+          
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:4px;">Marks * (Maximum: ${proj ? (proj.max_marks || proj.maxMarks || 100) : 100})</label>
+            <input type="number" id="review-marks" class="form-control" value="${review ? review.marks : ''}" min="0" max="${proj ? (proj.max_marks || proj.maxMarks || 100) : 100}" required style="font-family:inherit; font-size:0.82rem;">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:4px;">Feedback / Suggestions *</label>
+            <textarea id="review-feedback" class="form-control" rows="3" required placeholder="Provide suggestions for improvement..." style="font-family:inherit; font-size:0.82rem; resize:vertical;">${review ? review.feedback : ''}</textarea>
+          </div>
+          <div class="form-group" style="margin-bottom:16px;">
+            <label style="font-weight:600; font-size:0.8rem; display:block; margin-bottom:4px;">Submission Status *</label>
+            <select id="review-status" class="form-control" style="font-family:inherit; font-size:0.82rem;">
+              <option value="Completed" ${sub.submission_status === 'Completed' ? 'selected' : ''}>Completed & Passed</option>
+              <option value="Revision Required" ${sub.submission_status === 'Revision Required' ? 'selected' : ''}>Revision Required</option>
+              <option value="Under Review" ${sub.submission_status === 'Under Review' ? 'selected' : ''}>Under Review</option>
+            </select>
+          </div>
+          
+          <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button type="button" class="btn btn-sm btn-outline" style="margin:0;" onclick="document.getElementById('project-review-modal').remove()">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm" style="margin:0;"><i class="fa-solid fa-save"></i> Save Review</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  },
+
+  submitTutorReview: function (event, subId, projId) {
+    event.preventDefault();
+    const cu = window.db.getCurrentUser();
+    if (!cu) return;
+
+    const marks = parseInt(document.getElementById('review-marks').value) || 0;
+    const feedback = document.getElementById('review-feedback').value.trim();
+    const status = document.getElementById('review-status').value;
+
+    const reviewId = 'REV-' + Math.floor(100000 + Math.random() * 900000);
+    const existingReview = window.db.getSubmissionReview(subId);
+    
+    const reviewData = {
+      id: existingReview ? existingReview.id : reviewId,
+      submission_id: subId,
+      tutor_id: cu.username,
+      marks: marks,
+      feedback: feedback,
+      reviewed_at: new Date().toISOString()
+    };
+
+    const resReview = window.db.saveReview(reviewData);
+    if (resReview.success) {
+      const sub = window.db.getSubmissionById(subId);
+      if (sub) {
+        sub.submission_status = status;
+        window.db.saveSubmission(sub);
+
+        const proj = window.db.getProjectById(projId);
+        const notifyTitle = status === 'Completed' ? "Project Graded! 🎓" : "Project Revision Required ⚠️";
+        const notifyMsg = status === 'Completed' 
+          ? `Your project "${proj ? proj.title : 'Assignment'}" has been graded with ${marks} Marks. Feedback: "${feedback}"`
+          : `Tutor requested revision for project "${proj ? proj.title : 'Assignment'}". Feedback: "${feedback}"`;
+        
+        window.db.addNotification(sub.student_id, notifyTitle, notifyMsg, status === 'Completed' ? "success" : "warning");
+        window.db.addActivity(cu.username, "GRADE_PROJECT", "submission", subId, `Tutor graded ${sub.student_id}'s submission with ${marks} Marks.`);
+      }
+
+      window.app.showToast('Submission graded and reviewed successfully!', 'success');
+      document.getElementById('project-review-modal').remove();
+      TutorComponent.refreshActiveTab();
+    } else {
+      window.app.showToast('Failed to save review.', 'danger');
+    }
+  },
+
+  _renderProjectsTab: function (cu, assignedCourses) {
+    const activeTab = TutorComponent._activeProjSubTab || 'list';
+    const subTabs = [
+      ['list', 'All Projects'],
+      ['create', TutorComponent._editingProjectId ? 'Edit Project' : 'Create Project'],
+      ['submissions', 'Student Submissions'],
+      ['reports', 'Reports']
+    ];
+
+    let contentHtml = '';
+    if (activeTab === 'list') contentHtml = TutorComponent._renderTutorProjList(cu, assignedCourses);
+    else if (activeTab === 'create') contentHtml = TutorComponent._renderTutorProjForm(cu, assignedCourses);
+    else if (activeTab === 'submissions') contentHtml = TutorComponent._renderTutorProjSubmissions(cu, assignedCourses);
+    else if (activeTab === 'reports') contentHtml = TutorComponent._renderTutorProjReports(cu, assignedCourses);
+
+    return `
+      <div class="dashboard-welcome">
+        <h1>Project Management</h1>
+        <p>Assign practical milestones, distribute starter templates, collect link submissions, and provide grades.</p>
+      </div>
+
+      <div class="lms-tabs-nav" style="margin-top: 20px; margin-bottom: 20px;">
+        ${subTabs.map(([tabId, label]) => `
+          <button class="lms-tab-btn ${activeTab === tabId ? 'active' : ''}" onclick="TutorComponent.selectTutorProjTab('${tabId}')">${label}</button>
+        `).join('')}
+      </div>
+
+      <div class="tutor-tab-view-container">
+        ${contentHtml}
+      </div>
+    `;
+  },
+
+  _renderTutorProjList: function (cu, assignedCourses) {
+    const all = window.db.getProjects();
+    const tutorProjects = all.filter(p => p.tutor_id === cu.username);
+
+    return `
+      <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:16px; padding:20px; overflow-x:auto;">
+        <table class="lms-table" style="width:100%; border-collapse:collapse; text-align:left;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border-color); font-weight:700; font-size:0.8rem; color:var(--text-secondary);">
+              <th style="padding:12px 8px;">Project Title</th>
+              <th style="padding:12px 8px;">Course / Batch</th>
+              <th style="padding:12px 8px;">Difficulty</th>
+              <th style="padding:12px 8px;">Submissions</th>
+              <th style="padding:12px 8px;">Status</th>
+              <th style="padding:12px 8px; text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tutorProjects.map(p => {
+              const course = window.db.getCourseById(p.course_id);
+              const batch = window.db.getBatchById(p.batch_id);
+              const subs = window.db.getSubmissionsByProject(p.id);
+              
+              let statusStyle = 'background: #e2e8f0; color: #64748b;';
+              if (p.status === 'Published') statusStyle = 'background: #d1fae5; color: #10b981;';
+              if (p.status === 'Archived') statusStyle = 'background: #fee2e2; color: #ef4444;';
+
+              return `
+                <tr style="border-bottom:1px solid var(--border-color); font-size:0.83rem;">
+                  <td style="padding:14px 8px; font-weight:700; color:var(--text-primary); text-align:left;">${p.title}</td>
+                  <td style="padding:14px 8px; color:var(--text-secondary); text-align:left;">
+                    <div>${course ? course.title : 'Course'}</div>
+                    <div style="font-size:0.72rem; color:var(--text-muted); font-weight:600;">${batch ? batch.name : 'Batch'}</div>
+                  </td>
+                  <td style="padding:14px 8px;"><span class="project-diff-badge ${p.difficulty.toLowerCase()}" style="position:static; padding:2px 8px; border-radius:10px;">${p.difficulty}</span></td>
+                  <td style="padding:14px 8px;"><button class="btn btn-ghost btn-xs" onclick="TutorComponent.viewTutorSubmissions('${p.id}')" style="margin:0; font-weight:700;"><i class="fa-solid fa-inbox"></i> ${subs.length} Submitted</button></td>
+                  <td style="padding:14px 8px;"><span style="font-size:0.7rem; font-weight:700; border-radius:12px; padding:3px 8px; text-transform:uppercase; ${statusStyle}">${p.status}</span></td>
+                  <td style="padding:14px 8px; text-align:right; white-space:nowrap;">
+                    <button class="btn btn-outline btn-xs" onclick="TutorComponent.editTutorProject('${p.id}')" style="margin:0;"><i class="fa-solid fa-pen"></i> Edit</button>
+                    <button class="btn btn-outline btn-xs" onclick="TutorComponent.deleteTutorProject('${p.id}')" style="margin:0; border-color:var(--danger); color:var(--danger);"><i class="fa-solid fa-trash"></i> Delete</button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+            ${tutorProjects.length === 0 ? `
+              <tr>
+                <td colspan="6" style="padding:48px; text-align:center; color:var(--text-muted);">
+                  <div style="font-size:2.5rem; margin-bottom:8px;">📂</div>
+                  <div>No projects created yet. Click "Create Project" to get started!</div>
+                </td>
+              </tr>
+            ` : ''}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  _renderTutorProjForm: function (cu, assignedCourses) {
+    const proj = TutorComponent._editingProjectId ? window.db.getProjectById(TutorComponent._editingProjectId) : null;
+    const assets = proj ? window.db.getProjectAssets(proj.id) : [];
+    const batches = window.db.getBatches().filter(b => b.tutorIds.includes(cu.username));
+
+    return `
+      <form onsubmit="TutorComponent.saveTutorProject(event)" style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:16px; padding:24px; text-align:left; max-width:800px; margin: 0 auto;">
+        <h3 style="font-size:1.1rem; font-weight:800; color:var(--text-primary); margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:10px;"><i class="fa-solid fa-pen-nib" style="color:var(--brand-blue); margin-right:8px;"></i> ${proj ? 'Edit Project Specifications' : 'Assign New Project Details'}</h3>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:14px;">
+          <div class="form-group">
+            <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Project Title *</label>
+            <input type="text" id="proj-title" value="${proj ? proj.title : ''}" class="form-control" placeholder="e.g. Architectural Visualization Portfolio" required style="font-family:inherit; font-size:0.83rem;">
+          </div>
+          <div class="form-group">
+            <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Project Thumbnail Image URL (Optional)</label>
+            <input type="text" id="proj-thumb" value="${proj ? (proj.thumbnail || '') : ''}" class="form-control" placeholder="e.g. project_cover.jpg" style="font-family:inherit; font-size:0.83rem;">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:14px;">
+          <div class="form-group">
+            <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Target Course *</label>
+            <select id="proj-course" class="form-control" required style="font-family:inherit; font-size:0.83rem;">
+              ${assignedCourses.map(c => `
+                <option value="${c.id}" ${proj && proj.course_id === c.id ? 'selected' : ''}>${c.title}</option>
+              `).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Target Batch *</label>
+            <select id="proj-batch" class="form-control" required style="font-family:inherit; font-size:0.83rem;">
+              ${batches.map(b => `
+                <option value="${b.id}" ${proj && proj.batch_id === b.id ? 'selected' : ''}>${b.name} (${b.id})</option>
+              `).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Difficulty Level *</label>
+            <select id="proj-diff" class="form-control" required style="font-family:inherit; font-size:0.83rem;">
+              <option value="Beginner" ${proj && proj.difficulty === 'Beginner' ? 'selected' : ''}>Beginner</option>
+              <option value="Intermediate" ${proj && proj.difficulty === 'Intermediate' ? 'selected' : ''}>Intermediate</option>
+              <option value="Advanced" ${proj && proj.difficulty === 'Advanced' ? 'selected' : ''}>Advanced</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Brief Description *</label>
+          <textarea id="proj-desc" class="form-control" rows="3" required placeholder="Summary description of the project task..." style="font-family:inherit; font-size:0.83rem; resize:vertical;">${proj ? proj.description : ''}</textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Detailed Instructions / Step-by-Step Guidelines *</label>
+          <textarea id="proj-inst" class="form-control" rows="4" required placeholder="Explain step-by-step guidelines for students..." style="font-family:inherit; font-size:0.83rem; resize:vertical;">${proj ? proj.instructions : ''}</textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Learning Objectives (Optional)</label>
+          <textarea id="proj-obj" class="form-control" rows="3" placeholder="List the competencies that will be tested..." style="font-family:inherit; font-size:0.83rem; resize:vertical;">${proj && proj.learning_objectives ? proj.learning_objectives : ''}</textarea>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
+          <div class="form-group">
+            <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Due Date *</label>
+            <input type="date" id="proj-due-date" value="${proj ? proj.due_date.split('T')[0] : ''}" class="form-control" required style="font-family:inherit; font-size:0.83rem;">
+          </div>
+          <div class="form-group">
+            <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Due Time *</label>
+            <input type="time" id="proj-due-time" value="${proj && proj.due_date.includes('T') ? proj.due_date.split('T')[1].substring(0, 5) : '23:59'}" class="form-control" required style="font-family:inherit; font-size:0.83rem;">
+          </div>
+          <div class="form-group">
+            <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Max Marks *</label>
+            <input type="number" id="proj-marks" value="${proj ? (proj.max_marks || proj.maxMarks || 100) : 100}" class="form-control" required style="font-family:inherit; font-size:0.83rem;">
+          </div>
+          <div class="form-group">
+            <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Est. Time (e.g. 5 hours) *</label>
+            <input type="text" id="proj-est-time" value="${proj ? (proj.estimated_time || proj.estimatedTime || '') : ''}" class="form-control" placeholder="e.g. 4 Hours" required style="font-family:inherit; font-size:0.83rem;">
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px; border-top:1px solid var(--border-color); padding-top:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h4 style="font-size:0.92rem; font-weight:800; color:var(--text-primary); margin:0;"><i class="fa-solid fa-link" style="color:var(--brand-blue); margin-right:6px;"></i> Google Drive Asset Resources</h4>
+            <button type="button" class="btn btn-outline btn-xs" onclick="TutorComponent.addAssetRow()" style="margin:0;"><i class="fa-solid fa-plus"></i> Add Link</button>
+          </div>
+          <div id="tutor-assets-inputs">
+            ${assets.map(a => `
+              <div class="assets-row" style="display:grid; grid-template-columns:1fr 1fr 2fr auto; gap:10px; margin-bottom:10px;">
+                <input type="text" class="form-control asset-name" value="${a.asset_name}" placeholder="Asset Name" required style="font-family:inherit; font-size:0.8rem;">
+                <input type="text" class="form-control asset-type" value="${a.asset_type}" placeholder="File Type (e.g. PSD, Blender)" required style="font-family:inherit; font-size:0.8rem;">
+                <input type="url" class="form-control asset-link" value="${a.google_drive_link}" placeholder="Google Drive Link" required style="font-family:inherit; font-size:0.8rem;">
+                <button type="button" class="btn btn-outline btn-sm btn-icon" onclick="this.parentElement.remove()" style="margin:0; height:36px; width:36px; border-radius:50%;"><i class="fa-solid fa-trash-can"></i></button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:16px; margin-top:20px;">
+          <div class="form-group" style="margin:0; width:150px;">
+            <select id="proj-status" class="form-control" style="font-family:inherit; font-size:0.83rem;">
+              <option value="Draft" ${proj && proj.status === 'Draft' ? 'selected' : ''}>Save Draft</option>
+              <option value="Published" ${!proj || proj.status === 'Published' ? 'selected' : ''}>Publish Now</option>
+              <option value="Archived" ${proj && proj.status === 'Archived' ? 'selected' : ''}>Archive</option>
+            </select>
+          </div>
+          
+          <div style="display:flex; gap:10px;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="TutorComponent.selectTutorProjTab('list')" style="margin:0;">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm" style="margin:0;"><i class="fa-solid fa-save"></i> Save Project</button>
+          </div>
+        </div>
+      </form>
+    `;
+  },
+
+  _renderTutorProjSubmissions: function (cu, assignedCourses) {
+    const selectedProjId = TutorComponent._viewingSubProjectId;
+    const allProjects = window.db.getProjects().filter(p => p.tutor_id === cu.username);
+    const activeProj = selectedProjId ? allProjects.find(p => p.id === selectedProjId) : allProjects[0];
+    const subs = activeProj ? window.db.getSubmissionsByProject(activeProj.id) : [];
+    const students = window.db.getUsers().filter(u => u.role === 'student');
+
+    return `
+      <div style="display:grid; grid-template-columns:250px 1fr; gap:20px; text-align:left;">
+        <div class="glass-panel" style="padding:14px; height:fit-content;">
+          <h4 style="font-size:0.82rem; font-weight:800; color:var(--text-secondary); margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:6px;">Select Project</h4>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            ${allProjects.map(p => `
+              <div onclick="TutorComponent._viewingSubProjectId = '${p.id}'; TutorComponent.refreshActiveTab();" 
+                   style="padding:10px; border-radius:8px; font-size:0.8rem; font-weight:700; cursor:pointer; background:${activeProj && activeProj.id === p.id ? 'var(--brand-blue-pale)' : 'transparent'}; border:1px solid ${activeProj && activeProj.id === p.id ? 'var(--brand-blue)' : 'transparent'}; color:${activeProj && activeProj.id === p.id ? 'var(--brand-blue)' : 'var(--text-primary)'};">
+                ${p.title}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="glass-panel" style="padding:20px;">
+          ${activeProj ? `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:10px;">
+              <h3 style="font-size:1rem; font-weight:800; color:var(--text-primary); margin:0;">Submissions for "${activeProj.title}"</h3>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">${subs.length} Total Submissions</span>
+            </div>
+            
+            <div style="overflow-x:auto;">
+              <table class="lms-table" style="width:100%; border-collapse:collapse; text-align:left;">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--border-color); font-weight:700; font-size:0.78rem; color:var(--text-secondary);">
+                    <th style="padding:10px 4px;">Student Name</th>
+                    <th style="padding:10px 4px;">Submit Date</th>
+                    <th style="padding:10px 4px;">Google Drive Link</th>
+                    <th style="padding:10px 4px;">Status</th>
+                    <th style="padding:10px 4px; text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${subs.map(s => {
+                    const student = students.find(u => u.username === s.student_id);
+                    const review = window.db.getSubmissionReview(s.id);
+                    
+                    let statusStyle = 'background: #e2e8f0; color: #64748b;';
+                    if (s.submission_status === 'Submitted') statusStyle = 'background: #dbeafe; color: #3b82f6;';
+                    if (s.submission_status === 'Under Review') statusStyle = 'background: #fef3c7; color: #d97706;';
+                    if (s.submission_status === 'Revision Required') statusStyle = 'background: #fee2e2; color: #b91c1c;';
+                    if (s.submission_status === 'Completed') statusStyle = 'background: #d1fae5; color: #10b981;';
+
+                    return `
+                      <tr style="border-bottom:1px solid var(--border-color); font-size:0.82rem;">
+                        <td style="padding:12px 4px; font-weight:700; color:var(--text-primary); text-align:left;">${student ? student.name : s.student_id}</td>
+                        <td style="padding:12px 4px; color:var(--text-secondary); text-align:left;">${new Date(s.submitted_at).toLocaleDateString()}</td>
+                        <td style="padding:12px 4px; text-align:left;"><a href="${s.google_drive_submission_link}" target="_blank" style="color:var(--brand-blue); text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Submission</a></td>
+                        <td style="padding:12px 4px;"><span style="font-size:0.68rem; font-weight:700; border-radius:10px; padding:2px 6px; text-transform:uppercase; ${statusStyle}">${s.submission_status}</span></td>
+                        <td style="padding:12px 4px; text-align:right; white-space:nowrap;">
+                          <button class="btn btn-primary btn-xs" onclick="TutorComponent.openReviewModal('${s.id}')" style="margin:0;"><i class="fa-solid fa-star"></i> ${review ? 'Edit Review' : 'Grade & Feedback'}</button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                  ${subs.length === 0 ? `
+                    <tr>
+                      <td colspan="5" style="padding:36px; text-align:center; color:var(--text-muted); font-size:0.8rem; font-style:italic;">No submissions received yet for this project.</td>
+                    </tr>
+                  ` : ''}
+                </tbody>
+              </table>
+            </div>
+          ` : `
+            <div style="text-align:center; padding:36px; color:var(--text-muted);">No projects found. Please create a project first.</div>
+          `}
+        </div>
+      </div>
+    `;
+  },
+
+  _renderTutorProjReports: function (cu, assignedCourses) {
+    const allProjects = window.db.getProjects().filter(p => p.tutor_id === cu.username);
+    const allSubs = window.db.getSubmissions();
+    const tutorProjIds = allProjects.map(p => p.id);
+    const tutorSubs = allSubs.filter(s => tutorProjIds.includes(s.project_id));
+    const pendingReviews = tutorSubs.filter(s => s.submission_status === 'Submitted' || s.submission_status === 'Under Review').length;
+    const reviews = window.db.getReviews().filter(r => r.tutor_id === cu.username);
+    const avgMarks = reviews.length > 0
+      ? Math.round(reviews.reduce((sum, r) => sum + (r.marks || 0), 0) / reviews.length)
+      : 0;
+
+    return `
+      <div style="text-align:left;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px;">
+          <div class="glass-panel" style="padding:20px; border-radius:12px; border-left:4px solid var(--brand-blue);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Total Projects</div>
+            <div style="font-size:1.6rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${allProjects.length}</div>
+          </div>
+          <div class="glass-panel" style="padding:20px; border-radius:12px; border-left:4px solid var(--warning);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Total Submissions</div>
+            <div style="font-size:1.6rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${tutorSubs.length}</div>
+          </div>
+          <div class="glass-panel" style="padding:20px; border-radius:12px; border-left:4px solid var(--danger);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Pending Reviews</div>
+            <div style="font-size:1.6rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${pendingReviews}</div>
+          </div>
+          <div class="glass-panel" style="padding:20px; border-radius:12px; border-left:4px solid var(--success);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Average Marks</div>
+            <div style="font-size:1.6rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${avgMarks} <span style="font-size:0.85rem; font-weight:500; color:var(--text-secondary);">/ 100</span></div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 };
 window.TutorComponent = TutorComponent;

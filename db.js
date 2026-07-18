@@ -1327,6 +1327,91 @@ class CubazeDB {
         console.warn('Supabase coupons sync failed:', err);
       }
 
+      // Sync Projects
+      try {
+        const { data: projs, error: projErr } = await this.sb.from('project_assignments').select('*');
+        if (!projErr && projs) {
+          const mappedProjs = projs.map(p => ({
+            id: p.id,
+            title: p.title,
+            thumbnail: p.thumbnail || '',
+            description: p.description || '',
+            instructions: p.instructions || '',
+            learning_objectives: p.learning_objectives || '',
+            difficulty: p.difficulty || 'Beginner',
+            course_id: p.course_id,
+            batch_id: p.batch_id,
+            tutor_id: p.tutor_id,
+            due_date: p.due_date,
+            max_marks: parseInt(p.max_marks) || 100,
+            estimated_time: p.estimated_time || '',
+            status: p.status || 'Draft',
+            created_at: p.created_at,
+            updated_at: p.updated_at
+          }));
+          localStorage.setItem("cubaze_project_assignments", JSON.stringify(mappedProjs));
+        }
+      } catch (err) {
+        console.warn("Supabase project_assignments sync failed:", err);
+      }
+
+      // Sync Project Assets
+      try {
+        const { data: assets, error: assetErr } = await this.sb.from('project_assets').select('*');
+        if (!assetErr && assets) {
+          const mappedAssets = assets.map(a => ({
+            id: a.id,
+            project_id: a.project_id,
+            asset_name: a.asset_name || '',
+            asset_type: a.asset_type || '',
+            google_drive_link: a.google_drive_link || '',
+            display_order: parseInt(a.display_order) || 0,
+            created_at: a.created_at
+          }));
+          localStorage.setItem("cubaze_project_assets", JSON.stringify(mappedAssets));
+        }
+      } catch (err) {
+        console.warn("Supabase project_assets sync failed:", err);
+      }
+
+      // Sync Project Submissions
+      try {
+        const { data: subs, error: subErr } = await this.sb.from('project_submissions').select('*');
+        if (!subErr && subs) {
+          const mappedSubs = subs.map(s => ({
+            id: s.id,
+            project_id: s.project_id,
+            student_id: s.student_id,
+            google_drive_submission_link: s.google_drive_submission_link || '',
+            notes: s.notes || '',
+            submission_status: s.submission_status || 'Submitted',
+            submitted_at: s.submitted_at,
+            updated_at: s.updated_at
+          }));
+          localStorage.setItem("cubaze_project_submissions", JSON.stringify(mappedSubs));
+        }
+      } catch (err) {
+        console.warn("Supabase project_submissions sync failed:", err);
+      }
+
+      // Sync Project Reviews
+      try {
+        const { data: revs, error: revErr } = await this.sb.from('project_reviews').select('*');
+        if (!revErr && revs) {
+          const mappedRevs = revs.map(r => ({
+            id: r.id,
+            submission_id: r.submission_id,
+            tutor_id: r.tutor_id,
+            marks: parseInt(r.marks) || 0,
+            feedback: r.feedback || '',
+            reviewed_at: r.reviewed_at
+          }));
+          localStorage.setItem("cubaze_project_reviews", JSON.stringify(mappedRevs));
+        }
+      } catch (err) {
+        console.warn("Supabase project_reviews sync failed:", err);
+      }
+
       console.log("✅ Supabase sync completed.");
       this.supabaseStatus = 'online';
       // Trigger a view refresh if app is loaded
@@ -1580,6 +1665,66 @@ class CubazeDB {
           updated_at: p.updatedAt || new Date().toISOString()
         });
       });
+    } else if (key === "cubaze_project_assignments") {
+      const items = specificId ? value.filter(p => p.id === specificId) : value;
+      items.forEach(p => {
+        this.pushToSupabase("project_assignments", {
+          id: p.id,
+          title: p.title,
+          thumbnail: p.thumbnail || "",
+          description: p.description,
+          instructions: p.instructions,
+          learning_objectives: p.learning_objectives || p.learningObjectives || "",
+          difficulty: p.difficulty,
+          course_id: p.course_id || p.courseId,
+          batch_id: p.batch_id || p.batchId,
+          tutor_id: p.tutor_id || p.tutorId,
+          due_date: p.due_date || p.dueDate,
+          max_marks: parseInt(p.max_marks || p.maxMarks) || 100,
+          estimated_time: p.estimated_time || p.estimatedTime || "",
+          status: p.status || "Draft",
+          created_at: p.created_at || p.createdAt || new Date().toISOString(),
+          updated_at: p.updated_at || p.updatedAt || new Date().toISOString()
+        });
+      });
+    } else if (key === "cubaze_project_assets") {
+      value.forEach(a => {
+        this.pushToSupabase("project_assets", {
+          id: a.id,
+          project_id: a.project_id || a.projectId,
+          asset_name: a.asset_name || a.assetName || "",
+          asset_type: a.asset_type || a.assetType || "",
+          google_drive_link: a.google_drive_link || a.googleDriveLink || "",
+          display_order: parseInt(a.display_order || a.displayOrder) || 0,
+          created_at: a.created_at || a.createdAt || new Date().toISOString()
+        });
+      });
+    } else if (key === "cubaze_project_submissions") {
+      const items = specificId ? value.filter(s => s.id === specificId) : value;
+      items.forEach(s => {
+        this.pushToSupabase("project_submissions", {
+          id: s.id,
+          project_id: s.project_id || s.projectId,
+          student_id: s.student_id || s.studentId,
+          google_drive_submission_link: s.google_drive_submission_link || s.googleDriveSubmissionLink || "",
+          notes: s.notes || "",
+          submission_status: s.submission_status || s.submissionStatus || "Submitted",
+          submitted_at: s.submitted_at || s.submittedAt || new Date().toISOString(),
+          updated_at: s.updated_at || s.updatedAt || new Date().toISOString()
+        });
+      });
+    } else if (key === "cubaze_project_reviews") {
+      const items = specificId ? value.filter(r => r.id === specificId) : value;
+      items.forEach(r => {
+        this.pushToSupabase("project_reviews", {
+          id: r.id,
+          submission_id: r.submission_id || r.submissionId,
+          tutor_id: r.tutor_id || r.tutorId,
+          marks: parseInt(r.marks) || 0,
+          feedback: r.feedback || "",
+          reviewed_at: r.reviewed_at || r.reviewedAt || new Date().toISOString()
+        });
+      });
     } else if (key === "cubaze_common_meetings") {
       const itemsToPush = specificId ? value.filter(m => m.id === specificId) : value;
       itemsToPush.forEach(m => {
@@ -1707,6 +1852,12 @@ class CubazeDB {
     if (!localStorage.getItem("cubaze_common_meetings")) localStorage.setItem("cubaze_common_meetings", JSON.stringify(DEFAULT_COMMON_MEETINGS));
     if (!localStorage.getItem("cubaze_support_conversations")) localStorage.setItem("cubaze_support_conversations", JSON.stringify(DEFAULT_SUPPORT_CONVERSATIONS));
     if (!localStorage.getItem("cubaze_support_messages")) localStorage.setItem("cubaze_support_messages", JSON.stringify(DEFAULT_SUPPORT_MESSAGES));
+
+    // Initialize Projects system tables
+    if (!localStorage.getItem("cubaze_project_assignments")) localStorage.setItem("cubaze_project_assignments", JSON.stringify([]));
+    if (!localStorage.getItem("cubaze_project_assets")) localStorage.setItem("cubaze_project_assets", JSON.stringify([]));
+    if (!localStorage.getItem("cubaze_project_submissions")) localStorage.setItem("cubaze_project_submissions", JSON.stringify([]));
+    if (!localStorage.getItem("cubaze_project_reviews")) localStorage.setItem("cubaze_project_reviews", JSON.stringify([]));
 
     // Migrate legacy users without enrolledBatches
     const currentUsers = JSON.parse(localStorage.getItem("cubaze_users") || "[]");
@@ -4008,6 +4159,130 @@ class CubazeDB {
       return { success: true };
     }
     return { success: false, error: "Poster not found." };
+  }
+  // --- PROJECTS SYSTEM ---
+  getProjects() {
+    return JSON.parse(localStorage.getItem("cubaze_project_assignments")) || [];
+  }
+
+  getProjectById(id) {
+    return this.getProjects().find(p => p.id === id);
+  }
+
+  getProjectAssets(projectId) {
+    const all = JSON.parse(localStorage.getItem("cubaze_project_assets")) || [];
+    return all.filter(a => a.project_id === projectId).sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+  }
+
+  saveProject(project, assetsList = []) {
+    const projects = this.getProjects();
+    const index = projects.findIndex(p => p.id === project.id);
+    project.updated_at = new Date().toISOString();
+    if (index > -1) {
+      projects[index] = { ...projects[index], ...project };
+    } else {
+      project.created_at = project.created_at || new Date().toISOString();
+      projects.push(project);
+    }
+    this.setItemAndSync("cubaze_project_assignments", projects, project.id);
+
+    // Save assets
+    let allAssets = JSON.parse(localStorage.getItem("cubaze_project_assets")) || [];
+    allAssets = allAssets.filter(a => a.project_id !== project.id);
+    assetsList.forEach((asset, idx) => {
+      if (!asset.id) asset.id = 'AST-' + Math.floor(100000 + Math.random() * 900000);
+      asset.project_id = project.id;
+      asset.display_order = idx;
+      asset.created_at = asset.created_at || new Date().toISOString();
+      allAssets.push(asset);
+    });
+    this.setItemAndSync("cubaze_project_assets", allAssets);
+    return { success: true, project };
+  }
+
+  async deleteProject(id) {
+    let projects = this.getProjects();
+    const len = projects.length;
+    projects = projects.filter(p => p.id !== id);
+    if (projects.length < len) {
+      this.setItemAndSync("cubaze_project_assignments", projects, id);
+
+      let allAssets = JSON.parse(localStorage.getItem("cubaze_project_assets")) || [];
+      allAssets = allAssets.filter(a => a.project_id !== id);
+      this.setItemAndSync("cubaze_project_assets", allAssets);
+
+      let allSubmissions = this.getSubmissions();
+      const projectSubmissions = allSubmissions.filter(s => s.project_id === id);
+      allSubmissions = allSubmissions.filter(s => s.project_id !== id);
+      this.setItemAndSync("cubaze_project_submissions", allSubmissions);
+
+      let allReviews = this.getReviews();
+      projectSubmissions.forEach(sub => {
+        allReviews = allReviews.filter(r => r.submission_id !== sub.id);
+      });
+      this.setItemAndSync("cubaze_project_reviews", allReviews);
+
+      if (this.sb) {
+        try {
+          await this.sb.from('project_assignments').delete().eq('id', id);
+        } catch (err) {
+          console.warn("Failed to delete project from Supabase:", err);
+        }
+      }
+      return { success: true };
+    }
+    return { success: false, error: "Project not found." };
+  }
+
+  getSubmissions() {
+    return JSON.parse(localStorage.getItem("cubaze_project_submissions")) || [];
+  }
+
+  getSubmissionById(id) {
+    return this.getSubmissions().find(s => s.id === id);
+  }
+
+  getSubmissionsByProject(projectId) {
+    return this.getSubmissions().filter(s => s.project_id === projectId);
+  }
+
+  getStudentSubmission(projectId, studentId) {
+    return this.getSubmissions().find(s => s.project_id === projectId && s.student_id === studentId);
+  }
+
+  saveSubmission(submission) {
+    const submissions = this.getSubmissions();
+    const index = submissions.findIndex(s => s.id === submission.id);
+    submission.updated_at = new Date().toISOString();
+    if (index > -1) {
+      submissions[index] = { ...submissions[index], ...submission };
+    } else {
+      submission.submitted_at = submission.submitted_at || new Date().toISOString();
+      submissions.push(submission);
+    }
+    this.setItemAndSync("cubaze_project_submissions", submissions, submission.id);
+    return { success: true, submission };
+  }
+
+  getReviews() {
+    return JSON.parse(localStorage.getItem("cubaze_project_reviews")) || [];
+  }
+
+  getSubmissionReview(submissionId) {
+    return this.getReviews().find(r => r.submission_id === submissionId);
+  }
+
+  saveReview(review) {
+    const reviews = this.getReviews();
+    const index = reviews.findIndex(r => r.id === review.id);
+    review.reviewed_at = review.reviewed_at || new Date().toISOString();
+    if (index > -1) {
+      reviews[index] = { ...reviews[index], ...review };
+    } else {
+      reviews.push(review);
+    }
+    this.setItemAndSync("cubaze_project_reviews", reviews, review.id);
+    return { success: true, review };
   }
 }
 

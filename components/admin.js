@@ -98,7 +98,7 @@ const AdminComponent = {
     const nav = [
       { title: 'Overview', items: [['dashboard', 'fa-gauge', 'Dashboard'], ['activity', 'fa-scroll', 'Activity Log']] },
       { title: 'People', items: [['students', 'fa-users', 'Students'], ['tutors', 'fa-chalkboard-user', 'Tutors'], ['requests', 'fa-comments', 'Student Request']] },
-      { title: 'Content', items: [['courses', 'fa-book-open', 'Courses'], ['batches', 'fa-cubes', 'Batches'], ['common_meeting', 'fa-calendar-days', 'Common Meeting'], ['submissions', 'fa-inbox', 'Submissions'], ['blog', 'fa-newspaper', 'Blog'], ['reviews', 'fa-star', 'Reviews'], ['coupons', 'fa-tag', 'Coupons'], ['liveclasses', 'fa-video', 'Live Classes'], ['posters', 'fa-image', 'Dashboard Posters']] },
+      { title: 'Content', items: [['courses', 'fa-book-open', 'Courses'], ['batches', 'fa-cubes', 'Batches'], ['common_meeting', 'fa-calendar-days', 'Common Meeting'], ['projects', 'fa-diagram-project', 'Projects'], ['submissions', 'fa-inbox', 'Submissions'], ['blog', 'fa-newspaper', 'Blog'], ['reviews', 'fa-star', 'Reviews'], ['coupons', 'fa-tag', 'Coupons'], ['liveclasses', 'fa-video', 'Live Classes'], ['posters', 'fa-image', 'Dashboard Posters']] },
       { title: 'Finance', items: [['payments', 'fa-credit-card', 'Payments']] },
       { title: 'System', items: [['settings', 'fa-gear', 'Settings']] }
     ];
@@ -155,6 +155,7 @@ const AdminComponent = {
         return AdminComponent._renderTutors();
       case 'courses': return AdminComponent._renderCourses();
       case 'batches': return AdminComponent._renderBatches();
+      case 'projects': return AdminComponent._renderProjects();
       case 'payments': return AdminComponent._renderPayments();
       case 'submissions': return AdminComponent._renderSubmissions();
       case 'coupons': return AdminComponent._renderCoupons();
@@ -5932,6 +5933,245 @@ const AdminComponent = {
         }
       });
     });
+  },
+
+  _activeAdminProjTab: 'dashboard',
+
+  selectAdminProjTab: function (tabId) {
+    AdminComponent._activeAdminProjTab = tabId;
+    document.getElementById('adm-main').innerHTML = AdminComponent._renderProjects();
+  },
+
+  deleteAdminProject: async function (projId) {
+    if (!confirm("Are you sure you want to delete this project? This will also delete all student submissions.")) return;
+    const res = await window.db.deleteProject(projId);
+    if (res.success) {
+      window.app.showToast("Project deleted successfully.", "success");
+      document.getElementById('adm-main').innerHTML = AdminComponent._renderProjects();
+    } else {
+      window.app.showToast(res.error || "Failed to delete project.", "danger");
+    }
+  },
+
+  _renderProjects: function () {
+    const activeTab = AdminComponent._activeAdminProjTab || 'dashboard';
+    
+    const subTabs = [
+      ['dashboard', 'Overview & Reports'],
+      ['projects', 'All Platform Projects'],
+      ['submissions', 'All Student Submissions']
+    ];
+
+    let contentHtml = '';
+    if (activeTab === 'dashboard') contentHtml = AdminComponent._renderAdminProjReports();
+    else if (activeTab === 'projects') contentHtml = AdminComponent._renderAdminProjList();
+    else if (activeTab === 'submissions') contentHtml = AdminComponent._renderAdminProjSubmissions();
+
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:14px; margin-bottom:20px;">
+        <div class="glass-panel-title-modern" style="font-size:1.25rem;">
+          <i class="fa-solid fa-diagram-project" style="color:var(--brand-blue);"></i>
+          <span>Projects & Milestones Manager</span>
+        </div>
+      </div>
+
+      <div class="lms-tabs-nav" style="margin-bottom: 20px;">
+        ${subTabs.map(([tabId, label]) => `
+          <button class="lms-tab-btn ${activeTab === tabId ? 'active' : ''}" onclick="AdminComponent.selectAdminProjTab('${tabId}')">${label}</button>
+        `).join('')}
+      </div>
+
+      <div class="admin-tab-view-container">
+        ${contentHtml}
+      </div>
+    `;
+  },
+
+  _renderAdminProjReports: function () {
+    const projects = window.db.getProjects();
+    const submissions = window.db.getSubmissions();
+    const reviews = window.db.getReviews();
+    const courses = window.db.getCourses();
+    const users = window.db.getUsers();
+    
+    const totalProjects = projects.length;
+    const totalSubmissions = submissions.length;
+    const totalReviews = reviews.length;
+    
+    const avgScore = reviews.length > 0
+      ? Math.round(reviews.reduce((sum, r) => sum + (r.marks || 0), 0) / reviews.length)
+      : 0;
+
+    const courseProjectsMap = {};
+    projects.forEach(p => {
+      courseProjectsMap[p.course_id] = (courseProjectsMap[p.course_id] || 0) + 1;
+    });
+
+    const tutorProjectsMap = {};
+    projects.forEach(p => {
+      tutorProjectsMap[p.tutor_id] = (tutorProjectsMap[p.tutor_id] || 0) + 1;
+    });
+
+    return `
+      <div style="text-align:left;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px;">
+          <div class="glass-panel" style="padding:20px; border-radius:12px; border-left:4px solid var(--brand-blue);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Total Projects</div>
+            <div style="font-size:1.6rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${totalProjects}</div>
+          </div>
+          <div class="glass-panel" style="padding:20px; border-radius:12px; border-left:4px solid var(--warning);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Student Submissions</div>
+            <div style="font-size:1.6rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${totalSubmissions}</div>
+          </div>
+          <div class="glass-panel" style="padding:20px; border-radius:12px; border-left:4px solid var(--success);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Graded & Reviewed</div>
+            <div style="font-size:1.6rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${totalReviews}</div>
+          </div>
+          <div class="glass-panel" style="padding:20px; border-radius:12px; border-left:4px solid var(--danger);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Average Platform Grade</div>
+            <div style="font-size:1.6rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${avgScore} <span style="font-size:0.85rem; font-weight:500; color:var(--text-secondary);">/ 100</span></div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+          <div class="glass-panel" style="padding:20px;">
+            <h3 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">Projects by Course</h3>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              ${Object.keys(courseProjectsMap).map(cid => {
+                const course = courses.find(c => c.id === cid);
+                const count = courseProjectsMap[cid];
+                return `
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
+                    <span style="font-weight:700; color:var(--text-primary); text-align:left;">${course ? course.title : cid}</span>
+                    <span style="background:var(--brand-blue-pale); color:var(--brand-blue); padding:2px 8px; border-radius:10px; font-weight:800;">${count}</span>
+                  </div>
+                `;
+              }).join('')}
+              ${Object.keys(courseProjectsMap).length === 0 ? '<p style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">No project distributions yet.</p>' : ''}
+            </div>
+          </div>
+
+          <div class="glass-panel" style="padding:20px;">
+            <h3 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">Projects by Tutor</h3>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              ${Object.keys(tutorProjectsMap).map(tid => {
+                const user = users.find(u => u.username === tid);
+                const count = tutorProjectsMap[tid];
+                return `
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
+                    <span style="font-weight:700; color:var(--text-primary); text-align:left;">${user ? user.name : tid}</span>
+                    <span style="background:var(--brand-blue-pale); color:var(--brand-blue); padding:2px 8px; border-radius:10px; font-weight:800;">${count}</span>
+                  </div>
+                `;
+              }).join('')}
+              ${Object.keys(tutorProjectsMap).length === 0 ? '<p style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">No tutor projects assigned yet.</p>' : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderAdminProjList: function () {
+    const projects = window.db.getProjects();
+    const courses = window.db.getCourses();
+    const users = window.db.getUsers();
+
+    return `
+      <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:16px; padding:20px; overflow-x:auto; text-align:left;">
+        <table class="lms-table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border-color); font-weight:700; font-size:0.8rem; color:var(--text-secondary);">
+              <th style="padding:12px 8px;">Project Title</th>
+              <th style="padding:12px 8px;">Course / Batch</th>
+              <th style="padding:12px 8px;">Tutor</th>
+              <th style="padding:12px 8px;">Status</th>
+              <th style="padding:12px 8px; text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${projects.map(p => {
+              const course = courses.find(c => c.id === p.course_id);
+              const batch = window.db.getBatchById(p.batch_id);
+              const tutor = users.find(u => u.username === p.tutor_id);
+              
+              let statusStyle = 'background: #e2e8f0; color: #64748b;';
+              if (p.status === 'Published') statusStyle = 'background: #d1fae5; color: #10b981;';
+              if (p.status === 'Archived') statusStyle = 'background: #fee2e2; color: #ef4444;';
+
+              return `
+                <tr style="border-bottom:1px solid var(--border-color); font-size:0.83rem;">
+                  <td style="padding:14px 8px; font-weight:700; color:var(--text-primary); text-align:left;">${p.title}</td>
+                  <td style="padding:14px 8px; color:var(--text-secondary); text-align:left;">
+                    <div>${course ? course.title : p.course_id}</div>
+                    <div style="font-size:0.72rem; color:var(--text-muted); font-weight:600;">${batch ? batch.name : p.batch_id}</div>
+                  </td>
+                  <td style="padding:14px 8px; color:var(--text-secondary); text-align:left;">${tutor ? tutor.name : p.tutor_id}</td>
+                  <td style="padding:14px 8px;"><span style="font-size:0.7rem; font-weight:700; border-radius:12px; padding:3px 8px; text-transform:uppercase; ${statusStyle}">${p.status}</span></td>
+                  <td style="padding:14px 8px; text-align:right; white-space:nowrap;">
+                    <button class="btn btn-outline btn-xs" onclick="AdminComponent.deleteAdminProject('${p.id}')" style="margin:0; border-color:var(--danger); color:var(--danger);"><i class="fa-solid fa-trash"></i> Delete</button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+            ${projects.length === 0 ? `
+              <tr>
+                <td colspan="5" style="padding:48px; text-align:center; color:var(--text-muted);">No projects found on the platform.</td>
+              </tr>
+            ` : ''}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  _renderAdminProjSubmissions: function () {
+    const submissions = window.db.getSubmissions();
+    const projects = window.db.getProjects();
+    const students = window.db.getUsers().filter(u => u.role === 'student');
+
+    return `
+      <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:16px; padding:20px; overflow-x:auto; text-align:left;">
+        <table class="lms-table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border-color); font-weight:700; font-size:0.8rem; color:var(--text-secondary);">
+              <th style="padding:12px 8px;">Project</th>
+              <th style="padding:12px 8px;">Student</th>
+              <th style="padding:12px 8px;">Submission Date</th>
+              <th style="padding:12px 8px;">Submitted Link</th>
+              <th style="padding:12px 8px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${submissions.map(s => {
+              const proj = projects.find(p => p.id === s.project_id);
+              const student = students.find(u => u.username === s.student_id);
+              
+              let statusStyle = 'background: #e2e8f0; color: #64748b;';
+              if (s.submission_status === 'Submitted') statusStyle = 'background: #dbeafe; color: #3b82f6;';
+              if (s.submission_status === 'Under Review') statusStyle = 'background: #fef3c7; color: #d97706;';
+              if (s.submission_status === 'Revision Required') statusStyle = 'background: #fee2e2; color: #b91c1c;';
+              if (s.submission_status === 'Completed') statusStyle = 'background: #d1fae5; color: #10b981;';
+
+              return `
+                <tr style="border-bottom:1px solid var(--border-color); font-size:0.83rem;">
+                  <td style="padding:14px 8px; font-weight:700; color:var(--text-primary); text-align:left;">${proj ? proj.title : s.project_id}</td>
+                  <td style="padding:14px 8px; color:var(--text-secondary); text-align:left;">${student ? student.name : s.student_id}</td>
+                  <td style="padding:14px 8px; color:var(--text-secondary); text-align:left;">${new Date(s.submitted_at).toLocaleDateString()}</td>
+                  <td style="padding:14px 8px; text-align:left;"><a href="${s.google_drive_submission_link}" target="_blank" style="color:var(--brand-blue); text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Drive Link</a></td>
+                  <td style="padding:14px 8px;"><span style="font-size:0.7rem; font-weight:700; border-radius:12px; padding:3px 8px; text-transform:uppercase; ${statusStyle}">${s.submission_status}</span></td>
+                </tr>
+              `;
+            }).join('')}
+            ${submissions.length === 0 ? `
+              <tr>
+                <td colspan="5" style="padding:48px; text-align:center; color:var(--text-muted);">No submissions found on the platform.</td>
+              </tr>
+            ` : ''}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
 };
 
