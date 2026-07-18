@@ -62,11 +62,11 @@ const PrivacyComponent = {
             <li>Request deletion of your account and associated data</li>
             <li>Opt-out of marketing communications</li>
           </ul>
-          <p style="margin-top:12px;">To exercise these rights, contact us at privacy@cubazeacademy.com.</p>
+          <p style="margin-top:12px;">To exercise these rights, contact us at cubazeacademy@gmail.com.</p>
         </div>
         <div class="legal-section">
           <h2>8. Contact Us</h2>
-          <p>For privacy-related queries, contact us at:<br><strong>Email:</strong> privacy@cubazeacademy.com<br><strong>Phone:</strong> +91 98765 43210</p>
+          <p>For privacy-related queries, contact us at:<br><strong>Email:</strong> cubazeacademy@gmail.com<br><strong>Phone:</strong> +91 6235651852</p>
         </div>
       </div>
     `;

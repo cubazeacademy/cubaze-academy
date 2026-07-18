@@ -2200,8 +2200,8 @@ const AdminComponent = {
           <div class="glass-panel-header"><div class="glass-panel-title"><i class="fa-solid fa-palette" style="color:#3D46D8;margin-right:7px;"></i>Academy Details</div></div>
           <div style="padding:24px;">
             <div class="form-group" style="margin-bottom:14px;"><label>Academy Name</label><input class="form-control" value="Cubaze Academy" style="width:100%;box-sizing:border-box;"></div>
-            <div class="form-group" style="margin-bottom:14px;"><label>Support Email</label><input class="form-control" type="email" value="support@cubazeacademy.com" style="width:100%;box-sizing:border-box;"></div>
-            <div class="form-group" style="margin-bottom:14px;"><label>WhatsApp</label><input class="form-control" value="+91 75103 37087" style="width:100%;box-sizing:border-box;"></div>
+            <div class="form-group" style="margin-bottom:14px;"><label>Support Email</label><input class="form-control" type="email" value="cubazeacademy@gmail.com" style="width:100%;box-sizing:border-box;"></div>
+            <div class="form-group" style="margin-bottom:14px;"><label>WhatsApp</label><input class="form-control" value="+91 6235651852" style="width:100%;box-sizing:border-box;"></div>
             <div class="form-group" style="margin-bottom:20px;"><label>Revenue Split (Tutor %)</label><input class="form-control" type="number" value="70" style="width:100%;box-sizing:border-box;"></div>
             <button class="btn btn-primary" onclick="window.app.showToast('Settings saved!','success')"><i class="fa-solid fa-save"></i> Save</button>
           </div>

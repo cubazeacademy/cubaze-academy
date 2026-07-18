@@ -469,8 +469,8 @@ const DEFAULT_FAQ = [
   {
     category: "Refunds & Support",
     questions: [
-      { q: "What is your refund policy?", a: "We offer a 7-day money-back guarantee on all courses. If you're not satisfied within 7 days of purchase, contact us at support@cubazeacademy.com for a full refund, no questions asked." },
-      { q: "How can I contact support?", a: "You can reach us via email at support@cubazeacademy.com, WhatsApp at +91 98765 43210, or through the contact form on our Contact page. We typically respond within 24 hours." },
+      { q: "What is your refund policy?", a: "We offer a 7-day money-back guarantee on all courses. If you're not satisfied within 7 days of purchase, contact us at cubazeacademy@gmail.com for a full refund, no questions asked." },
+      { q: "How can I contact support?", a: "You can reach us via email at cubazeacademy@gmail.com, WhatsApp at +91 6235651852, or through the contact form on our Contact page. We typically respond within 24 hours." },
       { q: "What if I face technical issues with the course?", a: "Our support team is here to help! Contact us via email or WhatsApp and we'll resolve your issue as quickly as possible. Most issues are resolved within 2-4 hours." }
     ]
   },
@@ -1742,7 +1742,7 @@ class CubazeDB {
         },
         upi: {
           enabled: true,
-          upiId: "cubazeacademy@ybl",
+          upiId: "7510337087@ybl",
           accountName: "Cubaze Academy",
           qrCodeImage: "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" width=\"200\" height=\"200\"><rect width=\"100\" height=\"100\" fill=\"white\"/><rect x=\"10\" y=\"10\" width=\"30\" height=\"30\" fill=\"black\"/><rect x=\"60\" y=\"10\" width=\"30\" height=\"30\" fill=\"black\"/><rect x=\"10\" y=\"60\" width=\"30\" height=\"30\" fill=\"black\"/><rect x=\"15\" y=\"15\" width=\"20\" height=\"20\" fill=\"white\"/><rect x=\"65\" y=\"15\" width=\"20\" height=\"20\" fill=\"white\"/><rect x=\"15\" y=\"65\" width=\"20\" height=\"20\" fill=\"white\"/><rect x=\"20\" y=\"20\" width=\"10\" height=\"10\" fill=\"black\"/><rect x=\"70\" y=\"20\" width=\"10\" height=\"10\" fill=\"black\"/><rect x=\"20\" y=\"70\" width=\"10\" height=\"10\" fill=\"black\"/><rect x=\"45\" y=\"10\" width=\"5\" height=\"15\" fill=\"black\"/><rect x=\"50\" y=\"20\" width=\"5\" height=\"10\" fill=\"black\"/><rect x=\"45\" y=\"35\" width=\"10\" height=\"5\" fill=\"black\"/><rect x=\"10\" y=\"45\" width=\"15\" height=\"5\" fill=\"black\"/><rect x=\"20\" y=\"50\" width=\"10\" height=\"5\" fill=\"black\"/><rect x=\"35\" y=\"45\" width=\"15\" height=\"15\" fill=\"black\"/><rect x=\"55\" y=\"45\" width=\"10\" height=\"5\" fill=\"black\"/><rect x=\"50\" y=\"55\" width=\"10\" height=\"10\" fill=\"black\"/><rect x=\"65\" y=\"45\" width=\"5\" height=\"15\" fill=\"black\"/><rect x=\"75\" y=\"45\" width=\"15\" height=\"5\" fill=\"black\"/><rect x=\"80\" y=\"55\" width=\"10\" height=\"15\" fill=\"black\"/><rect x=\"10\" y=\"90\" width=\"25\" height=\"5\" fill=\"black\"/><rect x=\"45\" y=\"75\" width=\"15\" height=\"10\" fill=\"black\"/><rect x=\"45\" y=\"90\" width=\"5\" height=\"5\" fill=\"black\"/><rect x=\"65\" y=\"75\" width=\"10\" height=\"5\" fill=\"black\"/><rect x=\"65\" y=\"85\" width=\"25\" height=\"10\" fill=\"black\"/></svg>",
           instructions: "Scan the QR code above or copy the UPI ID using any UPI app (such as GPay, PhonePe, Paytm, BHIM) to make the payment. After successful transfer, upload the screenshot of the payment receipt and enter the 12-digit UTR/Transaction Number."
@@ -2138,7 +2138,7 @@ class CubazeDB {
   getPaymentSettings() {
     return JSON.parse(localStorage.getItem("cubaze_payment_settings")) || {
       phonepe: { merchantId: "M_PHPE_CUBAZE", clientId: "client-phpe-5829103", clientSecret: "client-secret-sec-81057", clientVersion: "v1", environment: "Sandbox" },
-      upi: { enabled: true, upiId: "cubazeacademy@ybl", accountName: "Cubaze Academy", qrCodeImage: "", instructions: "Scan the QR code or copy the UPI ID to pay. After successful transaction, enter the 12-digit UTR/Transaction Number and upload the payment screenshot as proof." }
+      upi: { enabled: true, upiId: "7510337087@ybl", accountName: "Cubaze Academy", qrCodeImage: "", instructions: "Scan the QR code or copy the UPI ID to pay. After successful transaction, enter the 12-digit UTR/Transaction Number and upload the payment screenshot as proof." }
     };
   }
 

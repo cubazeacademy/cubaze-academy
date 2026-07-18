@@ -42,7 +42,7 @@ const RefundComponent = {
           <h2>3. How to Request a Refund</h2>
           <p>To request a refund:</p>
           <ul>
-            <li>Email us at <strong>refund@cubazeacademy.com</strong> within 7 days of purchase</li>
+            <li>Email us at <strong>cubazeacademy@gmail.com</strong> within 7 days of purchase</li>
             <li>Include your Transaction ID (found in your Order History)</li>
             <li>Briefly describe the reason for your refund request</li>
           </ul>
@@ -54,7 +54,7 @@ const RefundComponent = {
         </div>
         <div class="legal-section">
           <h2>5. Contact for Refund Support</h2>
-          <p><strong>Email:</strong> refund@cubazeacademy.com<br><strong>WhatsApp:</strong> +91 98765 43210<br><strong>Response Time:</strong> Within 24 hours (Mon–Sat)</p>
+          <p><strong>Email:</strong> cubazeacademy@gmail.com<br><strong>WhatsApp:</strong> +91 6235651852<br><strong>Response Time:</strong> Within 24 hours (Mon–Sat)</p>
         </div>
       </div>
     `;

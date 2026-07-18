@@ -63,7 +63,7 @@ const TermsComponent = {
           <p>If you have any questions or concerns about these terms and conditions, please contact our support team at:</p>
           <ul style="list-style:none; padding-left:0; margin-top:12px; line-height:1.8;">
             <li><strong>Email:</strong> <a href="mailto:cubazeacademy@gmail.com" style="color:var(--brand-blue); font-weight:600;">cubazeacademy@gmail.com</a></li>
-            <li><strong>Phone:</strong> <a href="tel:7510337087" style="color:var(--brand-blue); font-weight:600;">7510337087</a></li>
+            <li><strong>Phone:</strong> <a href="tel:+917510337087" style="color:var(--brand-blue); font-weight:600;">+91 7510337087</a></li>
             <li><strong>Operational Address:</strong> Omanoor, Kondotty, Olavattor (po) 673638 (PIN), Malappuram (dist), Kerala, India</li>
           </ul>
         </div>

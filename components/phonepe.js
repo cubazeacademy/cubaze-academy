@@ -774,7 +774,7 @@ const PhonePeComponent = {
               45, Creative Tech Hub,<br>
               Bangalore, Karnataka, 560001<br>
               GSTIN: 29AAACC1206H1Z5<br>
-              Email: billing@cubazeacademy.com
+              Email: cubazeacademy@gmail.com
             </p>
           </div>
           <div class="meta-box">
@@ -857,7 +857,7 @@ const PhonePeComponent = {
 
         <div class="footer">
           This is a computer-generated tax invoice and requires no physical signature.<br>
-          Cubaze Academy · support@cubazeacademy.com · www.cubazeacademy.com
+          Cubaze Academy · cubazeacademy@gmail.com · www.cubazeacademy.com
         </div>
       </body>
       </html>

@@ -21,7 +21,7 @@ const ContactComponent = {
                   <div class="contact-info-icon"><i class="fa-solid fa-envelope"></i></div>
                   <div class="contact-info-text">
                     <h4>Email Support</h4>
-                    <p>support@cubazeacademy.com</p>
+                    <p>cubazeacademy@gmail.com</p>
                     <p style="font-size:0.78rem;color:var(--text-muted);">We typically respond within 24 hours</p>
                   </div>
                 </div>
@@ -29,7 +29,7 @@ const ContactComponent = {
                   <div class="contact-info-icon"><i class="fa-brands fa-whatsapp" style="color:#25D366;"></i></div>
                   <div class="contact-info-text">
                     <h4>WhatsApp</h4>
-                    <p><a href="https://wa.me/919876543210" target="_blank" style="color:var(--brand-blue);">+91 98765 43210</a></p>
+                    <p><a href="https://wa.me/916235651852" target="_blank" style="color:var(--brand-blue);">+91 6235651852</a></p>
                     <p style="font-size:0.78rem;color:var(--text-muted);">Mon–Sat, 9 AM – 8 PM IST</p>
                   </div>
                 </div>
@@ -37,7 +37,7 @@ const ContactComponent = {
                   <div class="contact-info-icon"><i class="fa-solid fa-phone"></i></div>
                   <div class="contact-info-text">
                     <h4>Phone</h4>
-                    <p>+91 98765 43210</p>
+                    <p>+91 6235651852</p>
                     <p style="font-size:0.78rem;color:var(--text-muted);">Mon–Sat, 9 AM – 6 PM IST</p>
                   </div>
                 </div>
