@@ -738,31 +738,6 @@ const DEFAULT_ANNOUNCEMENTS = [
   }
 ];
 
-const DEFAULT_ASSIGNMENTS = [
-  {
-    id: "ASM_001",
-    courseId: "blender-premium",
-    batchId: "B-BLNP-001",
-    title: "Viewport Navigation Exercise",
-    description: "Submit a screenshot of your customized workspace layout and create a simple scene with 3 primitives arranged in a step shape.",
-    dueDate: getRelativeDateString(5),
-    maxPoints: 100,
-    createdBy: "sinanmp",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "ASM_002",
-    courseId: "blender-premium",
-    batchId: "", // Entire course
-    title: "Blender Basics Quiz",
-    description: "Complete the module 1 review quiz on the platform.",
-    dueDate: getRelativeDateString(10),
-    maxPoints: 50,
-    createdBy: "sinanmp",
-    createdAt: new Date().toISOString()
-  }
-];
-
 const DEFAULT_RESOURCES = [
   {
     id: "RES_001",
@@ -1027,22 +1002,7 @@ class CubazeDB {
         localStorage.setItem("cubaze_announcements", JSON.stringify(mappedAnns));
       }
 
-      // Sync Assignments
-      const { data: asgs, error: asgErr } = await this.sb.from('cubaze_assignments').select('*');
-      if (!asgErr && asgs && asgs.length > 0) {
-        const mappedAsgs = asgs.map(a => ({
-          id: a.id,
-          courseId: a.course_id,
-          batchId: a.batch_id,
-          title: a.title,
-          description: a.description,
-          dueDate: a.due_date,
-          maxPoints: a.max_points || 100,
-          createdBy: a.created_by,
-          createdAt: a.created_at
-        }));
-        localStorage.setItem("cubaze_assignments", JSON.stringify(mappedAsgs));
-      }
+
 
       // Sync Resources
       const { data: ress, error: resErr } = await this.sb.from('cubaze_resources').select('*');
@@ -1505,20 +1465,7 @@ class CubazeDB {
           created_at: a.createdAt
         });
       });
-    } else if (key === "cubaze_assignments") {
-      value.forEach(a => {
-        this.pushToSupabase("cubaze_assignments", {
-          id: a.id,
-          course_id: a.courseId || null,
-          batch_id: a.batchId || null,
-          title: a.title,
-          description: a.description,
-          due_date: a.dueDate || null,
-          max_points: a.maxPoints || 100,
-          created_by: a.createdBy,
-          created_at: a.createdAt
-        });
-      });
+
     } else if (key === "cubaze_resources") {
       value.forEach(r => {
         this.pushToSupabase("cubaze_resources", {
@@ -1754,7 +1701,7 @@ class CubazeDB {
     // Initialize Batch System tables in LocalStorage
     if (!localStorage.getItem("cubaze_batches")) localStorage.setItem("cubaze_batches", JSON.stringify(DEFAULT_BATCHES));
     if (!localStorage.getItem("cubaze_announcements")) localStorage.setItem("cubaze_announcements", JSON.stringify(DEFAULT_ANNOUNCEMENTS));
-    if (!localStorage.getItem("cubaze_assignments")) localStorage.setItem("cubaze_assignments", JSON.stringify(DEFAULT_ASSIGNMENTS));
+
     if (!localStorage.getItem("cubaze_resources")) localStorage.setItem("cubaze_resources", JSON.stringify(DEFAULT_RESOURCES));
     if (!localStorage.getItem("cubaze_attendance")) localStorage.setItem("cubaze_attendance", JSON.stringify(DEFAULT_ATTENDANCE));
     if (!localStorage.getItem("cubaze_common_meetings")) localStorage.setItem("cubaze_common_meetings", JSON.stringify(DEFAULT_COMMON_MEETINGS));
@@ -3760,40 +3707,7 @@ class CubazeDB {
     return { success: false };
   }
 
-  // --- ASSIGNMENTS ---
-  getAssignments() {
-    return JSON.parse(localStorage.getItem("cubaze_assignments")) || [];
-  }
 
-  getAssignmentsByBatchOrCourse(courseId, batchId) {
-    const asgs = this.getAssignments();
-    return asgs.filter(a => {
-      return (a.batchId === batchId) || (a.courseId === courseId && !a.batchId);
-    });
-  }
-
-  saveAssignment(asg) {
-    const asgs = this.getAssignments();
-    const index = asgs.findIndex(a => a.id === asg.id);
-    if (index > -1) {
-      asgs[index] = asg;
-    } else {
-      asgs.push(asg);
-    }
-    this.setItemAndSync("cubaze_assignments", asgs);
-    return { success: true };
-  }
-
-  deleteAssignment(id) {
-    let asgs = this.getAssignments();
-    const len = asgs.length;
-    asgs = asgs.filter(a => a.id !== id);
-    if (asgs.length < len) {
-      this.setItemAndSync("cubaze_assignments", asgs);
-      return { success: true };
-    }
-    return { success: false };
-  }
 
   // --- RESOURCES ---
   getResources() {
@@ -3936,7 +3850,27 @@ class CubazeDB {
   // --- COMMON MEETINGS SYSTEM APIs ---
 
   getCommonMeetings() {
-    return JSON.parse(localStorage.getItem("cubaze_common_meetings")) || [];
+    const meetings = JSON.parse(localStorage.getItem("cubaze_common_meetings")) || [];
+    const now = new Date();
+    let changed = false;
+    const mapped = meetings.map(m => {
+      if (m.date && m.startTime && m.endTime && m.status !== 'Completed' && m.status !== 'Cancelled') {
+        const start = new Date(`${m.date}T${m.startTime}`);
+        const end = new Date(`${m.date}T${m.endTime}`);
+        if (!isNaN(end.getTime()) && end <= now) {
+          changed = true;
+          return { ...m, status: 'Completed' };
+        } else if (!isNaN(start.getTime()) && start <= now && m.status !== 'Live Now') {
+          changed = true;
+          return { ...m, status: 'Live Now' };
+        }
+      }
+      return m;
+    });
+    if (changed) {
+      localStorage.setItem("cubaze_common_meetings", JSON.stringify(mapped));
+    }
+    return mapped;
   }
 
   getCommonMeetingById(id) {

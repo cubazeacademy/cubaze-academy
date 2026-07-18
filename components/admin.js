@@ -160,7 +160,9 @@ const AdminComponent = {
       case 'coupons': return AdminComponent._renderCoupons();
       case 'blog': return AdminComponent._renderBlog();
       case 'reviews': return AdminComponent._renderReviews();
-      case 'activity': return AdminComponent._renderActivity();
+      case 'activity':
+        AdminComponent._activityPage = 1;
+        return AdminComponent._renderActivity();
       case 'liveclasses': return AdminComponent._renderLiveClasses();
       case 'common_meeting': return AdminComponent._renderCommonMeetings();
       case 'posters': return AdminComponent._renderPosters();
@@ -420,11 +422,11 @@ const AdminComponent = {
           <div class="col-4" style="display:flex; flex-direction:column; gap:24px;">
             <!-- Announcements / Posters -->
             ${(() => {
-              if (window.DashboardRightPanel && cu) {
-                const posters = window.DashboardRightPanel._getFilteredPosters(cu);
-                return window.DashboardRightPanel._renderPosterCard(posters);
-              }
-              return `
+        if (window.DashboardRightPanel && cu) {
+          const posters = window.DashboardRightPanel._getFilteredPosters(cu);
+          return window.DashboardRightPanel._renderPosterCard(posters);
+        }
+        return `
                 <div class="glass-panel-modern" style="text-align:center; padding: 22px; justify-content: center; align-items: center;">
                   <div style="width: 42px; height: 42px; border-radius: 50%; background: #FCE7F3; color: #DB2777; display: inline-flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:1.1rem;">
                     <i class="fa-solid fa-bullhorn"></i>
@@ -433,7 +435,7 @@ const AdminComponent = {
                   <p style="font-size:0.74rem; color:var(--text-muted); margin:0;">Check back later for academy updates.</p>
                 </div>
               `;
-            })()}
+      })()}
 
             <!-- Upcoming Activities -->
             <div class="glass-panel-modern">
@@ -495,18 +497,18 @@ const AdminComponent = {
                 <div class="calendar-grid-modern">
                   ${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(w => `<div class="calendar-weekday">${w}</div>`).join('')}
                   ${Array.from({ length: 31 }, (_, i) => {
-          const d = i + 1;
-          let prepend = '';
-          if (d === 1) {
-            prepend = `<div class="calendar-day-modern" style="opacity:0; pointer-events:none;"></div>`.repeat(2);
-          }
-          const todayDate = new Date();
-          const isJuly2026 = todayDate.getMonth() === 6 && todayDate.getFullYear() === 2026;
-          const currentTodayDay = isJuly2026 ? todayDate.getDate() : 14;
-          const isToday = d === currentTodayDay;
-          const hasEvent = [currentTodayDay, 15, 20].includes(d);
-          return `${prepend}<div class="calendar-day-modern ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}" title="${hasEvent ? 'Event Scheduled' : ''}">${d}</div>`;
-        }).join('')}
+        const d = i + 1;
+        let prepend = '';
+        if (d === 1) {
+          prepend = `<div class="calendar-day-modern" style="opacity:0; pointer-events:none;"></div>`.repeat(2);
+        }
+        const todayDate = new Date();
+        const isJuly2026 = todayDate.getMonth() === 6 && todayDate.getFullYear() === 2026;
+        const currentTodayDay = isJuly2026 ? todayDate.getDate() : 14;
+        const isToday = d === currentTodayDay;
+        const hasEvent = [currentTodayDay, 15, 20].includes(d);
+        return `${prepend}<div class="calendar-day-modern ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}" title="${hasEvent ? 'Event Scheduled' : ''}">${d}</div>`;
+      }).join('')}
                 </div>
                 <div style="margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
                   <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem;">
@@ -689,6 +691,8 @@ const AdminComponent = {
 
   _studentsPage: 1,
   _tutorsPage: 1,
+  _activityPage: 1,
+  _activityPerPage: 10,
 
   _changeStudentsPage: function (page) {
     AdminComponent._studentsPage = page;
@@ -707,6 +711,14 @@ const AdminComponent = {
     AdminComponent._bindSection('tutors');
   },
 
+  _changeActivityPage: function (page) {
+    AdminComponent._activityPage = page;
+    const search = document.getElementById('act-search')?.value || '';
+    const filter = document.getElementById('act-filter')?.value || '';
+    document.getElementById('adm-main').innerHTML = AdminComponent._renderActivity(search, filter);
+    AdminComponent._bindSection('activity');
+  },
+
   /* ============================================================
      STUDENTS
      ============================================================ */
@@ -716,9 +728,9 @@ const AdminComponent = {
     if (filter === 'suspended') users = users.filter(u => u.suspended);
     else if (filter === 'active') users = users.filter(u => !u.suspended);
     if (courseFilter) users = users.filter(u => u.enrolledCourses && u.enrolledCourses.includes(courseFilter));
-    
+
     const allCourses = window.db.getCourses();
-    
+
     // Pagination calculations
     const itemsPerPage = 10;
     const totalResults = users.length;
@@ -783,13 +795,13 @@ const AdminComponent = {
                 <td>
                   <div style="display:flex;align-items:center;gap:10px;">
                     <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3D46D8,#6366F1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.82rem;color:#fff;flex-shrink:0;">${u.name.charAt(0)}</div>
-                    <div><div style="font-weight:700;color:#0F172A;font-size:0.85rem;">${u.name}</div></div>
+                    <div><div style="font-weight:700;color:var(--text-primary);font-size:0.85rem;">${u.name}</div></div>
                   </div>
                 </td>
                 <td style="color:#64748B;">@${u.username}</td>
                 <td style="max-width:220px;" title="${enrolledNames.join(', ')}">
                   ${enrolledNames.length === 0 ? `<span style="color:#94A3B8;font-style:italic;font-size:0.78rem;">None enrolled</span>` :
-          enrolledNames.slice(0, 2).map(n => `<span style="display:inline-block;background:#EFF2FE;color:#3D46D8;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:600;margin:2px;">${n.slice(0, 22)}${n.length > 22 ? '...' : ''}</span>`).join('') + (enrolledNames.length > 2 ? `<span style="font-size:0.72rem;color:#94A3B8;cursor:help;">+${enrolledNames.length - 2} more</span>` : '')}
+          enrolledNames.slice(0, 2).map(n => `<span style="display:inline-block;color:var(--brand-blue);font-size:0.75rem;font-weight:700;margin:2px 8px 2px 0;">${n.slice(0, 22)}${n.length > 22 ? '...' : ''}</span>`).join('') + (enrolledNames.length > 2 ? `<span style="font-size:0.72rem;color:#94A3B8;cursor:help;">+${enrolledNames.length - 2} more</span>` : '')}
                 </td>
                 <td>${u.suspended ? '<span class="status-badge danger">⚫ Suspended</span>' : '<span class="status-badge success">🟢 Active</span>'}</td>
                 <td style="color:#94A3B8;font-size:0.78rem;">${u.registeredDate || '—'}</td>
@@ -816,18 +828,18 @@ const AdminComponent = {
 
         <!-- Pagination Controls -->
         ${totalResults > 0 ? (() => {
-          let startPage = Math.max(1, currentPage - 2);
-          let endPage = Math.min(totalPages, currentPage + 2);
-          if (currentPage <= 3) {
-            endPage = Math.min(5, totalPages);
-          } else if (currentPage >= totalPages - 2) {
-            startPage = Math.max(1, totalPages - 4);
-          }
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+        if (currentPage <= 3) {
+          endPage = Math.min(5, totalPages);
+        } else if (currentPage >= totalPages - 2) {
+          startPage = Math.max(1, totalPages - 4);
+        }
 
-          const buttons = [];
-          
-          // First page
-          buttons.push(`
+        const buttons = [];
+
+        // First page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeStudentsPage(1)"`}
@@ -835,9 +847,9 @@ const AdminComponent = {
               «
             </button>
           `);
-          
-          // Previous page
-          buttons.push(`
+
+        // Previous page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeStudentsPage(${currentPage - 1})"`}
@@ -846,28 +858,28 @@ const AdminComponent = {
             </button>
           `);
 
-          // Numeric pages
-          for (let p = startPage; p <= endPage; p++) {
-            if (p === currentPage) {
-              buttons.push(`
+        // Numeric pages
+        for (let p = startPage; p <= endPage; p++) {
+          if (p === currentPage) {
+            buttons.push(`
                 <button class="btn btn-primary" 
                         style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; margin:0; background:var(--brand-blue); border-color:var(--brand-blue); color:#fff; cursor:default;">
                   ${p}
                 </button>
               `);
-            } else {
-              buttons.push(`
+          } else {
+            buttons.push(`
                 <button class="btn btn-outline-white" 
                         style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; background:#fff; border:1px solid #E2E8F0; color:var(--text-secondary);"
                         onclick="AdminComponent._changeStudentsPage(${p})">
                   ${p}
                 </button>
               `);
-            }
           }
+        }
 
-          // Next page
-          buttons.push(`
+        // Next page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeStudentsPage(${currentPage + 1})"`}
@@ -876,8 +888,8 @@ const AdminComponent = {
             </button>
           `);
 
-          // Last page
-          buttons.push(`
+        // Last page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeStudentsPage(${totalPages})"`}
@@ -886,7 +898,7 @@ const AdminComponent = {
             </button>
           `);
 
-          return `
+        return `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--border-color); flex-wrap:wrap; gap:16px;">
               <div style="font-size:0.83rem; color:var(--text-muted);">
                 Showing <strong style="color:var(--text-primary); font-weight:700;">${totalResults === 0 ? 0 : startIndex + 1}</strong> to <strong style="color:var(--text-primary); font-weight:700;">${endIndex}</strong> of <strong style="color:var(--text-primary); font-weight:700;">${totalResults}</strong> results
@@ -896,7 +908,7 @@ const AdminComponent = {
               </div>
             </div>
           `;
-        })() : ''}
+      })() : ''}
       </div>`;
   },
 
@@ -907,9 +919,9 @@ const AdminComponent = {
     let users = window.db.getUsers().filter(u => u.role === 'instructor' && !u.deleted);
     if (search) users = users.filter(u => (u.name + u.username).toLowerCase().includes(search.toLowerCase()));
     if (courseFilter) users = users.filter(u => u.assignedCourses && u.assignedCourses.includes(courseFilter));
-    
+
     const allCourses = window.db.getCourses();
-    
+
     // Pagination calculations
     const itemsPerPage = 10;
     const totalResults = users.length;
@@ -966,7 +978,7 @@ const AdminComponent = {
                   <div style="display:flex;align-items:center;gap:10px;">
                     <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#6366F1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;color:#fff;flex-shrink:0;">${u.name.charAt(0)}</div>
                     <div>
-                      <div style="font-weight:700;color:#0F172A;font-size:0.85rem;">${u.name}</div>
+                      <div style="font-weight:700;color:var(--text-primary);font-size:0.85rem;">${u.name}</div>
                       <div style="font-size:0.72rem;color:#94A3B8;">${u.authorBio ? u.authorBio.slice(0, 40) + '...' : 'No bio'}</div>
                     </div>
                   </div>
@@ -974,7 +986,7 @@ const AdminComponent = {
                 <td style="color:#64748B;">@${u.username}</td>
                 <td style="max-width:220px;" title="${names.join(', ')}">
                   ${names.length === 0 ? `<span style="color:#94A3B8;font-style:italic;font-size:0.78rem;">None assigned</span>` :
-          names.slice(0, 2).map(n => `<span style="display:inline-block;background:#EFF2FE;color:#3D46D8;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:600;margin:2px;">${n.slice(0, 22)}</span>`).join('') + (names.length > 2 ? `<span style="font-size:0.72rem;color:#94A3B8;cursor:help;">+${names.length - 2} more</span>` : '')}
+          names.slice(0, 2).map(n => `<span style="display:inline-block;color:var(--brand-blue);font-size:0.75rem;font-weight:700;margin:2px 8px 2px 0;">${n.slice(0, 22)}</span>`).join('') + (names.length > 2 ? `<span style="font-size:0.72rem;color:#94A3B8;cursor:help;">+${names.length - 2} more</span>` : '')}
                 </td>
                 <td>${u.suspended ? '<span class="status-badge danger">⚫ Suspended</span>' : '<span class="status-badge success">🟢 Active</span>'}</td>
                 <td style="color:#94A3B8;font-size:0.78rem;">${u.registeredDate || '—'}</td>
@@ -1001,18 +1013,18 @@ const AdminComponent = {
 
         <!-- Pagination Controls -->
         ${totalResults > 0 ? (() => {
-          let startPage = Math.max(1, currentPage - 2);
-          let endPage = Math.min(totalPages, currentPage + 2);
-          if (currentPage <= 3) {
-            endPage = Math.min(5, totalPages);
-          } else if (currentPage >= totalPages - 2) {
-            startPage = Math.max(1, totalPages - 4);
-          }
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+        if (currentPage <= 3) {
+          endPage = Math.min(5, totalPages);
+        } else if (currentPage >= totalPages - 2) {
+          startPage = Math.max(1, totalPages - 4);
+        }
 
-          const buttons = [];
-          
-          // First page
-          buttons.push(`
+        const buttons = [];
+
+        // First page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeTutorsPage(1)"`}
@@ -1020,9 +1032,9 @@ const AdminComponent = {
               «
             </button>
           `);
-          
-          // Previous page
-          buttons.push(`
+
+        // Previous page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeTutorsPage(${currentPage - 1})"`}
@@ -1031,28 +1043,28 @@ const AdminComponent = {
             </button>
           `);
 
-          // Numeric pages
-          for (let p = startPage; p <= endPage; p++) {
-            if (p === currentPage) {
-              buttons.push(`
+        // Numeric pages
+        for (let p = startPage; p <= endPage; p++) {
+          if (p === currentPage) {
+            buttons.push(`
                 <button class="btn btn-primary" 
                         style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; margin:0; background:var(--brand-blue); border-color:var(--brand-blue); color:#fff; cursor:default;">
                   ${p}
                 </button>
               `);
-            } else {
-              buttons.push(`
+          } else {
+            buttons.push(`
                 <button class="btn btn-outline-white" 
                         style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; background:#fff; border:1px solid #E2E8F0; color:var(--text-secondary);"
                         onclick="AdminComponent._changeTutorsPage(${p})">
                   ${p}
                 </button>
               `);
-            }
           }
+        }
 
-          // Next page
-          buttons.push(`
+        // Next page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeTutorsPage(${currentPage + 1})"`}
@@ -1061,8 +1073,8 @@ const AdminComponent = {
             </button>
           `);
 
-          // Last page
-          buttons.push(`
+        // Last page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeTutorsPage(${totalPages})"`}
@@ -1071,7 +1083,7 @@ const AdminComponent = {
             </button>
           `);
 
-          return `
+        return `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--border-color); flex-wrap:wrap; gap:16px;">
               <div style="font-size:0.83rem; color:var(--text-muted);">
                 Showing <strong style="color:var(--text-primary); font-weight:700;">${totalResults === 0 ? 0 : startIndex + 1}</strong> to <strong style="color:var(--text-primary); font-weight:700;">${endIndex}</strong> of <strong style="color:var(--text-primary); font-weight:700;">${totalResults}</strong> results
@@ -1081,7 +1093,7 @@ const AdminComponent = {
               </div>
             </div>
           `;
-        })() : ''}
+      })() : ''}
       </div>`;
   },
 
@@ -1171,7 +1183,7 @@ const AdminComponent = {
       return `
                 <tr>
                   <td style="font-family:monospace;font-weight:700;color:#3D46D8;">${b.id}</td>
-                  <td style="font-weight:700;color:#0F172A;">${b.name}</td>
+                  <td style="font-weight:700;color:var(--text-primary);">${b.name}</td>
                   <td>${course ? course.title : b.courseId}</td>
                   <td>${tutorNames || '—'}</td>
                   <td>
@@ -1359,7 +1371,7 @@ const AdminComponent = {
     modal.innerHTML = `
       <div class="adm-modal" style="max-width: 600px; width: 100%;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1.5px solid var(--border-color); padding-bottom:12px;">
-          <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#0F172A;"><i class="fa-solid fa-graduation-cap" style="color:#6366F1; margin-right:8px;"></i>Enrolled Students: ${title}</h3>
+          <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:var(--text-primary);"><i class="fa-solid fa-graduation-cap" style="color:#6366F1; margin-right:8px;"></i>Enrolled Students: ${title}</h3>
           <button onclick="document.getElementById('view-students-modal').remove()" style="background:none; border:none; color:#64748B; font-size:1.2rem; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div style="max-height: 400px; overflow-y: auto; text-align: left; margin-bottom: 20px;">
@@ -1381,7 +1393,7 @@ const AdminComponent = {
               <tbody>
                 ${students.map(s => `
                   <tr style="border-bottom:1px solid var(--border-color);">
-                    <td style="padding:10px; font-weight:700; color:#0F172A; display:flex; align-items:center; gap:8px;">
+                    <td style="padding:10px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
                       <div class="profile-avatar" style="width:28px; height:28px; font-size:0.75rem; border-radius:50%; background:var(--brand-blue-light); color:var(--brand-blue); display:flex; align-items:center; justify-content:center; font-weight:700; ${s.profilePhoto ? `background-image:url(${s.profilePhoto}); background-size:cover;` : ''}">
                         ${s.profilePhoto ? '' : s.name.charAt(0).toUpperCase()}
                       </div>
@@ -1474,12 +1486,12 @@ const AdminComponent = {
                   <div style="display:flex;align-items:center;gap:12px;">
                     <img src="${c.image}" style="width:56px;height:38px;object-fit:cover;border-radius:8px;flex-shrink:0;">
                     <div>
-                      <div style="font-weight:700;font-size:0.85rem;color:#0F172A;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title}</div>
+                      <div style="font-weight:700;font-size:0.85rem;color:var(--text-primary);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title}</div>
                       <div style="font-size:0.72rem;color:#94A3B8;">${c.lessonsCount || 0} lessons · ${c.level || '—'}</div>
                     </div>
                   </div>
                 </td>
-                <td style="font-weight:700;color:#0F172A;">₹${c.price.toLocaleString('en-IN')}</td>
+                <td style="font-weight:700;color:var(--text-primary);">₹${c.price.toLocaleString('en-IN')}</td>
                 <td style="font-weight:600;">${(c.studentsCount || 0).toLocaleString('en-IN')}</td>
                 <td style="color:#D97706;font-weight:700;">★ ${c.rating}</td>
                 <td>${statusBadge(c)}</td>
@@ -1646,7 +1658,7 @@ const AdminComponent = {
   _renderPayments: function (search = '', filter = '', viewingId = null) {
     if (viewingId) return AdminComponent._renderPaymentDetail(viewingId);
     let txns = window.db.getTransactions();
-    
+
     // Sort transactions by date descending
     txns.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
@@ -1728,18 +1740,18 @@ const AdminComponent = {
           </thead>
           <tbody>
             ${paginatedTxns.map(t => {
-              let badgeHtml = '';
-              if (t.adminStatus === 'APPROVED' || t.status === 'SUCCESS') {
-                badgeHtml = '<span class="status-badge badge-success" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#DEF7EC; color:#03543F;">🟢 Success</span>';
-              } else if (t.adminStatus === 'PENDING') {
-                badgeHtml = '<span class="status-badge badge-pending" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#FEF08A; color:#854D0E;">🟡 Pending</span>';
-              } else if (t.adminStatus === 'RE_UPLOAD_REQUESTED') {
-                badgeHtml = '<span class="status-badge badge-warning" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#FFF3CD; color:#856404; border:1px solid #FFEBAA;">⚠️ Re-upload</span>';
-              } else {
-                badgeHtml = '<span class="status-badge danger" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#FDE8E8; color:#9B1C1C;">🔴 Failed</span>';
-              }
+      let badgeHtml = '';
+      if (t.adminStatus === 'APPROVED' || t.status === 'SUCCESS') {
+        badgeHtml = '<span class="status-badge badge-success" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#DEF7EC; color:#03543F;">🟢 Success</span>';
+      } else if (t.adminStatus === 'PENDING') {
+        badgeHtml = '<span class="status-badge badge-pending" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#FEF08A; color:#854D0E;">🟡 Pending</span>';
+      } else if (t.adminStatus === 'RE_UPLOAD_REQUESTED') {
+        badgeHtml = '<span class="status-badge badge-warning" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#FFF3CD; color:#856404; border:1px solid #FFEBAA;">⚠️ Re-upload</span>';
+      } else {
+        badgeHtml = '<span class="status-badge danger" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#FDE8E8; color:#9B1C1C;">🔴 Failed</span>';
+      }
 
-              return `
+      return `
                 <tr>
                   <td style="font-family:monospace;font-size:0.75rem;color:var(--brand-blue);font-weight:700;">${t.invoiceNumber || '—'}</td>
                   <td>
@@ -1759,25 +1771,25 @@ const AdminComponent = {
                   </td>
                 </tr>
               `;
-            }).join('')}
+    }).join('')}
             ${paginatedTxns.length === 0 ? `<tr><td colspan="9" style="text-align:center;color:#94A3B8;padding:48px;">No transactions found.</td></tr>` : ''}
           </tbody>
         </table>
 
         <!-- Pagination Controls -->
         ${totalResults > 0 ? (() => {
-          let startPage = Math.max(1, currentPage - 2);
-          let endPage = Math.min(totalPages, currentPage + 2);
-          if (currentPage <= 3) {
-            endPage = Math.min(5, totalPages);
-          } else if (currentPage >= totalPages - 2) {
-            startPage = Math.max(1, totalPages - 4);
-          }
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+        if (currentPage <= 3) {
+          endPage = Math.min(5, totalPages);
+        } else if (currentPage >= totalPages - 2) {
+          startPage = Math.max(1, totalPages - 4);
+        }
 
-          const buttons = [];
-          
-          // First page
-          buttons.push(`
+        const buttons = [];
+
+        // First page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changePaymentsPage(1)"`}
@@ -1785,9 +1797,9 @@ const AdminComponent = {
               «
             </button>
           `);
-          
-          // Previous page
-          buttons.push(`
+
+        // Previous page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changePaymentsPage(${currentPage - 1})"`}
@@ -1796,28 +1808,28 @@ const AdminComponent = {
             </button>
           `);
 
-          // Numeric pages
-          for (let p = startPage; p <= endPage; p++) {
-            if (p === currentPage) {
-              buttons.push(`
+        // Numeric pages
+        for (let p = startPage; p <= endPage; p++) {
+          if (p === currentPage) {
+            buttons.push(`
                 <button class="btn btn-primary" 
                         style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; margin:0; background:var(--brand-blue); border-color:var(--brand-blue); color:#fff; cursor:default;">
                   ${p}
                 </button>
               `);
-            } else {
-              buttons.push(`
+          } else {
+            buttons.push(`
                 <button class="btn btn-outline-white" 
                         style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; background:#fff; border:1px solid #E2E8F0; color:var(--text-secondary);"
                         onclick="AdminComponent._changePaymentsPage(${p})">
                   ${p}
                 </button>
               `);
-            }
           }
+        }
 
-          // Next page
-          buttons.push(`
+        // Next page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changePaymentsPage(${currentPage + 1})"`}
@@ -1826,8 +1838,8 @@ const AdminComponent = {
             </button>
           `);
 
-          // Last page
-          buttons.push(`
+        // Last page
+        buttons.push(`
             <button class="btn btn-outline-white" 
                     style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                     ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changePaymentsPage(${totalPages})"`}
@@ -1836,7 +1848,7 @@ const AdminComponent = {
             </button>
           `);
 
-          return `
+        return `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--border-color); flex-wrap:wrap; gap:16px;">
               <div style="font-size:0.83rem; color:var(--text-muted);">
                 Showing <strong style="color:var(--text-primary); font-weight:700;">${totalResults === 0 ? 0 : startIndex + 1}</strong> to <strong style="color:var(--text-primary); font-weight:700;">${endIndex}</strong> of <strong style="color:var(--text-primary); font-weight:700;">${totalResults}</strong> results
@@ -1846,7 +1858,7 @@ const AdminComponent = {
               </div>
             </div>
           `;
-        })() : ''}
+      })() : ''}
       </div>
     `;
   },
@@ -1854,7 +1866,7 @@ const AdminComponent = {
   _renderPaymentDetail: function (txnId) {
     const t = window.db.getTransactions().find(x => x.id === txnId);
     if (!t) return `<div style="padding:40px;text-align:center;color:#94A3B8;">Transaction not found. <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._nav('payments')">Back</button></div>`;
-    
+
     const course = window.db.getCourseById(t.courseId);
     const student = window.db.getUsers().find(u => u.username === t.username) || {};
 
@@ -2045,7 +2057,7 @@ const AdminComponent = {
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
               <div style="flex:1;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-                  <h3 style="font-size:0.95rem;font-weight:800;color:#0F172A;">${sub.title}</h3>
+                  <h3 style="font-size:0.95rem;font-weight:800;color:var(--text-primary);">${sub.title}</h3>
                   <span class="status-badge ${sub.status === 'PENDING' ? 'badge-pending' : sub.status === 'APPROVED' ? 'badge-success' : 'danger'}">${sub.status}</span>
                 </div>
                 <p style="font-size:0.82rem;color:#64748B;margin-bottom:8px;">${(sub.shortDescription || sub.description || '').slice(0, 120)}</p>
@@ -2074,14 +2086,14 @@ const AdminComponent = {
           <thead><tr><th>Code</th><th>Type</th><th>Discount</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
             ${coupons.map(c => {
-              const isExpired = c.expiryDate && (todayStr > c.expiryDate);
-              let statusBadge = '';
-              if (isExpired) {
-                statusBadge = '<span class="status-badge danger" style="background:#FDE8E8; color:#9B1C1C;">Expired</span>';
-              } else {
-                statusBadge = `<span class="status-badge ${c.active ? 'success' : 'danger'}">${c.active ? 'Active' : 'Inactive'}</span>`;
-              }
-              return `
+      const isExpired = c.expiryDate && (todayStr > c.expiryDate);
+      let statusBadge = '';
+      if (isExpired) {
+        statusBadge = '<span class="status-badge danger" style="background:#FDE8E8; color:#9B1C1C;">Expired</span>';
+      } else {
+        statusBadge = `<span class="status-badge ${c.active ? 'success' : 'danger'}">${c.active ? 'Active' : 'Inactive'}</span>`;
+      }
+      return `
               <tr>
                 <td><code style="background:#F1F5F9;padding:3px 10px;border-radius:6px;font-weight:700;color:#3D46D8;">${c.code}</code></td>
                 <td style="text-transform:capitalize;">${c.type}</td>
@@ -2093,7 +2105,7 @@ const AdminComponent = {
                   <button class="btn btn-danger btn-sm" onclick="AdminComponent._deleteCoupon('${c.code}')"><i class="fa-solid fa-trash-can"></i></button>
                 </div></td>
               </tr>`;
-            }).join('')}
+    }).join('')}
           </tbody>
         </table>
       </div>
@@ -2145,10 +2157,10 @@ const AdminComponent = {
           <button class="btn btn-outline-white btn-sm" onclick="window.location.hash='/blog'"><i class="fa-solid fa-eye"></i> View Blog</button>
         </div>
         ${posts.map(p => `
-          <div style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid #F8FAFC;">
+          <div style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--border-color);">
             <img src="${p.image}" style="width:64px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;">
             <div style="flex:1;">
-              <div style="font-weight:700;font-size:0.88rem;color:#0F172A;">${p.title}</div>
+              <div style="font-weight:700;font-size:0.88rem;color:var(--text-primary);">${p.title}</div>
               <div style="font-size:0.75rem;color:#94A3B8;margin-top:2px;">${p.category} · ${p.date} · ${p.readTime}</div>
             </div>
             <div style="display:flex;gap:6px;">
@@ -2162,30 +2174,189 @@ const AdminComponent = {
   /* ============================================================
      ACTIVITY LOG
   ============================================================ */
-  _renderActivity: function () {
-    const acts = window.db.getActivities();
-    const icons = { APPROVED_PAYMENT: 'fa-circle-check', DENIED_PAYMENT: 'fa-circle-xmark', PENDING_PAYMENT: 'fa-hourglass-half', CREATED_COURSE: 'fa-book-open', UPDATED_COURSE: 'fa-pen-to-square', PUBLISHED_COURSE: 'fa-globe', ARCHIVED_COURSE: 'fa-box-archive', DUPLICATED_COURSE: 'fa-copy', SUSPENDED_USER: 'fa-ban', ACTIVATED_USER: 'fa-circle-check', DELETED_USER: 'fa-trash-can', RESET_PASSWORD: 'fa-key', CREATED_TUTOR: 'fa-user-plus' };
+  _renderActivity: function (search = '', filter = '') {
+    let acts = window.db.getActivities();
+
+    // Sort activities by date descending
+    acts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    if (search) {
+      const q = search.toLowerCase();
+      acts = acts.filter(act =>
+        (act.actor || '').toLowerCase().includes(q) ||
+        (act.action || '').toLowerCase().includes(q) ||
+        (act.resourceType || '').toLowerCase().includes(q) ||
+        (act.resourceId || '').toLowerCase().includes(q) ||
+        (act.details || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (filter) {
+      acts = acts.filter(act => {
+        if (filter === 'payments') {
+          return act.action.includes('PAYMENT') || act.action.includes('WEBHOOK');
+        } else if (filter === 'courses') {
+          return act.action.includes('COURSE') || act.action.includes('CLASS') || act.action.includes('MEETING');
+        } else if (filter === 'users') {
+          return act.action.includes('USER') || act.action.includes('TUTOR') || act.action.includes('PASSWORD') || act.action.includes('CSV');
+        }
+        return true;
+      });
+    }
+
+    // Pagination calculations
+    const itemsPerPage = AdminComponent._activityPerPage || 10;
+    const totalResults = acts.length;
+    const totalPages = Math.ceil(totalResults / itemsPerPage) || 1;
+    let currentPage = AdminComponent._activityPage || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    AdminComponent._activityPage = currentPage;
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalResults);
+    const paginatedActs = acts.slice(startIndex, endIndex);
+
+    const icons = {
+      APPROVED_PAYMENT: 'fa-circle-check',
+      DENIED_PAYMENT: 'fa-circle-xmark',
+      PENDING_PAYMENT: 'fa-hourglass-half',
+      CREATED_COURSE: 'fa-book-open',
+      UPDATED_COURSE: 'fa-pen-to-square',
+      PUBLISHED_COURSE: 'fa-globe',
+      ARCHIVED_COURSE: 'fa-box-archive',
+      DUPLICATED_COURSE: 'fa-copy',
+      SUSPENDED_USER: 'fa-ban',
+      ACTIVATED_USER: 'fa-circle-check',
+      DELETED_USER: 'fa-trash-can',
+      RESET_PASSWORD: 'fa-key',
+      CREATED_TUTOR: 'fa-user-plus',
+      NEW_MEETING_CREATED: 'fa-handshake',
+      SAVE_LIVE_CLASS: 'fa-video',
+      DELETED_LIVE_CLASS: 'fa-trash-can',
+      IMPORTED_CSV: 'fa-file-csv',
+      WEBHOOK_RECEIVED: 'fa-network-wired'
+    };
+
     return `
       <div class="dashboard-welcome"><h1>Activity Log</h1><p>Full audit trail of all admin actions.</p></div>
       <div class="glass-panel">
+        <div class="table-actions-bar" style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-bottom:1px solid var(--border-color); flex-wrap:wrap; gap:16px;">
+          <div class="table-actions-left" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <div class="search-input-wrapper" style="width: 260px;">
+              <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              <input id="act-search" placeholder="Search activity logs..." value="${search}">
+            </div>
+            <select id="act-filter" style="width: 180px; height: 46px;">
+              <option value="" ${!filter ? 'selected' : ''}>All Activities</option>
+              <option value="payments" ${filter === 'payments' ? 'selected' : ''}>Payments</option>
+              <option value="courses" ${filter === 'courses' ? 'selected' : ''}>Courses</option>
+              <option value="users" ${filter === 'users' ? 'selected' : ''}>Users & Tutors</option>
+            </select>
+          </div>
+        </div>
         <table class="data-table">
           <thead><tr><th>Action</th><th>Resource</th><th>Details</th><th>Date & Time</th></tr></thead>
           <tbody>
-            ${acts.map(act => `
+            ${paginatedActs.map(act => `
               <tr>
                 <td>
                   <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="width:28px;height:28px;background:#EFF2FE;color:#3D46D8;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;flex-shrink:0;"><i class="fa-solid ${icons[act.action] || 'fa-bolt'}"></i></div>
-                    <span style="font-size:0.82rem;font-weight:700;color:#0F172A;">${act.action.replace(/_/g, ' ')}</span>
+                    <div style="width:28px;height:28px;background:var(--brand-blue-pale);color:var(--brand-blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;flex-shrink:0;"><i class="fa-solid ${icons[act.action] || 'fa-bolt'}"></i></div>
+                    <span style="font-size:0.82rem;font-weight:700;color:var(--text-primary);">${act.action.replace(/_/g, ' ')}</span>
                   </div>
                 </td>
                 <td style="font-size:0.78rem;color:#6366F1;font-weight:600;">${act.resourceType} · <code style="font-size:0.7rem;">${act.resourceId}</code></td>
                 <td style="font-size:0.8rem;color:#374151;">${act.details}</td>
                 <td style="font-size:0.75rem;color:#94A3B8;white-space:nowrap;">${new Date(act.timestamp).toLocaleString('en-IN')}</td>
               </tr>`).join('')}
-            ${acts.length === 0 ? `<tr><td colspan="4" style="text-align:center;color:#94A3B8;padding:32px;">No activity recorded yet.</td></tr>` : ''}
+            ${totalResults === 0 ? `<tr><td colspan="4" style="text-align:center;color:#94A3B8;padding:32px;">No activity logs found.</td></tr>` : ''}
           </tbody>
         </table>
+        
+        <!-- Pagination Controls -->
+        ${totalResults > 0 ? (() => {
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+        if (currentPage <= 3) {
+          endPage = Math.min(5, totalPages);
+        } else if (currentPage >= totalPages - 2) {
+          startPage = Math.max(1, totalPages - 4);
+        }
+
+        const buttons = [];
+
+        // First page
+        buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; border:none; transition:all 0.2s; ${currentPage === 1 ? 'opacity:0.4; cursor:not-allowed; background:transparent; color:#94A3B8;' : 'background:#F8FAFC; color:#64748B; cursor:pointer;'}"
+                    ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeActivityPage(1)"`}
+                    title="First Page">
+              «
+            </button>
+          `);
+
+        // Previous page
+        buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; border:none; transition:all 0.2s; ${currentPage === 1 ? 'opacity:0.4; cursor:not-allowed; background:transparent; color:#94A3B8;' : 'background:#F8FAFC; color:#64748B; cursor:pointer;'}"
+                    ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeActivityPage(${currentPage - 1})"`}
+                    title="Previous Page">
+              ‹
+            </button>
+          `);
+
+        // Numeric pages
+        for (let p = startPage; p <= endPage; p++) {
+          if (p === currentPage) {
+            buttons.push(`
+                <button class="btn btn-primary" 
+                        style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; margin:0; background:#3D46D8; border:none; color:#fff; cursor:default; box-shadow: 0 4px 12px rgba(61, 70, 216, 0.3);">
+                  ${p}
+                </button>
+              `);
+          } else {
+            buttons.push(`
+                <button class="btn btn-outline-white" 
+                        style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; background:#F8FAFC; border:none; color:#64748B; cursor:pointer; transition:all 0.2s;"
+                        onclick="AdminComponent._changeActivityPage(${p})">
+                  ${p}
+                </button>
+              `);
+          }
+        }
+
+        // Next page
+        buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; border:none; transition:all 0.2s; ${currentPage === totalPages ? 'opacity:0.4; cursor:not-allowed; background:transparent; color:#94A3B8;' : 'background:#F8FAFC; color:#64748B; cursor:pointer;'}"
+                    ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeActivityPage(${currentPage + 1})"`}
+                    title="Next Page">
+              ›
+            </button>
+          `);
+
+        // Last page
+        buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; border:none; transition:all 0.2s; ${currentPage === totalPages ? 'opacity:0.4; cursor:not-allowed; background:transparent; color:#94A3B8;' : 'background:#F8FAFC; color:#64748B; cursor:pointer;'}"
+                    ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeActivityPage(${totalPages})"`}
+                    title="Last Page">
+              »
+            </button>
+          `);
+
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--border-color); flex-wrap:wrap; gap:16px;">
+              <div style="font-size:0.83rem; color:var(--text-muted);">
+                Showing <strong style="color:var(--text-primary); font-weight:700;">${totalResults === 0 ? 0 : startIndex + 1}</strong> to <strong style="color:var(--text-primary); font-weight:700;">${endIndex}</strong> of <strong style="color:var(--text-primary); font-weight:700;">${totalResults}</strong> results
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                ${buttons.join('')}
+              </div>
+            </div>
+          `;
+      })() : ''}
       </div>`;
   },
 
@@ -3213,10 +3384,10 @@ const AdminComponent = {
         <h3><i class="fa-solid fa-graduation-cap" style="color:#3D46D8;margin-right:8px;"></i>Assign Courses — ${name}</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
           ${courses.map(c => `
-            <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${assigned.includes(c.id) ? '#6366F1' : '#E2E8F0'};border-radius:10px;cursor:pointer;background:${assigned.includes(c.id) ? '#EFF2FE' : '#F8FAFC'};">
+            <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${assigned.includes(c.id) ? 'var(--brand-blue-light)' : 'var(--border-color)'};border-radius:10px;cursor:pointer;background:${assigned.includes(c.id) ? 'var(--brand-blue-pale)' : 'var(--bg-secondary)'};">
               <input type="checkbox" class="assign-modal-cb" data-course-id="${c.id}" ${assigned.includes(c.id) ? 'checked' : ''} style="accent-color:#3D46D8;width:15px;height:15px;">
               <img src="${c.image}" style="width:38px;height:26px;object-fit:cover;border-radius:5px;flex-shrink:0;">
-              <span style="font-size:0.78rem;font-weight:600;color:#0F172A;">${c.title.slice(0, 24)}${c.title.length > 24 ? '...' : ''}</span>
+              <span style="font-size:0.78rem;font-weight:600;color:var(--text-primary);">${c.title.slice(0, 24)}${c.title.length > 24 ? '...' : ''}</span>
             </label>`).join('')}
         </div>
         <div style="display:flex;gap:10px;">
@@ -3251,10 +3422,10 @@ const AdminComponent = {
         <h3><i class="fa-solid fa-graduation-cap" style="color:#3D46D8;margin-right:8px;"></i>Assign Courses — ${name}</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
           ${courses.map(c => `
-            <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${enrolled.includes(c.id) ? '#6366F1' : '#E2E8F0'};border-radius:10px;cursor:pointer;background:${enrolled.includes(c.id) ? '#EFF2FE' : '#F8FAFC'};">
+            <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid ${enrolled.includes(c.id) ? 'var(--brand-blue-light)' : 'var(--border-color)'};border-radius:10px;cursor:pointer;background:${enrolled.includes(c.id) ? 'var(--brand-blue-pale)' : 'var(--bg-secondary)'};">
               <input type="checkbox" class="assign-student-modal-cb" data-course-id="${c.id}" ${enrolled.includes(c.id) ? 'checked' : ''} style="accent-color:#3D46D8;width:15px;height:15px;">
               <img src="${c.image}" style="width:38px;height:26px;object-fit:cover;border-radius:5px;flex-shrink:0;">
-              <span style="font-size:0.78rem;font-weight:600;color:#0F172A;">${c.title.slice(0, 24)}${c.title.length > 24 ? '...' : ''}</span>
+              <span style="font-size:0.78rem;font-weight:600;color:var(--text-primary);">${c.title.slice(0, 24)}${c.title.length > 24 ? '...' : ''}</span>
             </label>`).join('')}
         </div>
         <div style="display:flex;gap:10px;">
@@ -3487,10 +3658,10 @@ const AdminComponent = {
           </thead>
           <tbody>
             ${posters.map(p => {
-              const imgUrl = p.image || p.imageUrl || '';
-              const linkUrl = p.buttonLink || p.targetUrl || '';
-              const isPublished = p.status === 'Published' || p.isActive === true;
-              return `
+      const imgUrl = p.image || p.imageUrl || '';
+      const linkUrl = p.buttonLink || p.targetUrl || '';
+      const isPublished = p.status === 'Published' || p.isActive === true;
+      return `
                 <tr>
                   <td>
                     <img src="${imgUrl}" alt="${p.title}" style="width:100px; height:50px; border-radius:6px; border:1px solid var(--border-color); object-fit:cover; display:block;">
@@ -3515,7 +3686,7 @@ const AdminComponent = {
                   </td>
                 </tr>
               `;
-            }).join('')}
+    }).join('')}
             ${posters.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:32px; font-style:italic;">No posters uploaded yet. Banners on dashboards will show default messages.</td></tr>' : ''}
           </tbody>
         </table>
@@ -3705,22 +3876,22 @@ const AdminComponent = {
   ============================================================ */
   init: function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
+
     // Preserve active section and conversation ID, defaulting to 'dashboard'
     const sec = AdminComponent._sec || 'dashboard';
     AdminComponent._sec = sec;
-    
+
     AdminComponent._bindSidebar();
-    
+
     // Bind and render the correct active section
     if (sec === 'requests') {
       AdminComponent._loadAndRenderRequests();
     } else {
       AdminComponent._bindSection(sec);
     }
-    
+
     AdminComponent.updateAdminBadge();
-    
+
     const cu = window.db.getCurrentUser();
     if (cu && sec === 'dashboard') {
       setTimeout(() => {
@@ -3736,6 +3907,17 @@ const AdminComponent = {
   },
 
   _bindSection: function (sec) {
+    if (sec === 'activity') {
+      const reloadActivity = () => {
+        AdminComponent._activityPage = 1;
+        const search = document.getElementById('act-search')?.value || '';
+        const filter = document.getElementById('act-filter')?.value || '';
+        document.getElementById('adm-main').innerHTML = AdminComponent._renderActivity(search, filter);
+        AdminComponent._bindSection('activity');
+      };
+      document.getElementById('act-search')?.addEventListener('input', reloadActivity);
+      document.getElementById('act-filter')?.addEventListener('change', reloadActivity);
+    }
     if (sec === 'common_meeting') {
       AdminComponent._bindCommonMeetingsEvents();
     }
@@ -3863,7 +4045,7 @@ const AdminComponent = {
       const detailContainer = document.querySelector('.payment-detail-container');
       if (detailContainer) {
         const tId = detailContainer.getAttribute('data-txn-id');
-        
+
         document.getElementById('btn-approve-payment')?.addEventListener('click', () => {
           if (confirm("Are you sure you want to approve this payment and enroll the student?")) {
             const res = window.db.updatePaymentAdminStatus(tId, 'APPROVED');
@@ -3925,7 +4107,7 @@ const AdminComponent = {
         const file = e.target.files[0];
         if (file) {
           const reader = new FileReader();
-          reader.onload = function(evt) {
+          reader.onload = function (evt) {
             AdminComponent._selectedSettingsQR = evt.target.result;
             const preview = document.getElementById('adm-upi-qr-preview');
             if (preview) {
@@ -4851,17 +5033,17 @@ const AdminComponent = {
               Messages and calls are secured with end-to-end encryption. Your student will respond shortly.
             </div>
             ${messages.map(m => {
-              const isOwn = m.sender === cu.username;
-              const isStudent = m.sender === conv.student_username;
-              const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const isOwn = m.sender === cu.username;
+      const isStudent = m.sender === conv.student_username;
+      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
-              let attachmentHtml = '';
-              if (m.file_url) {
-                const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-                if (isImg) {
-                  attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-                } else {
-                  attachmentHtml = `
+      let attachmentHtml = '';
+      if (m.file_url) {
+        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+        if (isImg) {
+          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+        } else {
+          attachmentHtml = `
                             <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
                               <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
                               <div class="support-chat-attachment-info">
@@ -4870,30 +5052,30 @@ const AdminComponent = {
                               </div>
                             </a>
                           `;
-                }
-              }
+        }
+      }
 
-              let linkHtml = '';
-              if (m.external_link) {
-                linkHtml = `
+      let linkHtml = '';
+      if (m.external_link) {
+        linkHtml = `
                           <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
                             <i class="fa-solid fa-cloud"></i>
                             <span>Shared File Link</span>
                             <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
                           </a>
                         `;
-              }
+      }
 
-              let alignClass = 'admin-align';
-              if (m.is_internal) {
-                alignClass = 'internal-note-align';
-              } else if (isStudent) {
-                alignClass = 'admin-align';
-              } else {
-                alignClass = 'student-align';
-              }
+      let alignClass = 'admin-align';
+      if (m.is_internal) {
+        alignClass = 'internal-note-align';
+      } else if (isStudent) {
+        alignClass = 'admin-align';
+      } else {
+        alignClass = 'student-align';
+      }
 
-              return `
+      return `
                         <div class="support-msg-wrapper ${alignClass}">
                           <div class="support-msg-bubble">
                             <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${m.is_internal ? '#92400e' : isStudent ? '#0B5A43' : '#3b82f6'};">
@@ -4909,7 +5091,7 @@ const AdminComponent = {
                           </div>
                         </div>
                       `;
-            }).join('')}
+    }).join('')}
           </div>
 
           <div class="support-chat-input-wrapper">

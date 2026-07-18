@@ -36,7 +36,6 @@ const VideoPlayerComponent = {
     const isBatchActive = batch && (batch.status === 'Active' || batch.status === 'Completed');
     
     const announcements = window.db.getAnnouncementsByBatchOrCourse(courseId, batchId);
-    const assignments = window.db.getAssignmentsByBatchOrCourse(courseId, batchId);
     const resources = window.db.getResourcesByBatchOrCourse(courseId, batchId);
 
     const lockedTabHtml = `
@@ -44,7 +43,7 @@ const VideoPlayerComponent = {
         <div style="font-size:2.5rem; margin-bottom:12px;">🔒</div>
         <h4 style="font-size:1rem; font-weight:700; color:var(--text-primary); margin-bottom:6px;">Section Locked</h4>
         <p style="font-size:0.83rem; color:var(--text-secondary); line-height:1.5; margin-bottom:0;">
-          This batch is currently in the <strong>${batch ? batch.status : 'Enrollment Open'}</strong> state. Announcements, resources, and assignments will unlock automatically once the batch becomes <strong>Active</strong>.
+          This batch is currently in the <strong>${batch ? batch.status : 'Enrollment Open'}</strong> state. Announcements and resources will unlock automatically once the batch becomes <strong>Active</strong>.
         </p>
       </div>
     `;
@@ -81,7 +80,7 @@ const VideoPlayerComponent = {
             <h4 style="margin:0; font-size:0.9rem; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:6px; margin-bottom:6px;"><i class="fa-solid fa-lock" style="color:var(--warning);"></i> Batch: ${batch.name} (${batch.status})</h4>
             <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:6px;">Available Seats: <strong>${availableSeats} available</strong> (Enrolled: ${batch.currentEnrollment || 0} / ${batch.maxStudents})</div>
             <p style="margin:0; font-size:0.78rem; color:var(--text-secondary); line-height:1.4;">
-              Your batch is currently in <strong>${batch.status}</strong> status. Schedule, tutor, assignments, and WhatsApp group will be available once the batch is Activated.
+              Your batch is currently in <strong>${batch.status}</strong> status. Schedule, tutor, and WhatsApp group will be available once the batch is Activated.
             </p>
           </div>
         `;
@@ -934,7 +933,7 @@ const VideoPlayerComponent = {
           <!-- Tabs Navigation under player -->
           <div>
             <div class="lms-tabs-nav">
-              ${[['overview','Overview'],['announcements',`Announcements (${announcements.length})`],['notes','Notes Editor'],['resources','Resources'],['discussion','QA Discussion'],['assignments','Assignments']].map(([tId, tName]) => `
+              ${[['overview','Overview'],['announcements',`Announcements (${announcements.length})`],['notes','Notes Editor'],['resources','Resources'],['discussion','QA Discussion']].map(([tId, tName]) => `
                 <button class="lms-tab-btn ${this._activeTab === tId ? 'active' : ''}" data-target-tab="${tId}">${tName}</button>
               `).join('')}
             </div>
@@ -1043,30 +1042,7 @@ const VideoPlayerComponent = {
                 </div>
               </div>
 
-              <!-- Tab: Assignments -->
-              <div class="tab-panel-viewport ${this._activeTab === 'assignments' ? 'active' : ''}" id="tabpanel-assignments">
-                <h3 style="font-size:0.95rem; font-weight:800; margin-bottom:12px; text-align: left;">Batch Assignments</h3>
-                ${!isBatchActive ? lockedTabHtml : `
-                <div style="display:flex; flex-direction:column; gap:12px;">
-                  ${assignments.map(asg => `
-                    <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:16px; padding:20px; text-align: left;">
-                      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-                        <h4 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin:0;"><i class="fa-solid fa-tasks" style="color:var(--brand-blue); margin-right:8px;"></i> ${asg.title}</h4>
-                        <span style="font-size:0.75rem; background:#EFF2FE; color:#3D46D8; padding:3px 8px; border-radius:20px; font-weight:700;">Due: ${asg.dueDate}</span>
-                      </div>
-                      <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6; margin-bottom:16px;">
-                        ${asg.description}
-                      </p>
-                      <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:0.78rem; color:var(--text-muted);">Max Points: <strong>${asg.maxPoints}</strong></span>
-                        <button class="btn btn-outline btn-sm" onclick="window.app.showToast('Uploader triggered!','info')" style="margin:0;"><i class="fa-solid fa-upload"></i> Submit Work</button>
-                      </div>
-                    </div>
-                  `).join('')}
-                  ${assignments.length === 0 ? '<p style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">No assignments for this batch yet.</p>' : ''}
-                </div>
-                `}
-              </div>
+
 
             </div>
           </div>

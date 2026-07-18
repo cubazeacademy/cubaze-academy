@@ -186,23 +186,23 @@ const TutorComponent = {
       })()}
 
           <!-- Notice Banner -->
-          <div style="background:linear-gradient(135deg,#EFF2FE,#F5F3FF);border:1.5px solid #C7D2FE;border-radius:16px;padding:20px 24px;margin-bottom:28px;display:flex;align-items:flex-start;gap:16px;">
+          <div style="background:var(--brand-blue-pale);border:1.5px solid var(--brand-blue-light);border-radius:16px;padding:20px 24px;margin-bottom:28px;display:flex;align-items:flex-start;gap:16px;">
             <div style="width:40px;height:40px;background:#6366F1;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:1.1rem;"><i class="fa-solid fa-shield-halved"></i></div>
             <div>
-              <div style="font-weight:700;color:#312E81;margin-bottom:4px;">Your Role: Content Contributor</div>
-              <div style="font-size:0.83rem;color:#4338CA;line-height:1.55;">You can <strong>add, edit, and manage lessons</strong> inside the courses assigned to you by your Admin. You cannot create new courses, change course details, pricing, or publishing settings — those are managed by the Admin.</div>
+              <div style="font-weight:700;color:var(--brand-blue);margin-bottom:4px;">Your Role: Content Contributor</div>
+              <div style="font-size:0.83rem;color:var(--text-secondary);line-height:1.55;">You can <strong>add, edit, and manage lessons</strong> inside the courses assigned to you by your Admin. You cannot create new courses, change course details, pricing, or publishing settings — those are managed by the Admin.</div>
             </div>
           </div>
 
           <!-- Assigned Batches Quick View -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <div style="font-size:1.05rem;font-weight:700;color:#0F172A;">Your Assigned Batches</div>
+            <div style="font-size:1.05rem;font-weight:700;color:var(--text-primary);">Your Assigned Batches</div>
             <div data-tutor-tab="batches" style="font-size:0.83rem;color:#3D46D8;font-weight:600;cursor:pointer;">View All →</div>
           </div>
           ${batches.length === 0
-        ? `<div style="background:#FFFFFF;border-radius:16px;padding:48px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.04);">
+        ? `<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:48px;text-align:center;">
                 <div style="font-size:3rem;margin-bottom:16px;">👥</div>
-                <h3 style="color:#0F172A;margin-bottom:8px;">No Batches Assigned Yet</h3>
+                <h3 style="color:var(--text-primary);margin-bottom:8px;">No Batches Assigned Yet</h3>
                 <p style="color:#64748B;font-size:0.85rem;">Your admin will assign you to one or more batches. Check back later or contact your Admin.</p>
               </div>`
         : `<div style="display:flex;flex-direction:column;gap:16px;">
@@ -226,9 +226,9 @@ const TutorComponent = {
       </div>
 
       ${assignedCourses.length === 0
-        ? `<div style="background:#FFFFFF;border-radius:18px;padding:72px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.04);">
+        ? `<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:18px;padding:72px;text-align:center;">
             <div style="font-size:4rem;margin-bottom:16px;">📭</div>
-            <h2 style="margin-bottom:10px;color:#0F172A;">No Courses Assigned</h2>
+            <h2 style="margin-bottom:10px;color:var(--text-primary);">No Courses Assigned</h2>
             <p style="color:#64748B;max-width:380px;margin:0 auto;line-height:1.6;font-size:0.88rem;">Your Admin hasn't assigned any courses to you yet. Once assigned, they'll appear here and you can start uploading lesson content.</p>
           </div>`
         : `<div style="display:flex;flex-direction:column;gap:16px;">
@@ -272,12 +272,12 @@ const TutorComponent = {
         <div class="enrolled-course-thumb"><img src="${courseImage}" alt="${b.name}"></div>
         <div class="enrolled-course-body">
           <div class="enrolled-course-title">${b.name}</div>
-          <div class="enrolled-course-meta" style="margin-top:4px; font-size:0.8rem; color:#64748B;">
+          <div class="enrolled-course-meta" style="margin-top:4px; font-size:0.8rem; color:var(--text-secondary);">
             Course: <strong>${courseTitle}</strong> · Code: <strong>${b.id}</strong>
           </div>
-          <div class="enrolled-course-meta" style="margin-top:6px; font-size:0.83rem; color:#1E293B;">
-            <span><i class="fa-regular fa-clock" style="color:var(--brand-blue); margin-right:4px;"></i> ${b.classTime} (${daysText})</span>
-            <span style="margin: 0 8px; color:#CBD5E1;">|</span>
+          <div class="enrolled-course-meta" style="margin-top:6px; font-size:0.83rem; color:var(--text-primary);">
+            <span><i class="fa-regular fa-clock" style="color:var(--brand-blue); margin-right:4px;"></i> ${b.classTime || '—'} (${daysText})</span>
+            <span style="margin: 0 8px; color:var(--border-color);">|</span>
             <span><i class="fa-solid fa-users" style="color:var(--brand-blue); margin-right:4px;"></i> ${b.currentEnrollment || 0} Students</span>
           </div>
           <div class="enrolled-course-meta" style="margin-top:6px;">
@@ -1063,12 +1063,12 @@ const TutorComponent = {
         <p>Manage your public tutor profile and bio.</p>
       </div>
       <div class="tutor-form-card">
-        <div style="display:flex;align-items:center;gap:20px;padding-bottom:24px;margin-bottom:24px;border-bottom:1px solid #F1F5F9;">
+        <div style="display:flex;align-items:center;gap:20px;padding-bottom:24px;margin-bottom:24px;border-bottom:1px solid var(--border-color);">
           <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#3D46D8,#6366F1);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;color:#fff;flex-shrink:0;background-size:cover;background-position:center;background-repeat:no-repeat;${cu.profilePhoto ? `background-image:url(${cu.profilePhoto});` : ''}">${cu.profilePhoto ? '' : cu.name.charAt(0)}</div>
           <div>
-            <div style="font-weight:800;font-size:1.15rem;color:#0F172A;">${cu.name}</div>
-            <div style="color:#6366F1;font-weight:600;font-size:0.83rem;">@${cu.username} · Content Instructor</div>
-            <div style="font-size:0.78rem;color:#94A3B8;margin-top:4px;">Member since ${cu.registeredDate || 'N/A'}</div>
+            <div style="font-weight:800;font-size:1.15rem;color:var(--text-primary);">${cu.name}</div>
+            <div style="color:var(--primary);font-weight:600;font-size:0.83rem;">@${cu.username} · Content Instructor</div>
+            <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:4px;">Member since ${cu.registeredDate || 'N/A'}</div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
@@ -2009,6 +2009,7 @@ const TutorComponent = {
 
   _renderBatches: function (cu) {
     const batches = window.db.getBatches().filter(b => b.tutorIds.includes(cu.username));
+    const courses = window.db.getCourses();
 
     let subPanelHtml = '';
     if (TutorComponent._openBatchId) {
@@ -2021,24 +2022,52 @@ const TutorComponent = {
     return `
       <div class="dashboard-welcome">
         <h1>My Batches <span style="font-size:1rem;font-weight:500;color:#64748B;">(${batches.length})</span></h1>
-        <p>Manage attendance, schedule live classes, post announcements, create assignments, and share resources for your batches.</p>
+        <p>Manage attendance, schedule live classes, post announcements, and share resources for your batches.</p>
       </div>
 
-      <div style="display:grid; grid-template-columns: 280px 1fr; gap: 24px; margin-top:20px;">
+      <div style="display:grid; grid-template-columns: 290px 1fr; gap: 24px; margin-top:20px;">
         <!-- Left Column: Batches List -->
         <div class="glass-panel" style="padding: 16px; height: fit-content; text-align: left;">
-          <h3 style="font-size:0.9rem; font-weight:800; margin-bottom:12px;">Assigned Batches</h3>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            ${batches.map(b => `
-              <div class="t-batch-list-item ${TutorComponent._openBatchId === b.id ? 'active' : ''}" 
-                   onclick="TutorComponent._selectBatch('${b.id}')"
-                   style="padding: 12px; border-radius: 10px; border: 1.5px solid ${TutorComponent._openBatchId === b.id ? '#6366F1' : '#E2E8F0'}; 
-                          background: ${TutorComponent._openBatchId === b.id ? '#EFF2FE' : '#F8FAFC'}; cursor: pointer; transition: all 0.2s;">
-                <div style="font-weight: 700; font-size: 0.85rem; color: #0F172A;">${b.name}</div>
-                <div style="font-size: 0.72rem; color: #64748B; margin-top:4px;">Code: ${b.id}</div>
-                <div style="font-size: 0.72rem; color: #64748B;">Time: ${b.classTime}</div>
-              </div>
-            `).join('')}
+          <h3 style="font-size:0.9rem; font-weight:800; margin-bottom:16px; color:var(--text-primary);">Assigned Batches</h3>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${batches.map(b => {
+              const isActive = TutorComponent._openBatchId === b.id;
+              const course = courses.find(c => c.id === b.courseId);
+              const courseImage = course ? course.image : 'cubaze-logo.png';
+              const daysText = (b.classDays || []).join(', ');
+              return `
+                <div class="t-batch-list-item ${isActive ? 'active' : ''}" 
+                     onclick="TutorComponent._selectBatch('${b.id}')"
+                     style="padding: 14px; border-radius: 12px; border: 1.5px solid ${isActive ? 'var(--brand-blue)' : 'var(--border-color)'}; 
+                            background: ${isActive ? 'var(--brand-blue-pale)' : 'var(--bg-secondary)'}; 
+                            box-shadow: ${isActive ? '0 8px 16px var(--brand-blue-glow)' : '0 2px 6px rgba(0,0,0,0.01)'};
+                            cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                            display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden;">
+                  ${isActive ? `<div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--brand-blue);"></div>` : ''}
+                  <div style="display: flex; gap: 10px; align-items: flex-start;">
+                    <img src="${courseImage}" style="width: 44px; height: 32px; object-fit: cover; border-radius: 6px; flex-shrink: 0; border: 1px solid var(--border-color);">
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${b.name}">${b.name}</div>
+                      <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px;">Code: <span style="font-family: monospace; font-weight: 700; color: var(--brand-blue);">${b.id}</span></div>
+                    </div>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 4px; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px;">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+                      <i class="fa-regular fa-clock" style="color: var(--brand-blue); font-size: 0.72rem;"></i>
+                      <span>${b.classTime || '—'}</span>
+                    </div>
+                    ${daysText ? `<div style="font-size: 0.7rem; color: var(--text-muted); padding-left: 18px; margin-top: -2px;">${daysText}</div>` : ''}
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 2px;">
+                      <div style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-users" style="color: var(--brand-blue); font-size: 0.72rem;"></i>
+                        <span><strong>${b.currentEnrollment || 0}</strong> / ${b.maxStudents} Students</span>
+                      </div>
+                      <span class="status-badge ${b.status === 'Active' ? 'success' : b.status === 'Enrollment Open' ? 'warning' : b.status === 'Completed' ? 'info' : 'danger'}" style="padding: 2px 8px; font-size: 0.65rem; border-radius: 4px; font-weight: 700; text-transform: uppercase;">${b.status}</span>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
             ${batches.length === 0 ? '<p style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">No batches assigned to you yet.</p>' : ''}
           </div>
         </div>
@@ -2046,10 +2075,10 @@ const TutorComponent = {
         <!-- Right Column: Batch Controls & Tabs -->
         <div id="batch-sub-panels-container">
           ${subPanelHtml || `
-            <div class="glass-panel" style="padding: 48px; text-align: center; color: var(--text-muted);">
-              <div style="font-size: 3rem; margin-bottom:16px;">👥</div>
-              <h3>Select a Batch</h3>
-              <p>Choose a batch from the sidebar to view and manage students, scheduled live classes, announcements, and more.</p>
+            <div class="glass-panel" style="padding: 48px; text-align: center; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px;">
+              <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--brand-blue-pale); color: var(--brand-blue); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin-bottom: 20px;"><i class="fa-solid fa-layer-group"></i></div>
+              <h3 style="font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">Select a Batch</h3>
+              <p style="font-size: 0.88rem; color: var(--text-secondary); max-width: 320px; line-height: 1.5; margin: 0;">Choose a batch from the sidebar to view and manage students, scheduled live classes, announcements, and more.</p>
             </div>
           `}
         </div>
@@ -2065,12 +2094,12 @@ const TutorComponent = {
   },
 
   _renderBatchSubPanels: function (batch, cu) {
-    const activeSubTab = TutorComponent._activeBatchSubTab || 'attendance';
+    let activeSubTab = TutorComponent._activeBatchSubTab || 'attendance';
+    if (activeSubTab === 'assignments') activeSubTab = 'attendance';
     const subTabs = [
       ['attendance', 'fa-calendar-check', 'Attendance'],
       ['live', 'fa-video', 'Live Classes'],
       ['announcements', 'fa-bullhorn', 'Announcements'],
-      ['assignments', 'fa-tasks', 'Assignments'],
       ['resources', 'fa-folder-open', 'Resources']
     ];
 
@@ -2078,13 +2107,12 @@ const TutorComponent = {
     if (activeSubTab === 'attendance') tabContent = TutorComponent._renderBatchAttendance(batch);
     else if (activeSubTab === 'live') tabContent = TutorComponent._renderBatchLiveClasses(batch);
     else if (activeSubTab === 'announcements') tabContent = TutorComponent._renderBatchAnnouncements(batch);
-    else if (activeSubTab === 'assignments') tabContent = TutorComponent._renderBatchAssignments(batch);
     else if (activeSubTab === 'resources') tabContent = TutorComponent._renderBatchResources(batch);
 
     return `
       <div class="glass-panel" style="padding:0; overflow:hidden;">
         <!-- WhatsApp Group link editor for tutor -->
-        <div style="background:#EFF2FE; border-bottom:1px solid var(--border-color); padding:16px 24px; text-align:left;">
+        <div style="background:var(--brand-blue-pale); border-bottom:1px solid var(--border-color); padding:16px 24px; text-align:left;">
           <form id="t-whatsapp-form" style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0; flex-wrap:wrap;">
             <div style="flex:1; min-width:240px; display:flex; align-items:center; gap:10px;">
               <i class="fa-brands fa-whatsapp" style="font-size:1.5rem; color:#25D366;"></i>
@@ -2103,8 +2131,8 @@ const TutorComponent = {
             <button class="t-batch-sub-tab-btn ${activeSubTab === tab ? 'active' : ''}" 
                     onclick="TutorComponent._selectBatchSubTab('${tab}')"
                     style="padding:14px 20px; font-weight:700; font-size:0.8rem; background:none; border:none; 
-                           border-bottom: 2px solid ${activeSubTab === tab ? '#3D46D8' : 'transparent'}; 
-                           color: ${activeSubTab === tab ? '#3D46D8' : 'var(--text-secondary)'}; cursor:pointer; 
+                           border-bottom: 2px solid ${activeSubTab === tab ? 'var(--brand-blue)' : 'transparent'}; 
+                           color: ${activeSubTab === tab ? 'var(--brand-blue)' : 'var(--text-secondary)'}; cursor:pointer; 
                            display:flex; align-items:center; gap:8px; white-space:nowrap; outline:none;">
               <i class="fa-solid ${icon}"></i> ${label}
             </button>
@@ -2153,7 +2181,7 @@ const TutorComponent = {
       const status = attendanceMap[s.username] || 'Absent';
       return `
               <tr>
-                <td style="font-weight:700; color:#0F172A; text-align:left;">${s.name}</td>
+                <td style="font-weight:700; color:var(--text-primary); text-align:left;">${s.name}</td>
                 <td style="text-align:left;">@${s.username}</td>
                 <td style="text-align:center;">
                   <select class="form-control att-student-select" data-student="${s.username}" style="height:36px; padding:0 10px; font-size:0.8rem; font-weight:700; font-family:inherit;">
@@ -2198,7 +2226,7 @@ const TutorComponent = {
         <tbody>
           ${liveClasses.map(lc => `
             <tr>
-              <td style="font-weight:700; color:#0F172A; text-align:left;">${lc.title}</td>
+              <td style="font-weight:700; color:var(--text-primary); text-align:left;">${lc.title}</td>
               <td style="font-size:0.8rem; font-weight:600; text-align:left;">${lc.date} @ ${lc.start_time} - ${lc.end_time}</td>
               <td style="text-align:left;">
                 <a href="${lc.meet_link}" target="_blank" style="color:#3D46D8; text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</a>
@@ -2242,7 +2270,7 @@ const TutorComponent = {
         ${announcements.map(ann => `
           <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; padding:16px; text-align:left; position:relative;">
             <button onclick="TutorComponent._deleteBatchAnnouncement('${ann.id}')" style="position:absolute; right:12px; top:12px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem;"><i class="fa-regular fa-trash-can"></i></button>
-            <div style="font-weight:700; font-size:0.88rem; color:#0F172A; margin-bottom:4px;">${ann.title}</div>
+            <div style="font-weight:700; font-size:0.88rem; color:var(--text-primary); margin-bottom:4px;">${ann.title}</div>
             <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:8px;">${new Date(ann.createdAt).toLocaleDateString()}</div>
             <p style="font-size:0.82rem; color:var(--text-secondary); line-height:1.5; margin:0;">${ann.content}</p>
           </div>
@@ -2252,48 +2280,7 @@ const TutorComponent = {
     `;
   },
 
-  _renderBatchAssignments: function (batch) {
-    const assignments = window.db.getAssignmentsByBatchOrCourse(batch.courseId, batch.id).filter(a => a.batchId === batch.id);
-    return `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <h3 style="font-size:1rem; font-weight:800; text-align:left; margin:0;">Create Assignment</h3>
-      </div>
-      <form id="form-batch-assignment" style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:16px; margin-bottom:20px; text-align:left;">
-        <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px; margin-bottom:10px;">
-          <div class="form-group" style="margin-bottom:0;">
-            <label style="font-weight:600; font-size:0.8rem;">Assignment Title *</label>
-            <input type="text" id="asg-title" class="form-control" placeholder="e.g. Sculpting Exercises" required style="font-family:inherit;">
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label style="font-weight:600; font-size:0.8rem;">Max Points *</label>
-            <input type="number" id="asg-points" class="form-control" value="100" required style="font-family:inherit;">
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label style="font-weight:600; font-size:0.8rem;">Due Date *</label>
-            <input type="date" id="asg-due" class="form-control" required style="font-family:inherit;">
-          </div>
-        </div>
-        <div class="form-group" style="margin-bottom:12px;">
-          <label style="font-weight:600; font-size:0.8rem;">Description *</label>
-          <textarea id="asg-desc" class="form-control" rows="3" placeholder="Provide detailed guidelines for submission..." required style="font-family:inherit; resize:vertical;"></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Create Assignment</button>
-      </form>
-      
-      <h3 style="font-size:0.9rem; font-weight:800; margin-bottom:12px; text-align:left;">Current Assignments</h3>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        ${assignments.map(asg => `
-          <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; padding:16px; text-align:left; position:relative;">
-            <button onclick="TutorComponent._deleteBatchAssignment('${asg.id}')" style="position:absolute; right:12px; top:12px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem;"><i class="fa-regular fa-trash-can"></i></button>
-            <div style="font-weight:700; font-size:0.88rem; color:#0F172A; margin-bottom:4px;">${asg.title}</div>
-            <div style="font-size:0.72rem; margin-bottom:8px;"><span style="color:var(--text-muted);">Due: ${asg.dueDate}</span> &middot; <span style="font-weight:600; color:#3D46D8;">Max Points: ${asg.maxPoints}</span></div>
-            <p style="font-size:0.82rem; color:var(--text-secondary); line-height:1.5; margin:0;">${asg.description}</p>
-          </div>
-        `).join('')}
-        ${assignments.length === 0 ? '<p style="color:var(--text-muted); font-size:0.8rem; font-style:italic; text-align:left;">No assignments posted for this batch yet.</p>' : ''}
-      </div>
-    `;
-  },
+
 
   _renderBatchResources: function (batch) {
     const resources = window.db.getResourcesByBatchOrCourse(batch.courseId, batch.id).filter(r => r.batchId === batch.id);
@@ -2301,7 +2288,7 @@ const TutorComponent = {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
         <h3 style="font-size:1rem; font-weight:800; text-align:left; margin:0;">Share Resource Link</h3>
       </div>
-      <form id="form-batch-resource" style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:16px; margin-bottom:20px; text-align:left;">
+      <form id="form-batch-resource" style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; padding:16px; margin-bottom:20px; text-align:left;">
         <div style="display:grid; grid-template-columns:1fr 2fr; gap:12px; margin-bottom:12px;">
           <div class="form-group" style="margin-bottom:0;">
             <label style="font-weight:600; font-size:0.8rem;">Resource Name *</label>
@@ -2405,31 +2392,7 @@ const TutorComponent = {
       }
     });
 
-    document.getElementById('form-batch-assignment')?.addEventListener('submit', e => {
-      e.preventDefault();
-      const title = document.getElementById('asg-title').value.trim();
-      const maxPoints = parseInt(document.getElementById('asg-points').value) || 100;
-      const dueDate = document.getElementById('asg-due').value;
-      const description = document.getElementById('asg-desc').value.trim();
 
-      const res = window.db.saveAssignment({
-        id: `AS-${Math.floor(100000 + Math.random() * 900000)}`,
-        batchId: TutorComponent._openBatchId,
-        courseId: window.db.getBatchById(TutorComponent._openBatchId).courseId,
-        title,
-        maxPoints,
-        dueDate,
-        description,
-        createdAt: new Date().toISOString()
-      });
-
-      if (res.success) {
-        window.app.showToast('Assignment created! 📝', 'success');
-        TutorComponent._refreshBatchesTab();
-      } else {
-        window.app.showToast(res.error || 'Failed to create assignment.', 'danger');
-      }
-    });
 
     document.getElementById('form-batch-resource')?.addEventListener('submit', e => {
       e.preventDefault();
@@ -2471,16 +2434,7 @@ const TutorComponent = {
     }
   },
 
-  _deleteBatchAssignment: function (id) {
-    if (!confirm('Delete this assignment?')) return;
-    const res = window.db.deleteAssignment(id);
-    if (res.success) {
-      window.app.showToast('Assignment deleted.', 'success');
-      TutorComponent._refreshBatchesTab();
-    } else {
-      window.app.showToast(res.error || 'Failed to delete assignment.', 'danger');
-    }
-  },
+
 
   _deleteBatchResource: function (id) {
     if (!confirm('Delete this resource?')) return;
@@ -2753,6 +2707,8 @@ const TutorComponent = {
 
         if (diff <= 0) {
           timerSpan.innerHTML = '<span style="color:#10B981;">Live Now! Reload page</span>';
+          if (TutorComponent._cmIntervalId) clearInterval(TutorComponent._cmIntervalId);
+          TutorComponent.refreshActiveTab();
         } else {
           const hours = Math.floor(diff / (1000 * 60 * 60));
           const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -2768,6 +2724,34 @@ const TutorComponent = {
 
     updateTimers();
     TutorComponent._cmIntervalId = setInterval(updateTimers, 1000);
+  },
+
+  refreshActiveTab: function () {
+    const cu = window.db.getCurrentUser();
+    if (!cu) return;
+    if (TutorComponent._activeTab === 'messages') {
+      TutorComponent._loadAndRenderMessages();
+    } else {
+      const assignedCourses = window.db.getTutorAssignedCourses(cu.username);
+      const container = document.getElementById('tutor-main-content');
+      if (container) {
+        container.innerHTML = TutorComponent._renderTab(TutorComponent._activeTab, cu, assignedCourses);
+      }
+      TutorComponent._bindCourseCards();
+      TutorComponent._bindUploadForm();
+      if (TutorComponent._activeTab === 'liveclasses') {
+        TutorComponent._bindLiveClassesEvents();
+      }
+      if (TutorComponent._activeTab === 'batches') {
+        TutorComponent._bindBatchesEvents();
+      }
+      if (TutorComponent._openCourseId) {
+        TutorComponent._bindLessonManagerEvents(TutorComponent._openCourseId);
+      }
+      if (TutorComponent._activeTab === 'dashboard' && window.DashboardRightPanel) {
+        window.DashboardRightPanel.bindEvents(cu);
+      }
+    }
   }
 };
 window.TutorComponent = TutorComponent;

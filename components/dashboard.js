@@ -482,35 +482,35 @@ const DashboardComponent = {
           : '';
 
         batchHtml = `
-          <div class="enrolled-batch-details" style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin: 12px 0; font-size:0.83rem; text-align: left;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
-              <span>My Batch: <strong style="color:#0F172A;">${batch.name}</strong></span>
+          <div class="enrolled-batch-details" style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:10px; padding:16px; margin: 12px 0; font-size:0.83rem; text-align: left;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">
+              <span>My Batch: <strong style="color:var(--text-primary);">${batch.name}</strong></span>
               <span class="status-badge success" style="padding:2px 8px; font-size:0.7rem;">Active</span>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-              <div><span style="color:#64748B;">Tutor:</span> <strong style="color:#0F172A;">${tutorNames || '—'}</strong></div>
-              <div><span style="color:#64748B;">Schedule:</span> <strong style="color:#0F172A;">${batch.classTime || '—'} (${(batch.classDays || []).join(', ') || '—'})</strong></div>
-              <div><span style="color:#64748B;">Start Date:</span> <strong style="color:#0F172A;">${batch.startDate}</strong></div>
-              <div><span style="color:#64748B;">End Date:</span> <strong style="color:#0F172A;">${batch.endDate}</strong></div>
+              <div><span style="color:var(--text-secondary);">Tutor:</span> <strong style="color:var(--text-primary);">${tutorNames || '—'}</strong></div>
+              <div><span style="color:var(--text-secondary);">Schedule:</span> <strong style="color:var(--text-primary);">${batch.classTime || '—'} (${(batch.classDays || []).join(', ') || '—'})</strong></div>
+              <div><span style="color:var(--text-secondary);">Start Date:</span> <strong style="color:var(--text-primary);">${batch.startDate}</strong></div>
+              <div><span style="color:var(--text-secondary);">End Date:</span> <strong style="color:var(--text-primary);">${batch.endDate}</strong></div>
             </div>
-            <div style="margin-bottom:8px;"><span style="color:#64748B;">Attendance:</span> <strong style="color:#0F172A;">${totalAtt > 0 ? `${presentCount}/${totalAtt} (${attPct}%)` : 'No classes recorded yet'}</strong></div>
-            <div style="margin-bottom:8px;"><span style="color:#64748B;">Next Live Class:</span> <strong style="color:#3D46D8;"><i class="fa-solid fa-video"></i> ${nextClassText}</strong></div>
+            <div style="margin-bottom:8px;"><span style="color:var(--text-secondary);">Attendance:</span> <strong style="color:var(--text-primary);">${totalAtt > 0 ? `${presentCount}/${totalAtt} (${attPct}%)` : 'No classes recorded yet'}</strong></div>
+            <div style="margin-bottom:8px;"><span style="color:var(--text-secondary);">Next Live Class:</span> <strong style="color:var(--brand-blue);"><i class="fa-solid fa-video"></i> ${nextClassText}</strong></div>
             ${whatsappButton}
           </div>
         `;
       } else {
         const availableSeats = batch.maxStudents - (batch.currentEnrollment || 0);
         batchHtml = `
-          <div class="enrolled-batch-details" style="background:#FDFEFE; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin: 12px 0; font-size:0.83rem; text-align: left; box-shadow:inset 0 1px 3px rgba(0,0,0,0.01);">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
-              <span>My Batch: <strong style="color:#0F172A;">${batch.name}</strong></span>
+          <div class="enrolled-batch-details" style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:10px; padding:16px; margin: 12px 0; font-size:0.83rem; text-align: left; box-shadow:inset 0 1px 3px rgba(0,0,0,0.01);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">
+              <span>My Batch: <strong style="color:var(--text-primary);">${batch.name}</strong></span>
               <span class="status-badge warning" style="padding:2px 8px; font-size:0.7rem;">${batch.status}</span>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-              <div><span style="color:#64748B;">Enrolled:</span> <strong style="color:#0F172A;">${batch.currentEnrollment || 0} / ${batch.maxStudents}</strong></div>
-              <div><span style="color:#64748B;">Available Seats:</span> <strong style="color:#10B981;">${availableSeats} available</strong></div>
+              <div><span style="color:var(--text-secondary);">Enrolled:</span> <strong style="color:var(--text-primary);">${batch.currentEnrollment || 0} / ${batch.maxStudents}</strong></div>
+              <div><span style="color:var(--text-secondary);">Available Seats:</span> <strong style="color:#10B981;">${availableSeats} available</strong></div>
             </div>
-            <div style="font-size:0.76rem; color:#64748B; background:#FFFBEB; border:1px solid #FDE68A; padding:8px 12px; border-radius:8px; display:flex; align-items:center; gap:6px;">
+            <div style="font-size:0.76rem; color:var(--text-secondary); background:var(--brand-blue-pale); border:1px solid var(--brand-blue-light); padding:8px 12px; border-radius:8px; display:flex; align-items:center; gap:6px;">
               <i class="fa-solid fa-lock" style="color:#D97706;"></i>
               <span>Tutor, schedule, Meet, and WhatsApp group will be available once the batch becomes Active.</span>
             </div>
@@ -2799,6 +2799,8 @@ const DashboardComponent = {
 
         if (diff <= 0) {
           timerSpan.innerHTML = '<span style="color:#10B981;">Live Now! Reload page</span>';
+          if (DashboardComponent._cmIntervalId) clearInterval(DashboardComponent._cmIntervalId);
+          DashboardComponent.refreshActiveTab();
         } else {
           const hours = Math.floor(diff / (1000 * 60 * 60));
           const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -2814,6 +2816,36 @@ const DashboardComponent = {
 
     updateTimers();
     DashboardComponent._cmIntervalId = setInterval(updateTimers, 1000);
+  },
+
+  refreshActiveTab: function () {
+    const cu = window.db.getCurrentUser();
+    if (!cu) return;
+    if (DashboardComponent._activeTab === 'support') {
+      DashboardComponent._loadAndRenderSupport();
+    } else if (DashboardComponent._activeTab === 'tutor_chat') {
+      DashboardComponent._loadAndRenderTutorChat();
+    } else {
+      const courses = window.db.getCourses();
+      const enrolledCourses = courses.filter(c => (cu.enrolledCourses || []).includes(c.id));
+      const wishlist = (cu.wishlist || []).map(id => courses.find(c => c.id === id)).filter(Boolean);
+      const txns = window.db.getTransactions().filter(t => t.username === cu.username);
+      const totalProgress = enrolledCourses.length > 0
+        ? Math.round(enrolledCourses.reduce((sum, c) => {
+          const p = window.db.getUserProgress(cu.username, c.id);
+          const total = (c.modules || []).reduce((a, m) => a + (m.lessons || []).length, 0);
+          const done = (p.completedLessons || []).length;
+          return sum + (total > 0 ? (done / total) * 100 : 0);
+        }, 0) / enrolledCourses.length)
+        : 0;
+      const container = document.getElementById('student-tab-content');
+      if (container) {
+        container.innerHTML = DashboardComponent._renderTab(DashboardComponent._activeTab, cu, enrolledCourses, wishlist, txns, totalProgress);
+      }
+      if (DashboardComponent._activeTab === 'overview' && window.DashboardRightPanel) {
+        window.DashboardRightPanel.bindEvents(cu);
+      }
+    }
   }
 };
 window.DashboardComponent = DashboardComponent;
