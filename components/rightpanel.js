@@ -320,6 +320,13 @@ const DashboardRightPanel = {
     const activePosters = allPosters.filter(p => {
       if (p.publishStartDate && new Date(p.publishStartDate).getTime() > now) return false;
       if (p.publishEndDate && new Date(p.publishEndDate).getTime() < now) return false;
+      
+      // Auto-expire posters after event end date/time (default to 2 hours duration)
+      if (p.eventDate) {
+        const eventStart = new Date(p.eventDate).getTime();
+        const eventEnd = eventStart + 2 * 60 * 60 * 1000;
+        if (now >= eventEnd) return false;
+      }
       return true;
     });
 
@@ -692,12 +699,32 @@ const DashboardRightPanel = {
     document.querySelectorAll('.poster-countdown').forEach(el => {
       const targetStr = el.getAttribute('data-event-date');
       if (!targetStr) return;
-      const target = new Date(targetStr);
+      const target = new Date(targetStr).getTime();
+      const eventEnd = target + 2 * 60 * 60 * 1000;
       const diff = target - now;
 
       if (diff <= 0) {
-        el.querySelector('.countdown-label').innerText = "Event status: ";
-        el.querySelector('.countdown-value').innerText = "Started";
+        if (now.getTime() < eventEnd) {
+          el.querySelector('.countdown-label').innerText = "Event status: ";
+          el.querySelector('.countdown-value').innerHTML = `<span class="upcoming-timer-badge live-now" style="display: inline-block; vertical-align: middle; margin-left: 4px;">LIVE NOW</span>`;
+        } else {
+          el.querySelector('.countdown-label').innerText = "Event status: ";
+          el.querySelector('.countdown-value').innerText = "Ended";
+
+          if (!el.getAttribute('data-refreshed')) {
+            el.setAttribute('data-refreshed', 'true');
+            const cu = window.db.getCurrentUser();
+            if (cu && window.DashboardRightPanel) {
+              setTimeout(() => {
+                const rightCol = document.querySelector('.dashboard-right-col');
+                if (rightCol) {
+                  rightCol.outerHTML = window.DashboardRightPanel.render(cu);
+                  window.DashboardRightPanel.bindEvents(cu);
+                }
+              }, 1000);
+            }
+          }
+        }
       } else {
         el.querySelector('.countdown-value').innerText = this._formatTimeDiff(diff);
       }
