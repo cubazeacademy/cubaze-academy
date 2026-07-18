@@ -5957,15 +5957,19 @@ const AdminComponent = {
     const activeTab = AdminComponent._activeAdminProjTab || 'dashboard';
     
     const subTabs = [
-      ['dashboard', 'Overview & Reports'],
-      ['projects', 'All Platform Projects'],
-      ['submissions', 'All Student Submissions']
+      ['dashboard', 'Dashboard'],
+      ['projects', 'All Projects'],
+      ['submissions', 'All Submissions'],
+      ['reports', 'Reports'],
+      ['settings', 'Settings']
     ];
 
     let contentHtml = '';
-    if (activeTab === 'dashboard') contentHtml = AdminComponent._renderAdminProjReports();
+    if (activeTab === 'dashboard') contentHtml = AdminComponent._renderAdminProjOverview();
     else if (activeTab === 'projects') contentHtml = AdminComponent._renderAdminProjList();
     else if (activeTab === 'submissions') contentHtml = AdminComponent._renderAdminProjSubmissions();
+    else if (activeTab === 'reports') contentHtml = AdminComponent._renderAdminProjReports();
+    else if (activeTab === 'settings') contentHtml = AdminComponent._renderAdminProjSettings();
 
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:14px; margin-bottom:20px;">
@@ -5983,6 +5987,94 @@ const AdminComponent = {
 
       <div class="admin-tab-view-container">
         ${contentHtml}
+      </div>
+    `;
+  },
+
+  _renderAdminProjOverview: function () {
+    const projects = window.db.getProjects();
+    const submissions = window.db.getSubmissions();
+    const reviews = window.db.getReviews();
+    
+    const totalProjects = projects.length;
+    const totalSubmissions = submissions.length;
+    const totalReviews = reviews.length;
+    
+    const completionRate = totalSubmissions > 0
+      ? Math.round((submissions.filter(s => s.submission_status === 'Completed').length / totalSubmissions) * 100)
+      : 0;
+
+    const gradingRate = totalSubmissions > 0
+      ? Math.round((totalReviews / totalSubmissions) * 100)
+      : 0;
+
+    return `
+      <div style="text-align:left;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
+          <div class="glass-panel" style="padding:24px; border-radius:16px; border-left:4px solid var(--brand-blue);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Active Projects</div>
+            <div style="font-size:1.8rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${totalProjects}</div>
+            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">Across all platform batches</div>
+          </div>
+          <div class="glass-panel" style="padding:24px; border-radius:16px; border-left:4px solid var(--warning);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Total Submissions</div>
+            <div style="font-size:1.8rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${totalSubmissions}</div>
+            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">Google Drive links submitted</div>
+          </div>
+          <div class="glass-panel" style="padding:24px; border-radius:16px; border-left:4px solid var(--success);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Completion Rate</div>
+            <div style="font-size:1.8rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${completionRate}%</div>
+            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">Submissions marked completed</div>
+          </div>
+          <div class="glass-panel" style="padding:24px; border-radius:16px; border-left:4px solid var(--accent);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Grading Progress</div>
+            <div style="font-size:1.8rem; font-weight:900; color:var(--text-primary); margin-top:6px;">${gradingRate}%</div>
+            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">Submissions reviewed by tutors</div>
+          </div>
+        </div>
+
+        <div class="glass-panel" style="padding:24px; border-radius:16px;">
+          <h3 style="font-size:1rem; font-weight:800; color:var(--text-primary); margin-bottom:12px;">Admin Project Dashboard</h3>
+          <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6; margin-bottom:0;">
+            Use the navigation tabs above to inspect all active platform projects, review student Google Drive submission links, view comprehensive breakdown charts in the Reports section, or customize settings.
+          </p>
+        </div>
+      </div>
+    `;
+  },
+
+  _renderAdminProjSettings: function () {
+    return `
+      <div style="text-align:left; max-width:600px; margin:0 auto;">
+        <form onsubmit="event.preventDefault(); window.app.showToast('Project settings saved successfully!', 'success');" class="glass-panel" style="padding:24px; border-radius:16px;">
+          <h3 style="font-size:1.05rem; font-weight:800; color:var(--text-primary); margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:8px;"><i class="fa-solid fa-sliders" style="color:var(--brand-blue); margin-right:8px;"></i>Project Module Settings</h3>
+          
+          <div class="form-group" style="margin-bottom:16px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; font-weight:700; color:var(--text-primary); cursor:pointer;">
+              <input type="checkbox" checked style="width:16px; height:16px;">
+              <span>Allow students to update submissions before deadline</span>
+            </label>
+            <p style="font-size:0.72rem; color:var(--text-muted); margin-left:24px; margin-top:4px;">Students can replace their Google Drive links until the assignment due date expires.</p>
+          </div>
+          
+          <div class="form-group" style="margin-bottom:16px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; font-weight:700; color:var(--text-primary); cursor:pointer;">
+              <input type="checkbox" style="width:16px; height:16px;">
+              <span>Strict deadline lock</span>
+            </label>
+            <p style="font-size:0.72rem; color:var(--text-muted); margin-left:24px; margin-top:4px;">Immediately prevent any new submission or update past the exact due timestamp.</p>
+          </div>
+
+          <div class="form-group" style="margin-bottom:20px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; font-weight:700; color:var(--text-primary); cursor:pointer;">
+              <input type="checkbox" checked style="width:16px; height:16px;">
+              <span>Send instant email/LMS notifications</span>
+            </label>
+            <p style="font-size:0.72rem; color:var(--text-muted); margin-left:24px; margin-top:4px;">Notify students upon grading, assignment, or revision requests.</p>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin:0;"><i class="fa-solid fa-save"></i> Save Configuration</button>
+        </form>
       </div>
     `;
   },

@@ -2923,6 +2923,19 @@ const DashboardComponent = {
     }
   },
 
+  _projectSearchQuery: '',
+  _projectDifficultyFilter: 'All',
+
+  updateProjectSearch: function (query) {
+    DashboardComponent._projectSearchQuery = query.toLowerCase();
+    DashboardComponent.refreshActiveTab();
+  },
+
+  updateProjectDifficulty: function (diff) {
+    DashboardComponent._projectDifficultyFilter = diff;
+    DashboardComponent.refreshActiveTab();
+  },
+
   _renderProjects: function (cu, enrolledCourses) {
     if (DashboardComponent._viewingProjectId) {
       return DashboardComponent._renderProjectDetail(cu, DashboardComponent._viewingProjectId);
@@ -2932,33 +2945,44 @@ const DashboardComponent = {
     const enrolledBatches = cu.enrolledBatches || {};
     const enrolledBatchIds = Object.values(enrolledBatches);
 
-    // Filter projects matching student's enrolled batches and published status
     const studentProjects = allProjects.filter(p => p.status === 'Published' && enrolledBatchIds.includes(p.batch_id));
+
+    const searchQuery = DashboardComponent._projectSearchQuery || '';
+    const difficultyFilter = DashboardComponent._projectDifficultyFilter || 'All';
+
+    let filteredProjects = studentProjects.filter(p => {
+      const matchesSearch = p.title.toLowerCase().includes(searchQuery) || p.description.toLowerCase().includes(searchQuery);
+      const matchesDiff = difficultyFilter === 'All' || p.difficulty === difficultyFilter;
+      return matchesSearch && matchesDiff;
+    });
 
     const activeTab = DashboardComponent._activeProjectSubTab || 'active';
     
-    // Categorize projects
     const categorized = {
       active: [],
+      upcoming: [],
       submitted: [],
       completed: [],
       grades: []
     };
 
-    studentProjects.forEach(p => {
+    filteredProjects.forEach(p => {
       const sub = window.db.getStudentSubmission(p.id, cu.username);
       const status = sub ? sub.submission_status : 'Not Started';
+
+      const isFuture = p.due_date ? (new Date(p.due_date) > new Date()) : true;
+      if (isFuture) {
+        categorized.upcoming.push(p);
+      }
 
       if (status === 'Completed') {
         categorized.completed.push(p);
       } else if (status === 'Submitted' || status === 'Under Review') {
         categorized.submitted.push(p);
       } else {
-        // Not Started or Revision Required
         categorized.active.push(p);
       }
 
-      // Add to grades if reviewed
       if (sub) {
         const review = window.db.getSubmissionReview(sub.id);
         if (review) {
@@ -2970,9 +2994,10 @@ const DashboardComponent = {
     const activeList = categorized[activeTab] || [];
 
     const subTabs = [
-      ['active', `Active (${categorized.active.length})`],
-      ['submitted', `Submitted (${categorized.submitted.length})`],
-      ['completed', `Completed (${categorized.completed.length})`],
+      ['active', `Active Projects (${categorized.active.length})`],
+      ['upcoming', `Upcoming Projects (${categorized.upcoming.length})`],
+      ['submitted', `Submitted Projects (${categorized.submitted.length})`],
+      ['completed', `Completed Projects (${categorized.completed.length})`],
       ['grades', `Grades & Feedback (${categorized.grades.length})`]
     ];
 
@@ -2980,6 +3005,21 @@ const DashboardComponent = {
       <div class="dashboard-welcome">
         <h1>Projects & Submissions</h1>
         <p>Complete your practical assignments, download resource templates, and submit Google Drive project links.</p>
+      </div>
+
+      <div style="background:var(--bg-secondary); border:1px solid var(--border-color); padding:16px; border-radius:12px; margin-top:20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+        <div style="flex:1; min-width:200px; position:relative;">
+          <input type="text" placeholder="Search projects by title..." value="${DashboardComponent._projectSearchQuery || ''}" oninput="DashboardComponent.updateProjectSearch(this.value)" class="form-control" style="font-family:inherit; font-size:0.8rem; padding-left:36px; margin:0;">
+          <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:12px; color:var(--text-muted); font-size:0.85rem;"></i>
+        </div>
+        <div style="width:180px;">
+          <select onchange="DashboardComponent.updateProjectDifficulty(this.value)" class="form-control" style="font-family:inherit; font-size:0.8rem; margin:0;">
+            <option value="All" ${difficultyFilter === 'All' ? 'selected' : ''}>All Difficulties</option>
+            <option value="Beginner" ${difficultyFilter === 'Beginner' ? 'selected' : ''}>Beginner</option>
+            <option value="Intermediate" ${difficultyFilter === 'Intermediate' ? 'selected' : ''}>Intermediate</option>
+            <option value="Advanced" ${difficultyFilter === 'Advanced' ? 'selected' : ''}>Advanced</option>
+          </select>
+        </div>
       </div>
 
       <div class="lms-tabs-nav" style="margin-top: 24px;">

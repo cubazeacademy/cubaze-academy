@@ -33,7 +33,7 @@ const TutorComponent = {
         ['courses', 'fa-book-open', 'My Assigned Courses'],
         ['batches', 'fa-cubes', 'My Batches'],
         ['common_meeting', 'fa-calendar-days', 'Common Meeting'],
-        ['projects', 'fa-folder-tree', 'Projects'],
+        ['projects', 'fa-folder-tree', 'Project Management'],
         ['lessons', 'fa-list-check', 'Lesson Manager'],
         ['liveclasses', 'fa-video', 'Live Classes'],
         ['upload', 'fa-cloud-arrow-up', 'Upload Content'],
@@ -2763,6 +2763,30 @@ const TutorComponent = {
   _activeProjSubTab: 'list',
   _editingProjectId: null,
   _viewingSubProjectId: null,
+  _tutorSearchQuery: '',
+  _tutorCourseFilter: 'All',
+  _tutorBatchFilter: 'All',
+  _tutorStatusFilter: 'All',
+
+  updateTutorSearch: function (query) {
+    TutorComponent._tutorSearchQuery = query.toLowerCase();
+    TutorComponent.refreshActiveTab();
+  },
+
+  updateTutorCourseFilter: function (courseId) {
+    TutorComponent._tutorCourseFilter = courseId;
+    TutorComponent.refreshActiveTab();
+  },
+
+  updateTutorBatchFilter: function (batchId) {
+    TutorComponent._tutorBatchFilter = batchId;
+    TutorComponent.refreshActiveTab();
+  },
+
+  updateTutorStatusFilter: function (status) {
+    TutorComponent._tutorStatusFilter = status;
+    TutorComponent.refreshActiveTab();
+  },
 
   selectTutorProjTab: function (tabId) {
     TutorComponent._activeProjSubTab = tabId;
@@ -2985,9 +3009,10 @@ const TutorComponent = {
   _renderProjectsTab: function (cu, assignedCourses) {
     const activeTab = TutorComponent._activeProjSubTab || 'list';
     const subTabs = [
-      ['list', 'All Projects'],
       ['create', TutorComponent._editingProjectId ? 'Edit Project' : 'Create Project'],
+      ['list', 'All Projects'],
       ['submissions', 'Student Submissions'],
+      ['reviews', 'Reviews & Feedback'],
       ['reports', 'Reports']
     ];
 
@@ -2995,6 +3020,7 @@ const TutorComponent = {
     if (activeTab === 'list') contentHtml = TutorComponent._renderTutorProjList(cu, assignedCourses);
     else if (activeTab === 'create') contentHtml = TutorComponent._renderTutorProjForm(cu, assignedCourses);
     else if (activeTab === 'submissions') contentHtml = TutorComponent._renderTutorProjSubmissions(cu, assignedCourses);
+    else if (activeTab === 'reviews') contentHtml = TutorComponent._renderTutorProjReviews(cu, assignedCourses);
     else if (activeTab === 'reports') contentHtml = TutorComponent._renderTutorProjReports(cu, assignedCourses);
 
     return `
@@ -3019,7 +3045,49 @@ const TutorComponent = {
     const all = window.db.getProjects();
     const tutorProjects = all.filter(p => p.tutor_id === cu.username);
 
+    const searchQuery = TutorComponent._tutorSearchQuery || '';
+    const courseFilter = TutorComponent._tutorCourseFilter || 'All';
+    const batchFilter = TutorComponent._tutorBatchFilter || 'All';
+    const statusFilter = TutorComponent._tutorStatusFilter || 'All';
+
+    const batches = window.db.getBatches().filter(b => b.tutorIds.includes(cu.username));
+
+    const filtered = tutorProjects.filter(p => {
+      const matchesSearch = p.title.toLowerCase().includes(searchQuery) || p.description.toLowerCase().includes(searchQuery);
+      const matchesCourse = courseFilter === 'All' || p.course_id === courseFilter;
+      const matchesBatch = batchFilter === 'All' || p.batch_id === batchFilter;
+      const matchesStatus = statusFilter === 'All' || p.status === statusFilter;
+      return matchesSearch && matchesCourse && matchesBatch && matchesStatus;
+    });
+
     return `
+      <div style="background:var(--bg-secondary); border:1px solid var(--border-color); padding:16px; border-radius:12px; margin-bottom:20px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <div style="flex:1; min-width:180px; position:relative;">
+          <input type="text" placeholder="Search projects..." value="${TutorComponent._tutorSearchQuery || ''}" oninput="TutorComponent.updateTutorSearch(this.value)" class="form-control" style="font-family:inherit; font-size:0.8rem; padding-left:36px; margin:0;">
+          <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:12px; color:var(--text-muted); font-size:0.85rem;"></i>
+        </div>
+        <div style="width:160px;">
+          <select onchange="TutorComponent.updateTutorCourseFilter(this.value)" class="form-control" style="font-family:inherit; font-size:0.8rem; margin:0;">
+            <option value="All">All Courses</option>
+            ${assignedCourses.map(c => `<option value="${c.id}" ${courseFilter === c.id ? 'selected' : ''}>${c.title}</option>`).join('')}
+          </select>
+        </div>
+        <div style="width:160px;">
+          <select onchange="TutorComponent.updateTutorBatchFilter(this.value)" class="form-control" style="font-family:inherit; font-size:0.8rem; margin:0;">
+            <option value="All">All Batches</option>
+            ${batches.map(b => `<option value="${b.id}" ${batchFilter === b.id ? 'selected' : ''}>${b.name}</option>`).join('')}
+          </select>
+        </div>
+        <div style="width:140px;">
+          <select onchange="TutorComponent.updateTutorStatusFilter(this.value)" class="form-control" style="font-family:inherit; font-size:0.8rem; margin:0;">
+            <option value="All" ${statusFilter === 'All' ? 'selected' : ''}>All Statuses</option>
+            <option value="Draft" ${statusFilter === 'Draft' ? 'selected' : ''}>Draft</option>
+            <option value="Published" ${statusFilter === 'Published' ? 'selected' : ''}>Published</option>
+            <option value="Archived" ${statusFilter === 'Archived' ? 'selected' : ''}>Archived</option>
+          </select>
+        </div>
+      </div>
+
       <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:16px; padding:20px; overflow-x:auto;">
         <table class="lms-table" style="width:100%; border-collapse:collapse; text-align:left;">
           <thead>
@@ -3033,7 +3101,7 @@ const TutorComponent = {
             </tr>
           </thead>
           <tbody>
-            ${tutorProjects.map(p => {
+            ${filtered.map(p => {
               const course = window.db.getCourseById(p.course_id);
               const batch = window.db.getBatchById(p.batch_id);
               const subs = window.db.getSubmissionsByProject(p.id);
@@ -3263,6 +3331,52 @@ const TutorComponent = {
             <div style="text-align:center; padding:36px; color:var(--text-muted);">No projects found. Please create a project first.</div>
           `}
         </div>
+      </div>
+    `;
+  },
+
+  _renderTutorProjReviews: function (cu, assignedCourses) {
+    const reviews = window.db.getReviews().filter(r => r.tutor_id === cu.username);
+    const submissions = window.db.getSubmissions();
+    const projects = window.db.getProjects();
+    const students = window.db.getUsers().filter(u => u.role === 'student');
+
+    return `
+      <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:16px; padding:20px; overflow-x:auto; text-align:left;">
+        <h3 style="font-size:1rem; font-weight:800; color:var(--text-primary); margin-bottom:16px;">Reviews & Feedback History</h3>
+        <table class="lms-table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border-color); font-weight:700; font-size:0.8rem; color:var(--text-secondary);">
+              <th style="padding:12px 8px;">Project</th>
+              <th style="padding:12px 8px;">Student Name</th>
+              <th style="padding:12px 8px;">Review Date</th>
+              <th style="padding:12px 8px;">Marks Assigned</th>
+              <th style="padding:12px 8px;">Written Feedback</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reviews.map(r => {
+              const sub = submissions.find(s => s.id === r.submission_id);
+              const proj = sub ? projects.find(p => p.id === sub.project_id) : null;
+              const student = sub ? students.find(u => u.username === sub.student_id) : null;
+
+              return `
+                <tr style="border-bottom:1px solid var(--border-color); font-size:0.83rem;">
+                  <td style="padding:14px 8px; font-weight:700; color:var(--text-primary); text-align:left;">${proj ? proj.title : 'Deleted Project'}</td>
+                  <td style="padding:14px 8px; color:var(--text-secondary); text-align:left;">${student ? student.name : (sub ? sub.student_id : 'Unknown Student')}</td>
+                  <td style="padding:14px 8px; color:var(--text-secondary); text-align:left;">${new Date(r.reviewed_at).toLocaleDateString()}</td>
+                  <td style="padding:14px 8px; font-weight:700; color:var(--brand-blue); text-align:left;">${r.marks} Marks</td>
+                  <td style="padding:14px 8px; color:var(--text-secondary); font-style:italic; text-align:left;">"${r.feedback || ''}"</td>
+                </tr>
+              `;
+            }).join('')}
+            ${reviews.length === 0 ? `
+              <tr>
+                <td colspan="5" style="padding:48px; text-align:center; color:var(--text-muted);">No reviews graded yet.</td>
+              </tr>
+            ` : ''}
+          </tbody>
+        </table>
       </div>
     `;
   },
