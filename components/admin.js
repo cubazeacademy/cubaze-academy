@@ -1385,10 +1385,20 @@ const AdminComponent = {
      PAYMENTS
   ============================================================ */
   _activePaymentTab: 'pending',
+  _paymentsPage: 1,
+  _paymentsPerPage: 15,
 
   setPaymentTab: function (tab) {
     AdminComponent._activePaymentTab = tab;
+    AdminComponent._paymentsPage = 1;
     document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments();
+    AdminComponent._bindSection('payments');
+  },
+
+  _changePaymentsPage: function (page) {
+    AdminComponent._paymentsPage = page;
+    const searchVal = document.getElementById('pay-search')?.value || '';
+    document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments(searchVal);
     AdminComponent._bindSection('payments');
   },
 
@@ -1424,6 +1434,19 @@ const AdminComponent = {
     } else if (activeTab === 'rejected') {
       filteredTxns = txns.filter(t => t.status === 'FAILED' || t.adminStatus === 'DENIED' || t.adminStatus === 'RE_UPLOAD_REQUESTED');
     }
+
+    // Pagination calculations
+    const itemsPerPage = AdminComponent._paymentsPerPage || 15;
+    const totalResults = filteredTxns.length;
+    const totalPages = Math.ceil(totalResults / itemsPerPage) || 1;
+    let currentPage = AdminComponent._paymentsPage || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    AdminComponent._paymentsPage = currentPage;
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalResults);
+    const paginatedTxns = filteredTxns.slice(startIndex, endIndex);
 
     return `
       <div class="dashboard-welcome">
@@ -1472,7 +1495,7 @@ const AdminComponent = {
             </tr>
           </thead>
           <tbody>
-            ${filteredTxns.map(t => {
+            ${paginatedTxns.map(t => {
               let badgeHtml = '';
               if (t.adminStatus === 'APPROVED' || t.status === 'SUCCESS') {
                 badgeHtml = '<span class="status-badge badge-success" style="padding:4px 10px; border-radius:20px; font-weight:800; display:inline-block; background:#DEF7EC; color:#03543F;">🟢 Success</span>';
@@ -1505,9 +1528,93 @@ const AdminComponent = {
                 </tr>
               `;
             }).join('')}
-            ${filteredTxns.length === 0 ? `<tr><td colspan="9" style="text-align:center;color:#94A3B8;padding:48px;">No transactions found.</td></tr>` : ''}
+            ${paginatedTxns.length === 0 ? `<tr><td colspan="9" style="text-align:center;color:#94A3B8;padding:48px;">No transactions found.</td></tr>` : ''}
           </tbody>
         </table>
+
+        <!-- Pagination Controls -->
+        ${totalResults > 0 ? (() => {
+          let startPage = Math.max(1, currentPage - 2);
+          let endPage = Math.min(totalPages, currentPage + 2);
+          if (currentPage <= 3) {
+            endPage = Math.min(5, totalPages);
+          } else if (currentPage >= totalPages - 2) {
+            startPage = Math.max(1, totalPages - 4);
+          }
+
+          const buttons = [];
+          
+          // First page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changePaymentsPage(1)"`}
+                    title="First Page">
+              «
+            </button>
+          `);
+          
+          // Previous page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changePaymentsPage(${currentPage - 1})"`}
+                    title="Previous Page">
+              ‹
+            </button>
+          `);
+
+          // Numeric pages
+          for (let p = startPage; p <= endPage; p++) {
+            if (p === currentPage) {
+              buttons.push(`
+                <button class="btn btn-primary" 
+                        style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; margin:0; background:var(--brand-blue); border-color:var(--brand-blue); color:#fff; cursor:default;">
+                  ${p}
+                </button>
+              `);
+            } else {
+              buttons.push(`
+                <button class="btn btn-outline-white" 
+                        style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; background:#fff; border:1px solid #E2E8F0; color:var(--text-secondary);"
+                        onclick="AdminComponent._changePaymentsPage(${p})">
+                  ${p}
+                </button>
+              `);
+            }
+          }
+
+          // Next page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changePaymentsPage(${currentPage + 1})"`}
+                    title="Next Page">
+              ›
+            </button>
+          `);
+
+          // Last page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changePaymentsPage(${totalPages})"`}
+                    title="Last Page">
+              »
+            </button>
+          `);
+
+          return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--border-color); flex-wrap:wrap; gap:16px;">
+              <div style="font-size:0.83rem; color:var(--text-muted);">
+                Showing <strong style="color:var(--text-primary); font-weight:700;">${totalResults === 0 ? 0 : startIndex + 1}</strong> to <strong style="color:var(--text-primary); font-weight:700;">${endIndex}</strong> of <strong style="color:var(--text-primary); font-weight:700;">${totalResults}</strong> results
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                ${buttons.join('')}
+              </div>
+            </div>
+          `;
+        })() : ''}
       </div>
     `;
   },
@@ -3492,6 +3599,7 @@ const AdminComponent = {
     }
     if (sec === 'payments') {
       document.getElementById('pay-search')?.addEventListener('input', e => {
+        AdminComponent._paymentsPage = 1;
         document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments(e.target.value);
         AdminComponent._bindSection('payments');
       });
