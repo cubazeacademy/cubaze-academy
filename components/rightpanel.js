@@ -426,7 +426,9 @@ const DashboardRightPanel = {
       const dateStr = lc.date;
       const timeStr = lc.start_time || '00:00';
       const eventTime = new Date(`${dateStr}T${timeStr}`);
-      if (eventTime < now && (now - eventTime) > 2 * 60 * 60 * 1000) return; // ignore if older than 2 hours
+      const endTimeStr = lc.end_time || '23:59';
+      const eventEndTime = new Date(`${dateStr}T${endTimeStr}`);
+      if (now >= eventEndTime) return; // ignore if already ended
 
       let isAllowed = false;
       if (cu.role === 'admin') {
@@ -448,6 +450,7 @@ const DashboardRightPanel = {
           subtitle: batch ? batch.name : 'Active Batch',
           date: lc.date,
           time: lc.start_time,
+          endTime: lc.end_time,
           dateTime: eventTime,
           meetLink: lc.meet_link,
           id: lc.id
@@ -459,7 +462,9 @@ const DashboardRightPanel = {
     const meetings = window.db.getCommonMeetingsForUser(cu.username);
     meetings.forEach(m => {
       const eventTime = new Date(`${m.date}T${m.startTime}`);
-      if (eventTime < now && (now - eventTime) > 2 * 60 * 60 * 1000) return; // ignore if older than 2 hours
+      const endTimeStr = m.endTime || '23:59';
+      const eventEndTime = new Date(`${m.date}T${endTimeStr}`);
+      if (now >= eventEndTime || m.status === 'Completed') return; // ignore if already ended
 
       list.push({
         type: 'COMMON MEETING',
@@ -469,6 +474,7 @@ const DashboardRightPanel = {
         subtitle: `Hosted by ${m.hostName || 'Admin'}`,
         date: m.date,
         time: m.startTime,
+        endTime: m.endTime,
         dateTime: eventTime,
         meetLink: m.meetLink,
         id: m.id
@@ -557,7 +563,7 @@ const DashboardRightPanel = {
               </span>
               
               ${isEvent ? `
-                <span class="upcoming-timer-badge" data-event-time="${item.date}T${item.time}" data-meet-link="${item.meetLink || ''}">
+                <span class="upcoming-timer-badge" data-event-time="${item.date}T${item.time}" data-event-end-time="${item.date}T${item.endTime || item.time}" data-meet-link="${item.meetLink || ''}">
                   Calculating...
                 </span>
               ` : ''}
@@ -700,16 +706,16 @@ const DashboardRightPanel = {
     // 2. Upcoming List Live Timers
     document.querySelectorAll('.upcoming-timer-badge').forEach(el => {
       const eventTimeStr = el.getAttribute('data-event-time');
+      const eventEndTimeStr = el.getAttribute('data-event-end-time');
       const meetLink = el.getAttribute('data-meet-link');
       if (!eventTimeStr) return;
 
       const target = new Date(eventTimeStr);
+      const targetEnd = eventEndTimeStr ? new Date(eventEndTimeStr) : new Date(target.getTime() + 60 * 60 * 1000);
       const diff = target - now;
 
       if (diff <= 0) {
-        // Event is live or has started (allow Join Now if within 2 hours of starting)
-        const durationDiff = now - target;
-        if (durationDiff < 2 * 60 * 60 * 1000) {
+        if (now < targetEnd) {
           el.className = 'upcoming-timer-badge live-now';
           if (meetLink) {
             el.innerHTML = `<a href="${meetLink}" target="_blank" style="color: #fff; text-decoration: none; font-weight: 700;"><i class="fa-solid fa-video"></i> Join Now</a>`;
@@ -721,6 +727,16 @@ const DashboardRightPanel = {
           el.className = 'upcoming-timer-badge';
           el.style.background = '#e2e8f0';
           el.style.color = '#64748b';
+
+          if (!el.getAttribute('data-refreshed')) {
+            el.setAttribute('data-refreshed', 'true');
+            const cu = window.db.getCurrentUser();
+            if (cu && window.DashboardRightPanel) {
+              setTimeout(() => {
+                window.DashboardRightPanel.refresh(cu);
+              }, 1000);
+            }
+          }
         }
       } else {
         el.innerText = this._formatTimeDiffCompact(diff);
@@ -815,6 +831,24 @@ const DashboardRightPanel = {
     
     // Restart countdown loop to include new elements
     this._updateCountdowns();
+  },
+
+  refresh: function (cu) {
+    if (!cu) cu = window.db.getCurrentUser();
+    if (!cu) return;
+    const upcomingList = document.getElementById('upcoming-list-box');
+    if (upcomingList) {
+      const upcomingItems = this._getUpcomingItems(cu);
+      upcomingList.innerHTML = this._renderUpcomingListItems(upcomingItems.slice(0, 5));
+      if (upcomingItems.length === 0) {
+        upcomingList.innerHTML = `
+          <div style="text-align: center; color: var(--text-muted); padding: 24px 0; font-size: 0.78rem;">
+            <i class="fa-regular fa-calendar-check" style="font-size: 1.6rem; margin-bottom: 8px; color: var(--border-color);"></i>
+            <div>No upcoming activities</div>
+          </div>
+        `;
+      }
+    }
   }
 };
 window.DashboardRightPanel = DashboardRightPanel;
