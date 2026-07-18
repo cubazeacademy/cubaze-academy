@@ -2754,7 +2754,6 @@ const TutorComponent = {
       if (TutorComponent._openCourseId) {
         TutorComponent._bindLessonManagerEvents(TutorComponent._openCourseId);
       }
-      }
       if (TutorComponent._activeTab === 'dashboard' && window.DashboardRightPanel) {
         window.DashboardRightPanel.bindEvents(cu);
       }
