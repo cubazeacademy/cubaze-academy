@@ -1871,6 +1871,10 @@ const TutorComponent = {
             </label>
             <input type="url" id="t-lc-link" required value="${lc ? lc.meet_link : ''}" placeholder="https://meet.google.com/xxx-xxxx-xxx">
           </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>Recording Link (optional)</label>
+            <input type="url" id="t-lc-recording" value="${lc ? (lc.recording_url || '') : ''}" placeholder="https://www.youtube.com/embed/...">
+          </div>
           <div class="form-group" style="margin-bottom:20px;">
             <label>Status</label>
             <select id="t-lc-status" style="width:100%;">
@@ -1913,6 +1917,7 @@ const TutorComponent = {
       const start_time = overlay.querySelector('#t-lc-start').value;
       const end_time = overlay.querySelector('#t-lc-end').value;
       const meet_link = overlay.querySelector('#t-lc-link').value;
+      const recording_url = overlay.querySelector('#t-lc-recording').value.trim();
       const status = overlay.querySelector('#t-lc-status').value;
 
       const liveClassData = {
@@ -1925,6 +1930,7 @@ const TutorComponent = {
         start_time,
         end_time,
         meet_link,
+        recording_url,
         status
       };
       if (id) liveClassData.id = id;

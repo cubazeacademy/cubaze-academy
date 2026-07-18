@@ -4057,6 +4057,10 @@ const AdminComponent = {
             <label>Google Meet Link *</label>
             <input type="url" id="adm-lc-modal-link" required value="${lc.meet_link}">
           </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>Recording Link (optional)</label>
+            <input type="url" id="adm-lc-modal-recording" value="${lc.recording_url || ''}" placeholder="https://www.youtube.com/embed/...">
+          </div>
           <div class="form-group" style="margin-bottom:20px;">
             <label>Status</label>
             <select id="adm-lc-modal-status" style="width:100%;">
@@ -4085,6 +4089,7 @@ const AdminComponent = {
       lc.start_time = overlay.querySelector('#adm-lc-modal-start').value;
       lc.end_time = overlay.querySelector('#adm-lc-modal-end').value;
       lc.meet_link = overlay.querySelector('#adm-lc-modal-link').value;
+      lc.recording_url = overlay.querySelector('#adm-lc-modal-recording').value.trim();
       lc.status = overlay.querySelector('#adm-lc-modal-status').value;
 
       if (window.db.saveLiveClass(lc)) {
