@@ -103,6 +103,7 @@ const TutorComponent = {
   // DASHBOARD OVERVIEW
   // =====================================================
   _renderDashboard: function (cu, assignedCourses) {
+    const batches = window.db.getBatches().filter(b => b.tutorIds.includes(cu.username));
     const totalLessons = assignedCourses.reduce((s, c) =>
       s + (c.modules || []).reduce((ms, m) => ms + (m.lessons || []).length, 0), 0);
 
@@ -111,16 +112,16 @@ const TutorComponent = {
         <div class="dashboard-main-col">
           <div class="dashboard-welcome">
             <h1>Welcome back, ${cu.name.split(' ')[0]}! 👋</h1>
-            <p>Here's a summary of your assigned courses and lesson activity.</p>
+            <p>Here's a summary of your assigned batches and lesson activity.</p>
           </div>
 
           <!-- Stats -->
           <div class="dashboard-widgets">
             <div class="widget-card">
-              <div class="widget-icon blue"><i class="fa-solid fa-book-open"></i></div>
+              <div class="widget-icon blue"><i class="fa-solid fa-cubes"></i></div>
               <div>
-                <div class="widget-number">${assignedCourses.length}</div>
-                <div class="widget-label">Assigned Courses</div>
+                <div class="widget-number">${batches.length}</div>
+                <div class="widget-label">Assigned Batches</div>
               </div>
             </div>
             <div class="widget-card">
@@ -133,7 +134,7 @@ const TutorComponent = {
             <div class="widget-card">
               <div class="widget-icon gold"><i class="fa-solid fa-users"></i></div>
               <div>
-                <div class="widget-number">${assignedCourses.reduce((s, c) => s + (c.studentsCount || 0), 0).toLocaleString('en-IN')}</div>
+                <div class="widget-number">${batches.reduce((s, b) => s + (b.currentEnrollment || 0), 0).toLocaleString('en-IN')}</div>
                 <div class="widget-label">Total Students</div>
               </div>
             </div>
@@ -193,19 +194,19 @@ const TutorComponent = {
             </div>
           </div>
 
-          <!-- Assigned Courses Quick View -->
+          <!-- Assigned Batches Quick View -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <div style="font-size:1.05rem;font-weight:700;color:#0F172A;">Your Assigned Courses</div>
-            <div data-tutor-tab="courses" style="font-size:0.83rem;color:#3D46D8;font-weight:600;cursor:pointer;">View All →</div>
+            <div style="font-size:1.05rem;font-weight:700;color:#0F172A;">Your Assigned Batches</div>
+            <div data-tutor-tab="batches" style="font-size:0.83rem;color:#3D46D8;font-weight:600;cursor:pointer;">View All →</div>
           </div>
-          ${assignedCourses.length === 0
+          ${batches.length === 0
         ? `<div style="background:#FFFFFF;border-radius:16px;padding:48px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.04);">
-                <div style="font-size:3rem;margin-bottom:16px;">📚</div>
-                <h3 style="color:#0F172A;margin-bottom:8px;">No Courses Assigned Yet</h3>
-                <p style="color:#64748B;font-size:0.85rem;">Your admin will assign you to one or more courses. Check back later or contact your Admin.</p>
+                <div style="font-size:3rem;margin-bottom:16px;">👥</div>
+                <h3 style="color:#0F172A;margin-bottom:8px;">No Batches Assigned Yet</h3>
+                <p style="color:#64748B;font-size:0.85rem;">Your admin will assign you to one or more batches. Check back later or contact your Admin.</p>
               </div>`
         : `<div style="display:flex;flex-direction:column;gap:16px;">
-                ${assignedCourses.slice(0, 3).map(c => TutorComponent._courseMiniCard(c)).join('')}
+                ${batches.slice(0, 3).map(b => TutorComponent._batchMiniCard(b)).join('')}
               </div>`
       }
         </div>
@@ -258,6 +259,44 @@ const TutorComponent = {
         </div>
       </div>
     `;
+  },
+
+  _batchMiniCard: function (b) {
+    const course = window.db.getCourseById(b.courseId);
+    const courseTitle = course ? course.title : b.courseId;
+    const courseImage = course ? course.image : 'cubaze-logo.png';
+    const daysText = (b.classDays || []).join(', ');
+
+    return `
+      <div class="enrolled-course-card" onclick="TutorComponent._openBatch('${b.id}', event)" style="cursor:pointer;">
+        <div class="enrolled-course-thumb"><img src="${courseImage}" alt="${b.name}"></div>
+        <div class="enrolled-course-body">
+          <div class="enrolled-course-title">${b.name}</div>
+          <div class="enrolled-course-meta" style="margin-top:4px; font-size:0.8rem; color:#64748B;">
+            Course: <strong>${courseTitle}</strong> · Code: <strong>${b.id}</strong>
+          </div>
+          <div class="enrolled-course-meta" style="margin-top:6px; font-size:0.83rem; color:#1E293B;">
+            <span><i class="fa-regular fa-clock" style="color:var(--brand-blue); margin-right:4px;"></i> ${b.classTime} (${daysText})</span>
+            <span style="margin: 0 8px; color:#CBD5E1;">|</span>
+            <span><i class="fa-solid fa-users" style="color:var(--brand-blue); margin-right:4px;"></i> ${b.currentEnrollment || 0} Students</span>
+          </div>
+          <div class="enrolled-course-meta" style="margin-top:6px;">
+            Status: <span class="status-badge ${b.status === 'Active' ? 'success' : 'warning'}" style="padding:2px 8px; font-size:0.7rem;">${b.status}</span>
+          </div>
+          <div class="enrolled-course-actions" style="margin-top:12px;">
+            <button class="btn btn-primary btn-sm">
+              <i class="fa-solid fa-users-viewfinder"></i> Manage Batch
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _openBatch: function (batchId, e) {
+    if (e) e.stopPropagation();
+    TutorComponent._openBatchId = batchId;
+    document.querySelector('.sidebar-nav-item[data-tutor-tab="batches"]')?.click();
   },
 
   // =====================================================
