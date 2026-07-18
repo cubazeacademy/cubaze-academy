@@ -2161,7 +2161,10 @@ const TutorComponent = {
             <tr>
               <td style="font-weight:700; color:#0F172A; text-align:left;">${lc.title}</td>
               <td style="font-size:0.8rem; font-weight:600; text-align:left;">${lc.date} @ ${lc.start_time} - ${lc.end_time}</td>
-              <td style="text-align:left;"><a href="${lc.meet_link}" target="_blank" style="color:#3D46D8; text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</a></td>
+              <td style="text-align:left;">
+                <a href="${lc.meet_link}" target="_blank" style="color:#3D46D8; text-decoration:none;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</a>
+                ${lc.recording_url ? `<br><a href="${lc.recording_url}" target="_blank" style="color:var(--brand-blue); text-decoration:none; font-size:0.75rem; display:inline-block; margin-top:4px;"><i class="fa-solid fa-circle-play"></i> Watch Recording</a>` : ''}
+              </td>
               <td><span class="status-badge ${lc.status === 'published' ? 'success' : ''}">${lc.status}</span></td>
               <td>
                 <div style="display:flex; gap:6px; justify-content:center;">
@@ -2497,6 +2500,10 @@ const TutorComponent = {
             </label>
             <input type="url" id="bt-lc-link" required value="${lc ? lc.meet_link : (batch.googleMeetLink || '')}" placeholder="https://meet.google.com/xxx-xxxx-xxx" style="font-family:inherit;">
           </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>Recording Link (optional)</label>
+            <input type="url" id="bt-lc-recording" value="${lc ? (lc.recording_url || '') : ''}" placeholder="https://www.youtube.com/embed/..." style="font-family:inherit;">
+          </div>
           <div class="form-group" style="margin-bottom:20px;">
             <label>Status</label>
             <select id="bt-lc-status" style="width:100%; font-family:inherit;">
@@ -2527,6 +2534,7 @@ const TutorComponent = {
       const start_time = overlay.querySelector('#bt-lc-start').value;
       const end_time = overlay.querySelector('#bt-lc-end').value;
       const meet_link = overlay.querySelector('#bt-lc-link').value;
+      const recording_url = overlay.querySelector('#bt-lc-recording').value.trim();
       const status = overlay.querySelector('#bt-lc-status').value;
 
       const liveClassData = {
@@ -2540,6 +2548,7 @@ const TutorComponent = {
         start_time,
         end_time,
         meet_link,
+        recording_url,
         status
       };
       if (lcId) liveClassData.id = lcId;
