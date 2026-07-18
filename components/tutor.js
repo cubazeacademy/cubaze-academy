@@ -2840,28 +2840,82 @@ const TutorComponent = {
   saveTutorProject: function (event) {
     event.preventDefault();
     const cu = window.db.getCurrentUser();
-    if (!cu) return;
+    if (!cu) {
+      window.app.showToast('You must be logged in to create a project.', 'danger');
+      return;
+    }
 
     const projId = TutorComponent._editingProjectId || 'PRJ-' + Math.floor(100000 + Math.random() * 900000);
-    const title = document.getElementById('proj-title').value.trim();
-    const thumbnail = document.getElementById('proj-thumb').value.trim();
-    const courseId = document.getElementById('proj-course').value;
-    const batchId = document.getElementById('proj-batch').value;
-    const difficulty = document.getElementById('proj-diff').value;
-    const desc = document.getElementById('proj-desc').value.trim();
-    const inst = document.getElementById('proj-inst').value.trim();
-    const obj = document.getElementById('proj-obj').value.trim();
-    const dueDate = document.getElementById('proj-due-date').value;
-    const dueTime = document.getElementById('proj-due-time').value;
-    const maxMarks = parseInt(document.getElementById('proj-marks').value) || 100;
-    const estTime = document.getElementById('proj-est-time').value.trim();
-    const status = document.getElementById('proj-status').value;
+    
+    const titleEl    = document.getElementById('proj-title');
+    const thumbEl    = document.getElementById('proj-thumb');
+    const courseEl   = document.getElementById('proj-course');
+    const batchEl    = document.getElementById('proj-batch');
+    const diffEl     = document.getElementById('proj-diff');
+    const descEl     = document.getElementById('proj-desc');
+    const instEl     = document.getElementById('proj-inst');
+    const objEl      = document.getElementById('proj-obj');
+    const dueDateEl  = document.getElementById('proj-due-date');
+    const dueTimeEl  = document.getElementById('proj-due-time');
+    const marksEl    = document.getElementById('proj-marks');
+    const estTimeEl  = document.getElementById('proj-est-time');
+    const statusEl   = document.getElementById('proj-status');
+
+    // Validate critical fields exist on page
+    if (!titleEl || !courseEl || !batchEl || !dueDateEl || !descEl || !instEl) {
+      window.app.showToast('Form elements not found. Please reload and try again.', 'danger');
+      return;
+    }
+
+    const title    = titleEl.value.trim();
+    const thumbnail = thumbEl ? thumbEl.value.trim() : '';
+    const courseId = courseEl.value;
+    const batchId  = batchEl.value;
+    const difficulty = diffEl ? diffEl.value : 'Beginner';
+    const desc     = descEl.value.trim();
+    const inst     = instEl.value.trim();
+    const obj      = objEl ? objEl.value.trim() : '';
+    const dueDate  = dueDateEl.value;
+    const dueTime  = dueTimeEl ? dueTimeEl.value : '23:59';
+    const maxMarks = parseInt(marksEl ? marksEl.value : '100') || 100;
+    const estTime  = estTimeEl ? estTimeEl.value.trim() : '';
+    const status   = statusEl ? statusEl.value : 'Draft';
+
+    // Manual validation
+    if (!title) {
+      window.app.showToast('Please enter a Project Title.', 'danger');
+      titleEl.focus();
+      return;
+    }
+    if (!courseId) {
+      window.app.showToast('Please select a Course. Make sure you have assigned courses.', 'danger');
+      return;
+    }
+    if (!batchId) {
+      window.app.showToast('Please select a Batch. Make sure you have assigned batches.', 'danger');
+      return;
+    }
+    if (!dueDate) {
+      window.app.showToast('Please set a Due Date.', 'danger');
+      dueDateEl.focus();
+      return;
+    }
+    if (!desc) {
+      window.app.showToast('Please enter a Project Description.', 'danger');
+      descEl.focus();
+      return;
+    }
+    if (!inst) {
+      window.app.showToast('Please enter Detailed Instructions.', 'danger');
+      instEl.focus();
+      return;
+    }
 
     const assetsList = [];
     document.querySelectorAll('#tutor-assets-inputs .assets-row').forEach(row => {
-      const name = row.querySelector('.asset-name').value.trim();
-      const type = row.querySelector('.asset-type').value.trim();
-      const link = row.querySelector('.asset-link').value.trim();
+      const name = row.querySelector('.asset-name') ? row.querySelector('.asset-name').value.trim() : '';
+      const type = row.querySelector('.asset-type') ? row.querySelector('.asset-type').value.trim() : '';
+      const link = row.querySelector('.asset-link') ? row.querySelector('.asset-link').value.trim() : '';
       if (name && link) {
         assetsList.push({
           asset_name: name,
@@ -2888,23 +2942,30 @@ const TutorComponent = {
       status: status
     };
 
-    const res = window.db.saveProject(projectData, assetsList);
-    if (res.success) {
-      window.app.showToast(TutorComponent._editingProjectId ? 'Project updated!' : 'Project created!', 'success');
-      
-      if (status === 'Published' && !TutorComponent._editingProjectId) {
-        const students = window.db.getUsers().filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[courseId] === batchId);
-        students.forEach(stud => {
-          window.db.addNotification(stud.username, "New Project Assigned 📂", `Tutor ${cu.name} assigned a new project: "${title}". Due date: ${dueDate}`, "info");
-        });
-        window.db.addActivity(cu.username, "CREATE_PROJECT", "project", projId, `Tutor ${cu.name} created project "${title}"`);
-      }
+    try {
+      const res = window.db.saveProject(projectData, assetsList);
+      if (res && res.success) {
+        window.app.showToast(TutorComponent._editingProjectId ? '✅ Project updated!' : '✅ Project created and saved!', 'success');
+        
+        if (status === 'Published' && !TutorComponent._editingProjectId) {
+          const students = window.db.getUsers().filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[courseId] === batchId);
+          students.forEach(stud => {
+            window.db.addNotification(stud.username, "New Project Assigned 📂", `Tutor ${cu.name} assigned a new project: "${title}". Due date: ${dueDate}`, "info");
+          });
+          window.db.addActivity(cu.username, "CREATE_PROJECT", "project", projId, `Tutor ${cu.name} created project "${title}"`);
+        }
 
-      TutorComponent._editingProjectId = null;
-      TutorComponent._activeProjSubTab = 'list';
-      TutorComponent.refreshActiveTab();
-    } else {
-      window.app.showToast('Failed to save project.', 'danger');
+        TutorComponent._editingProjectId = null;
+        TutorComponent._activeProjSubTab = 'list';
+        TutorComponent.refreshActiveTab();
+      } else {
+        const errorMsg = (res && res.error) ? res.error : 'Unknown error occurred.';
+        window.app.showToast('Failed to save project: ' + errorMsg, 'danger');
+        console.error('[Projects] saveProject failed:', res);
+      }
+    } catch (err) {
+      window.app.showToast('An error occurred while saving the project. Check console.', 'danger');
+      console.error('[Projects] Exception in saveTutorProject:', err);
     }
   },
 
@@ -3206,11 +3267,11 @@ const TutorComponent = {
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
           <div class="form-group">
             <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Due Date *</label>
-            <input type="date" id="proj-due-date" value="${proj ? proj.due_date.split('T')[0] : ''}" class="form-control" required style="font-family:inherit; font-size:0.83rem;">
+            <input type="date" id="proj-due-date" value="${proj && proj.due_date ? proj.due_date.split('T')[0] : ''}" class="form-control" required style="font-family:inherit; font-size:0.83rem;">
           </div>
           <div class="form-group">
             <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Due Time *</label>
-            <input type="time" id="proj-due-time" value="${proj && proj.due_date.includes('T') ? proj.due_date.split('T')[1].substring(0, 5) : '23:59'}" class="form-control" required style="font-family:inherit; font-size:0.83rem;">
+            <input type="time" id="proj-due-time" value="${proj && proj.due_date && proj.due_date.includes('T') ? proj.due_date.split('T')[1].substring(0, 5) : '23:59'}" class="form-control" required style="font-family:inherit; font-size:0.83rem;">
           </div>
           <div class="form-group">
             <label style="font-weight:700; font-size:0.78rem; display:block; margin-bottom:4px;">Max Marks *</label>

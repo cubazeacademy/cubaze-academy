@@ -4175,29 +4175,38 @@ class CubazeDB {
   }
 
   saveProject(project, assetsList = []) {
-    const projects = this.getProjects();
-    const index = projects.findIndex(p => p.id === project.id);
-    project.updated_at = new Date().toISOString();
-    if (index > -1) {
-      projects[index] = { ...projects[index], ...project };
-    } else {
-      project.created_at = project.created_at || new Date().toISOString();
-      projects.push(project);
-    }
-    this.setItemAndSync("cubaze_project_assignments", projects, project.id);
+    try {
+      if (!project || !project.id || !project.title || !project.course_id || !project.batch_id) {
+        return { success: false, error: 'Missing required project fields (id, title, course_id, batch_id).' };
+      }
 
-    // Save assets
-    let allAssets = JSON.parse(localStorage.getItem("cubaze_project_assets")) || [];
-    allAssets = allAssets.filter(a => a.project_id !== project.id);
-    assetsList.forEach((asset, idx) => {
-      if (!asset.id) asset.id = 'AST-' + Math.floor(100000 + Math.random() * 900000);
-      asset.project_id = project.id;
-      asset.display_order = idx;
-      asset.created_at = asset.created_at || new Date().toISOString();
-      allAssets.push(asset);
-    });
-    this.setItemAndSync("cubaze_project_assets", allAssets);
-    return { success: true, project };
+      const projects = this.getProjects();
+      const index = projects.findIndex(p => p.id === project.id);
+      project.updated_at = new Date().toISOString();
+      if (index > -1) {
+        projects[index] = { ...projects[index], ...project };
+      } else {
+        project.created_at = project.created_at || new Date().toISOString();
+        projects.push(project);
+      }
+      this.setItemAndSync("cubaze_project_assignments", projects, project.id);
+
+      // Save assets
+      let allAssets = JSON.parse(localStorage.getItem("cubaze_project_assets")) || [];
+      allAssets = allAssets.filter(a => a.project_id !== project.id);
+      assetsList.forEach((asset, idx) => {
+        if (!asset.id) asset.id = 'AST-' + Math.floor(100000 + Math.random() * 900000);
+        asset.project_id = project.id;
+        asset.display_order = idx;
+        asset.created_at = asset.created_at || new Date().toISOString();
+        allAssets.push(asset);
+      });
+      this.setItemAndSync("cubaze_project_assets", allAssets);
+      return { success: true, project };
+    } catch (err) {
+      console.error('[DB] saveProject error:', err);
+      return { success: false, error: err.message || 'localStorage write failed.' };
+    }
   }
 
   async deleteProject(id) {
