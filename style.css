@@ -7797,3 +7797,69 @@ body.dark-mode textarea::placeholder {
   color: var(--brand-blue);
   font-size: 1.1rem;
 }
+
+/* --- LMS Tab Navigation & Filter Controls --- */
+.lms-tabs-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+}
+
+.lms-tab-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.lms-tab-btn:hover {
+  background: var(--brand-blue-pale);
+  color: var(--brand-blue);
+}
+
+.lms-tab-btn.active {
+  background: var(--brand-blue);
+  color: var(--brand-white);
+  box-shadow: 0 4px 10px rgba(61, 70, 216, 0.25);
+}
+
+/* Custom form and selects style overrides for projects */
+input.form-control,
+select.form-control,
+textarea.form-control {
+  border: 1px solid var(--border-color) !important;
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+  font-size: 0.82rem !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+}
+
+input.form-control:focus,
+select.form-control:focus,
+textarea.form-control:focus {
+  border-color: var(--brand-blue) !important;
+  box-shadow: 0 0 0 3px var(--brand-blue-glow) !important;
+}
+
+body.dark-mode .lms-tab-btn:hover {
+  background: rgba(61, 70, 216, 0.15);
+  color: var(--brand-blue-light);
+}
+
+body.dark-mode .project-asset-item {
+  background: var(--bg-secondary) !important;
+}
