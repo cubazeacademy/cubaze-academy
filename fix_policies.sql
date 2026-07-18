@@ -60,3 +60,16 @@ CREATE POLICY "Allow public insert live_classes" ON public.cubaze_live_classes F
 CREATE POLICY "Allow public update live_classes" ON public.cubaze_live_classes FOR UPDATE USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public delete live_classes" ON public.cubaze_live_classes FOR DELETE USING (true);
 
+-- Drop old policies for coupons if they exist
+DROP POLICY IF EXISTS "Allow public select coupons" ON public.cubaze_coupons;
+DROP POLICY IF EXISTS "Allow public insert coupons" ON public.cubaze_coupons;
+DROP POLICY IF EXISTS "Allow public update coupons" ON public.cubaze_coupons;
+DROP POLICY IF EXISTS "Allow public delete coupons" ON public.cubaze_coupons;
+
+-- Create policies for coupons
+CREATE POLICY "Allow public select coupons" ON public.cubaze_coupons FOR SELECT USING (true);
+CREATE POLICY "Allow public insert coupons" ON public.cubaze_coupons FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update coupons" ON public.cubaze_coupons FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete coupons" ON public.cubaze_coupons FOR DELETE USING (true);
+
+

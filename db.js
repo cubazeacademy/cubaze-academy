@@ -1336,6 +1336,37 @@ class CubazeDB {
         console.warn('Supabase live_classes sync failed:', err);
       }
 
+      // Sync Coupons
+      try {
+        const { data: coupons, error: cpErr } = await this.sb.from('cubaze_coupons').select('*');
+        if (!cpErr && coupons) {
+          const mappedCoupons = coupons.map(c => ({
+            code: c.code,
+            type: c.type,
+            discount: parseFloat(c.discount),
+            expiryDate: c.expiry_date || '',
+            active: c.active !== false
+          }));
+          if (mappedCoupons.length > 0) {
+            localStorage.setItem('cubaze_coupons', JSON.stringify(mappedCoupons));
+          } else {
+            // Seed Supabase with local defaults if empty
+            const defaults = JSON.parse(localStorage.getItem('cubaze_coupons')) || DEFAULT_COUPONS;
+            for (const d of defaults) {
+              await this.pushToSupabase('cubaze_coupons', {
+                code: d.code,
+                type: d.type,
+                discount: d.discount,
+                expiry_date: d.expiryDate || '',
+                active: d.active !== false
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase coupons sync failed:', err);
+      }
+
       console.log("✅ Supabase sync completed.");
       this.supabaseStatus = 'online';
       // Trigger a view refresh if app is loaded
@@ -1643,6 +1674,17 @@ class CubazeDB {
           updated_at: lc.updated_at || new Date().toISOString()
         });
       });
+    } else if (key === "cubaze_coupons") {
+      const itemsToPush = specificId ? value.filter(c => String(c.code).toUpperCase() === String(specificId).toUpperCase()) : value;
+      itemsToPush.forEach(c => {
+        this.pushToSupabase("cubaze_coupons", {
+          code: c.code,
+          type: c.type,
+          discount: c.discount,
+          expiry_date: c.expiryDate || '',
+          active: c.active !== false
+        });
+      });
     }
   }
 
@@ -1938,7 +1980,8 @@ class CubazeDB {
     const target = String(code).trim().toUpperCase();
     coupons = coupons.filter(c => String(c.code).trim().toUpperCase() !== target);
     if (coupons.length < initialLen) {
-      this.setItemAndSync("cubaze_coupons", coupons);
+      this.setItemAndSync("cubaze_coupons", coupons, target);
+      this.deleteFromSupabase("cubaze_coupons", "code", target);
       return true;
     }
     return false;
@@ -1952,7 +1995,7 @@ class CubazeDB {
     } else {
       coupons.push(coupon);
     }
-    this.setItemAndSync("cubaze_coupons", coupons);
+    this.setItemAndSync("cubaze_coupons", coupons, String(coupon.code).trim().toUpperCase());
     return true;
   }
 

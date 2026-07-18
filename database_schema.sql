@@ -434,3 +434,34 @@ CREATE TRIGGER trg_lc_updated_at
     BEFORE UPDATE ON public.cubaze_live_classes
     FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
+
+-- =========================================================================
+-- TABLE: cubaze_coupons
+-- Coupons management
+-- =========================================================================
+
+CREATE TABLE IF NOT EXISTS public.cubaze_coupons (
+    code        TEXT PRIMARY KEY,
+    type        TEXT NOT NULL CONSTRAINT chk_coupon_type CHECK (type IN ('percentage', 'flat')),
+    discount    NUMERIC NOT NULL,
+    expiry_date TEXT, -- YYYY-MM-DD format
+    active      BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Enable Row Level Security
+ALTER TABLE public.cubaze_coupons ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Allow public select coupons" ON public.cubaze_coupons;
+DROP POLICY IF EXISTS "Allow public insert coupons" ON public.cubaze_coupons;
+DROP POLICY IF EXISTS "Allow public update coupons" ON public.cubaze_coupons;
+DROP POLICY IF EXISTS "Allow public delete coupons" ON public.cubaze_coupons;
+
+-- Create policies for public access (matching rest of database)
+CREATE POLICY "Allow public select coupons" ON public.cubaze_coupons FOR SELECT USING (true);
+CREATE POLICY "Allow public insert coupons" ON public.cubaze_coupons FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update coupons" ON public.cubaze_coupons FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public delete coupons" ON public.cubaze_coupons FOR DELETE USING (true);
+
+
