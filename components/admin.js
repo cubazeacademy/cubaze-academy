@@ -147,8 +147,12 @@ const AdminComponent = {
   _renderSection: function (s) {
     switch (s) {
       case 'dashboard': return AdminComponent._renderDashboard();
-      case 'students': return AdminComponent._renderStudents();
-      case 'tutors': return AdminComponent._renderTutors();
+      case 'students':
+        AdminComponent._studentsPage = 1;
+        return AdminComponent._renderStudents();
+      case 'tutors':
+        AdminComponent._tutorsPage = 1;
+        return AdminComponent._renderTutors();
       case 'courses': return AdminComponent._renderCourses();
       case 'batches': return AdminComponent._renderBatches();
       case 'payments': return AdminComponent._renderPayments();
@@ -683,18 +687,54 @@ const AdminComponent = {
       </div>`;
   },
 
+  _studentsPage: 1,
+  _tutorsPage: 1,
+
+  _changeStudentsPage: function (page) {
+    AdminComponent._studentsPage = page;
+    const search = document.getElementById('stu-search')?.value || '';
+    const filter = document.getElementById('stu-filter')?.value || '';
+    const course = document.getElementById('stu-course')?.value || '';
+    document.getElementById('adm-main').innerHTML = AdminComponent._renderStudents(search, filter, course);
+    AdminComponent._bindSection('students');
+  },
+
+  _changeTutorsPage: function (page) {
+    AdminComponent._tutorsPage = page;
+    const search = document.getElementById('tut-search')?.value || '';
+    const course = document.getElementById('tut-course')?.value || '';
+    document.getElementById('adm-main').innerHTML = AdminComponent._renderTutors(search, course);
+    AdminComponent._bindSection('tutors');
+  },
+
   /* ============================================================
      STUDENTS
      ============================================================ */
-  _renderStudents: function (search = '', filter = '') {
+  _renderStudents: function (search = '', filter = '', courseFilter = '') {
     let users = window.db.getUsers().filter(u => u.role === 'student' && !u.deleted);
     if (search) users = users.filter(u => (u.name + u.username).toLowerCase().includes(search.toLowerCase()));
     if (filter === 'suspended') users = users.filter(u => u.suspended);
     else if (filter === 'active') users = users.filter(u => !u.suspended);
+    if (courseFilter) users = users.filter(u => u.enrolledCourses && u.enrolledCourses.includes(courseFilter));
+    
     const allCourses = window.db.getCourses();
+    
+    // Pagination calculations
+    const itemsPerPage = 10;
+    const totalResults = users.length;
+    const totalPages = Math.ceil(totalResults / itemsPerPage) || 1;
+    let currentPage = AdminComponent._studentsPage || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    AdminComponent._studentsPage = currentPage;
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalResults);
+    const paginatedUsers = users.slice(startIndex, endIndex);
+
     return `
       <div class="dashboard-welcome">
-        <h1>Students <span style="font-size:1rem;font-weight:500;color:#64748B;">(${users.length})</span></h1>
+        <h1>Students <span style="font-size:1rem;font-weight:500;color:#64748B;">(${totalResults})</span></h1>
         <p>Manage all registered students.</p>
       </div>
       <div class="glass-panel">
@@ -708,6 +748,10 @@ const AdminComponent = {
               <option value="" ${!filter ? 'selected' : ''}>All Students</option>
               <option value="active" ${filter === 'active' ? 'selected' : ''}>Active</option>
               <option value="suspended" ${filter === 'suspended' ? 'selected' : ''}>Suspended</option>
+            </select>
+            <select id="stu-course" style="width: 180px; height: 46px;">
+              <option value="">All Courses</option>
+              ${allCourses.map(c => `<option value="${c.id}" ${courseFilter === c.id ? 'selected' : ''}>${c.title}</option>`).join('')}
             </select>
             <div id="stu-bulk-actions" style="display:none; align-items:center; gap:8px; margin-left:12px;">
               <span id="stu-bulk-count" style="font-size:0.8rem; font-weight:700; color:#475569; margin-right:8px; white-space:nowrap;">0 selected</span>
@@ -727,7 +771,7 @@ const AdminComponent = {
         <table class="data-table">
           <thead><tr><th><input type="checkbox" id="stu-check-all"></th><th>Student</th><th>Username</th><th>Enrolled</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody>
-            ${users.map(u => {
+            ${paginatedUsers.map(u => {
       const enrolledIds = u.enrolledCourses || [];
       const enrolledNames = enrolledIds.map(id => {
         const c = allCourses.find(x => x.id === id);
@@ -766,22 +810,122 @@ const AdminComponent = {
                 </td>
               </tr>`;
     }).join('')}
-            ${users.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:32px;">No students found.</td></tr>` : ''}
+            ${paginatedUsers.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:32px;">No students found.</td></tr>` : ''}
           </tbody>
         </table>
+
+        <!-- Pagination Controls -->
+        ${totalResults > 0 ? (() => {
+          let startPage = Math.max(1, currentPage - 2);
+          let endPage = Math.min(totalPages, currentPage + 2);
+          if (currentPage <= 3) {
+            endPage = Math.min(5, totalPages);
+          } else if (currentPage >= totalPages - 2) {
+            startPage = Math.max(1, totalPages - 4);
+          }
+
+          const buttons = [];
+          
+          // First page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeStudentsPage(1)"`}
+                    title="First Page">
+              «
+            </button>
+          `);
+          
+          // Previous page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeStudentsPage(${currentPage - 1})"`}
+                    title="Previous Page">
+              ‹
+            </button>
+          `);
+
+          // Numeric pages
+          for (let p = startPage; p <= endPage; p++) {
+            if (p === currentPage) {
+              buttons.push(`
+                <button class="btn btn-primary" 
+                        style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; margin:0; background:var(--brand-blue); border-color:var(--brand-blue); color:#fff; cursor:default;">
+                  ${p}
+                </button>
+              `);
+            } else {
+              buttons.push(`
+                <button class="btn btn-outline-white" 
+                        style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; background:#fff; border:1px solid #E2E8F0; color:var(--text-secondary);"
+                        onclick="AdminComponent._changeStudentsPage(${p})">
+                  ${p}
+                </button>
+              `);
+            }
+          }
+
+          // Next page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeStudentsPage(${currentPage + 1})"`}
+                    title="Next Page">
+              ›
+            </button>
+          `);
+
+          // Last page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeStudentsPage(${totalPages})"`}
+                    title="Last Page">
+              »
+            </button>
+          `);
+
+          return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--border-color); flex-wrap:wrap; gap:16px;">
+              <div style="font-size:0.83rem; color:var(--text-muted);">
+                Showing <strong style="color:var(--text-primary); font-weight:700;">${totalResults === 0 ? 0 : startIndex + 1}</strong> to <strong style="color:var(--text-primary); font-weight:700;">${endIndex}</strong> of <strong style="color:var(--text-primary); font-weight:700;">${totalResults}</strong> results
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                ${buttons.join('')}
+              </div>
+            </div>
+          `;
+        })() : ''}
       </div>`;
   },
 
   /* ============================================================
      TUTORS
   ============================================================ */
-  _renderTutors: function (search = '') {
+  _renderTutors: function (search = '', courseFilter = '') {
     let users = window.db.getUsers().filter(u => u.role === 'instructor' && !u.deleted);
     if (search) users = users.filter(u => (u.name + u.username).toLowerCase().includes(search.toLowerCase()));
+    if (courseFilter) users = users.filter(u => u.assignedCourses && u.assignedCourses.includes(courseFilter));
+    
     const allCourses = window.db.getCourses();
+    
+    // Pagination calculations
+    const itemsPerPage = 10;
+    const totalResults = users.length;
+    const totalPages = Math.ceil(totalResults / itemsPerPage) || 1;
+    let currentPage = AdminComponent._tutorsPage || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    AdminComponent._tutorsPage = currentPage;
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalResults);
+    const paginatedUsers = users.slice(startIndex, endIndex);
+
     return `
       <div class="dashboard-welcome">
-        <h1>Tutors <span style="font-size:1rem;font-weight:500;color:#64748B;">(${users.length})</span></h1>
+        <h1>Tutors <span style="font-size:1rem;font-weight:500;color:#64748B;">(${totalResults})</span></h1>
         <p>Manage instructors and their assigned courses.</p>
       </div>
       <div class="glass-panel" style="margin-bottom:20px;">
@@ -791,6 +935,10 @@ const AdminComponent = {
               <i class="fa-solid fa-magnifying-glass search-icon"></i>
               <input id="tut-search" placeholder="Search tutors..." value="${search}">
             </div>
+            <select id="tut-course" style="width: 180px; height: 46px;">
+              <option value="">All Courses</option>
+              ${allCourses.map(c => `<option value="${c.id}" ${courseFilter === c.id ? 'selected' : ''}>${c.title}</option>`).join('')}
+            </select>
             <div id="tut-bulk-actions" style="display:none; align-items:center; gap:8px; margin-left:12px;">
               <span id="tut-bulk-count" style="font-size:0.8rem; font-weight:700; color:#475569; margin-right:8px; white-space:nowrap;">0 selected</span>
               <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._bulkSuspendUsers('tutors', true)" style="height: 46px; padding: 0 16px; border-color:#d97706; color:#d97706;"><i class="fa-solid fa-ban"></i> Suspend</button>
@@ -808,7 +956,7 @@ const AdminComponent = {
         <table class="data-table">
           <thead><tr><th><input type="checkbox" id="tut-check-all"></th><th>Name</th><th>Username</th><th>Assigned Courses</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody>
-            ${users.map(u => {
+            ${paginatedUsers.map(u => {
       const assigned = (u.assignedCourses || []);
       const names = assigned.map(id => { const c = allCourses.find(x => x.id === id); return c ? c.title : id; });
       return `
@@ -847,9 +995,93 @@ const AdminComponent = {
                 </td>
               </tr>`;
     }).join('')}
-            ${users.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:32px;">No tutors found.</td></tr>` : ''}
+            ${paginatedUsers.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:32px;">No tutors found.</td></tr>` : ''}
           </tbody>
         </table>
+
+        <!-- Pagination Controls -->
+        ${totalResults > 0 ? (() => {
+          let startPage = Math.max(1, currentPage - 2);
+          let endPage = Math.min(totalPages, currentPage + 2);
+          if (currentPage <= 3) {
+            endPage = Math.min(5, totalPages);
+          } else if (currentPage >= totalPages - 2) {
+            startPage = Math.max(1, totalPages - 4);
+          }
+
+          const buttons = [];
+          
+          // First page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeTutorsPage(1)"`}
+                    title="First Page">
+              «
+            </button>
+          `);
+          
+          // Previous page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeTutorsPage(${currentPage - 1})"`}
+                    title="Previous Page">
+              ‹
+            </button>
+          `);
+
+          // Numeric pages
+          for (let p = startPage; p <= endPage; p++) {
+            if (p === currentPage) {
+              buttons.push(`
+                <button class="btn btn-primary" 
+                        style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; margin:0; background:var(--brand-blue); border-color:var(--brand-blue); color:#fff; cursor:default;">
+                  ${p}
+                </button>
+              `);
+            } else {
+              buttons.push(`
+                <button class="btn btn-outline-white" 
+                        style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; background:#fff; border:1px solid #E2E8F0; color:var(--text-secondary);"
+                        onclick="AdminComponent._changeTutorsPage(${p})">
+                  ${p}
+                </button>
+              `);
+            }
+          }
+
+          // Next page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeTutorsPage(${currentPage + 1})"`}
+                    title="Next Page">
+              ›
+            </button>
+          `);
+
+          // Last page
+          buttons.push(`
+            <button class="btn btn-outline-white" 
+                    style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                    ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeTutorsPage(${totalPages})"`}
+                    title="Last Page">
+              »
+            </button>
+          `);
+
+          return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--border-color); flex-wrap:wrap; gap:16px;">
+              <div style="font-size:0.83rem; color:var(--text-muted);">
+                Showing <strong style="color:var(--text-primary); font-weight:700;">${totalResults === 0 ? 0 : startIndex + 1}</strong> to <strong style="color:var(--text-primary); font-weight:700;">${endIndex}</strong> of <strong style="color:var(--text-primary); font-weight:700;">${totalResults}</strong> results
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                ${buttons.join('')}
+              </div>
+            </div>
+          `;
+        })() : ''}
       </div>`;
   },
 
@@ -3493,14 +3725,17 @@ const AdminComponent = {
       AdminComponent._bindCommonMeetingsEvents();
     }
     if (sec === 'students') {
-      document.getElementById('stu-search')?.addEventListener('input', e => {
-        document.getElementById('adm-main').innerHTML = AdminComponent._renderStudents(e.target.value, document.getElementById('stu-filter')?.value || '');
+      const reloadStudents = () => {
+        AdminComponent._studentsPage = 1;
+        const search = document.getElementById('stu-search')?.value || '';
+        const filter = document.getElementById('stu-filter')?.value || '';
+        const course = document.getElementById('stu-course')?.value || '';
+        document.getElementById('adm-main').innerHTML = AdminComponent._renderStudents(search, filter, course);
         AdminComponent._bindSection('students');
-      });
-      document.getElementById('stu-filter')?.addEventListener('change', e => {
-        document.getElementById('adm-main').innerHTML = AdminComponent._renderStudents(document.getElementById('stu-search')?.value || '', e.target.value);
-        AdminComponent._bindSection('students');
-      });
+      };
+      document.getElementById('stu-search')?.addEventListener('input', reloadStudents);
+      document.getElementById('stu-filter')?.addEventListener('change', reloadStudents);
+      document.getElementById('stu-course')?.addEventListener('change', reloadStudents);
 
       // Bulk actions event handlers
       const checkAll = document.getElementById('stu-check-all');
@@ -3533,10 +3768,15 @@ const AdminComponent = {
       });
     }
     if (sec === 'tutors') {
-      document.getElementById('tut-search')?.addEventListener('input', e => {
-        document.getElementById('adm-main').innerHTML = AdminComponent._renderTutors(e.target.value);
+      const reloadTutors = () => {
+        AdminComponent._tutorsPage = 1;
+        const search = document.getElementById('tut-search')?.value || '';
+        const course = document.getElementById('tut-course')?.value || '';
+        document.getElementById('adm-main').innerHTML = AdminComponent._renderTutors(search, course);
         AdminComponent._bindSection('tutors');
-      });
+      };
+      document.getElementById('tut-search')?.addEventListener('input', reloadTutors);
+      document.getElementById('tut-course')?.addEventListener('change', reloadTutors);
       AdminComponent._bindTutorForm();
 
       // Bulk actions event handlers for tutors
