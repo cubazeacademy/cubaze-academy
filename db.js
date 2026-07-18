@@ -1327,10 +1327,10 @@ class CubazeDB {
         console.warn('Supabase coupons sync failed:', err);
       }
 
-      // Sync Projects
+      // Sync Projects — only overwrite localStorage if Supabase has records
       try {
         const { data: projs, error: projErr } = await this.sb.from('project_assignments').select('*');
-        if (!projErr && projs) {
+        if (!projErr && projs && projs.length > 0) {
           const mappedProjs = projs.map(p => ({
             id: p.id,
             title: p.title,
@@ -1350,15 +1350,18 @@ class CubazeDB {
             updated_at: p.updated_at
           }));
           localStorage.setItem("cubaze_project_assignments", JSON.stringify(mappedProjs));
+          console.log(`📥 Loaded ${mappedProjs.length} projects from Supabase.`);
+        } else if (projErr) {
+          console.warn('project_assignments table not found or error — keeping localStorage data:', projErr.message);
         }
       } catch (err) {
         console.warn("Supabase project_assignments sync failed:", err);
       }
 
-      // Sync Project Assets
+      // Sync Project Assets — only overwrite localStorage if Supabase has records
       try {
         const { data: assets, error: assetErr } = await this.sb.from('project_assets').select('*');
-        if (!assetErr && assets) {
+        if (!assetErr && assets && assets.length > 0) {
           const mappedAssets = assets.map(a => ({
             id: a.id,
             project_id: a.project_id,
@@ -1369,15 +1372,18 @@ class CubazeDB {
             created_at: a.created_at
           }));
           localStorage.setItem("cubaze_project_assets", JSON.stringify(mappedAssets));
+          console.log(`📥 Loaded ${mappedAssets.length} project assets from Supabase.`);
+        } else if (assetErr) {
+          console.warn('project_assets table not found or error — keeping localStorage data:', assetErr.message);
         }
       } catch (err) {
         console.warn("Supabase project_assets sync failed:", err);
       }
 
-      // Sync Project Submissions
+      // Sync Project Submissions — only overwrite localStorage if Supabase has records
       try {
         const { data: subs, error: subErr } = await this.sb.from('project_submissions').select('*');
-        if (!subErr && subs) {
+        if (!subErr && subs && subs.length > 0) {
           const mappedSubs = subs.map(s => ({
             id: s.id,
             project_id: s.project_id,
@@ -1389,15 +1395,18 @@ class CubazeDB {
             updated_at: s.updated_at
           }));
           localStorage.setItem("cubaze_project_submissions", JSON.stringify(mappedSubs));
+          console.log(`📥 Loaded ${mappedSubs.length} project submissions from Supabase.`);
+        } else if (subErr) {
+          console.warn('project_submissions table not found or error — keeping localStorage data:', subErr.message);
         }
       } catch (err) {
         console.warn("Supabase project_submissions sync failed:", err);
       }
 
-      // Sync Project Reviews
+      // Sync Project Reviews — only overwrite localStorage if Supabase has records
       try {
         const { data: revs, error: revErr } = await this.sb.from('project_reviews').select('*');
-        if (!revErr && revs) {
+        if (!revErr && revs && revs.length > 0) {
           const mappedRevs = revs.map(r => ({
             id: r.id,
             submission_id: r.submission_id,
@@ -1407,6 +1416,9 @@ class CubazeDB {
             reviewed_at: r.reviewed_at
           }));
           localStorage.setItem("cubaze_project_reviews", JSON.stringify(mappedRevs));
+          console.log(`📥 Loaded ${mappedRevs.length} project reviews from Supabase.`);
+        } else if (revErr) {
+          console.warn('project_reviews table not found or error — keeping localStorage data:', revErr.message);
         }
       } catch (err) {
         console.warn("Supabase project_reviews sync failed:", err);
