@@ -2066,23 +2066,34 @@ const AdminComponent = {
   ============================================================ */
   _renderCoupons: function () {
     const coupons = window.db.getCoupons();
+    const todayStr = new Date().toISOString().split('T')[0];
     return `
       <div class="dashboard-welcome"><h1>Coupons (${coupons.length})</h1></div>
       <div class="glass-panel" style="margin-bottom:20px;">
         <table class="data-table">
-          <thead><tr><th>Code</th><th>Type</th><th>Discount</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Code</th><th>Type</th><th>Discount</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
-            ${coupons.map(c => `
+            ${coupons.map(c => {
+              const isExpired = c.expiryDate && (todayStr > c.expiryDate);
+              let statusBadge = '';
+              if (isExpired) {
+                statusBadge = '<span class="status-badge danger" style="background:#FDE8E8; color:#9B1C1C;">Expired</span>';
+              } else {
+                statusBadge = `<span class="status-badge ${c.active ? 'success' : 'danger'}">${c.active ? 'Active' : 'Inactive'}</span>`;
+              }
+              return `
               <tr>
                 <td><code style="background:#F1F5F9;padding:3px 10px;border-radius:6px;font-weight:700;color:#3D46D8;">${c.code}</code></td>
                 <td style="text-transform:capitalize;">${c.type}</td>
                 <td style="font-weight:700;">${c.type === 'percentage' ? c.discount + '%' : '₹' + c.discount}</td>
-                <td><span class="status-badge ${c.active ? 'success' : 'danger'}">${c.active ? 'Active' : 'Inactive'}</span></td>
+                <td>${c.expiryDate ? c.expiryDate : '<span style="color:#94A3B8; font-style:italic;">None</span>'}</td>
+                <td>${statusBadge}</td>
                 <td><div style="display:flex;gap:6px;">
                   <button class="btn btn-outline-white btn-sm" onclick="AdminComponent._showEditCoupon('${c.code}')"><i class="fa-solid fa-pen-to-square"></i></button>
                   <button class="btn btn-danger btn-sm" onclick="AdminComponent._deleteCoupon('${c.code}')"><i class="fa-solid fa-trash-can"></i></button>
                 </div></td>
-              </tr>`).join('')}
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -2092,7 +2103,7 @@ const AdminComponent = {
         </div>
         <div style="padding: 24px;">
           <form id="form-add-coupon" style="margin:0;">
-            <div class="coupon-form-grid">
+            <div class="coupon-form-grid" style="grid-template-columns: 2fr 1fr 1fr 1.5fr auto;">
               <div class="form-group" style="margin: 0;">
                 <label for="coupon-code" style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-tag" style="color:var(--brand-blue);font-size:0.8rem;"></i> Coupon Code</label>
                 <input id="coupon-code" required placeholder="e.g. SUMMER50">
@@ -2107,6 +2118,10 @@ const AdminComponent = {
               <div class="form-group" style="margin: 0;">
                 <label for="coupon-discount" style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-calculator" style="color:var(--brand-blue);font-size:0.8rem;"></i> Discount Value</label>
                 <input id="coupon-discount" type="number" required placeholder="e.g. 50">
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label for="coupon-expiry" style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-calendar-days" style="color:var(--brand-blue);font-size:0.8rem;"></i> Expiry Date</label>
+                <input id="coupon-expiry" type="date" style="height: 48px;">
               </div>
               <button type="submit" class="btn btn-primary" style="height: 48px; padding: 0 24px; font-weight: 700; display:flex; align-items:center; gap:8px;">
                 <i class="fa-solid fa-plus"></i> Add Coupon
@@ -3928,9 +3943,10 @@ const AdminComponent = {
         const code = document.getElementById('coupon-code').value.trim().toUpperCase();
         const type = document.getElementById('coupon-type').value;
         const discount = parseFloat(document.getElementById('coupon-discount').value);
+        const expiryDate = document.getElementById('coupon-expiry').value || '';
         if (!code || isNaN(discount)) return;
 
-        const res = window.db.saveCoupon({ code, type, discount, active: true });
+        const res = window.db.saveCoupon({ code, type, discount, expiryDate, active: true });
         if (res) {
           window.app.showToast('Coupon added successfully! 🎉', 'success');
           AdminComponent._nav('coupons');
@@ -4129,6 +4145,10 @@ const AdminComponent = {
             <label>Discount Amount *</label>
             <input type="number" id="edit-c-discount" class="form-control" required value="${coupon.discount}">
           </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>Expiry Date (optional)</label>
+            <input type="date" id="edit-c-expiry" class="form-control" value="${coupon.expiryDate || ''}">
+          </div>
           <div style="margin-bottom:20px;display:flex;align-items:center;gap:10px;">
             <input type="checkbox" id="edit-c-active" ${coupon.active ? 'checked' : ''} style="width:18px;height:18px;accent-color:#3D46D8;">
             <label for="edit-c-active" style="margin:0;cursor:pointer;font-weight:600;font-size:0.875rem;">Active</label>
@@ -4151,11 +4171,12 @@ const AdminComponent = {
       e.preventDefault();
       const type = document.getElementById('edit-c-type').value;
       const discount = parseFloat(document.getElementById('edit-c-discount').value);
+      const expiryDate = document.getElementById('edit-c-expiry').value || '';
       const active = document.getElementById('edit-c-active').checked;
 
       if (isNaN(discount)) return;
 
-      const res = window.db.saveCoupon({ code, type, discount, active });
+      const res = window.db.saveCoupon({ code, type, discount, expiryDate, active });
       if (res) {
         window.app.showToast('Coupon updated successfully! ✅', 'success');
         overlay.remove();

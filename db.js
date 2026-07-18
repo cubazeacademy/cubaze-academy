@@ -499,10 +499,10 @@ const DEFAULT_TESTIMONIALS = [
 // DEFAULT COUPONS
 // ============================================================
 const DEFAULT_COUPONS = [
-  { code: "CUBAZE50", discount: 50, type: "percentage", active: true },
-  { code: "LAUNCH2026", discount: 500, type: "flat", active: true },
-  { code: "BLENDER200", discount: 200, type: "flat", active: true },
-  { code: "STUDENT25", discount: 25, type: "percentage", active: true }
+  { code: "CUBAZE50", discount: 50, type: "percentage", active: true, expiryDate: "2026-12-31" },
+  { code: "LAUNCH2026", discount: 500, type: "flat", active: true, expiryDate: "2026-12-31" },
+  { code: "BLENDER200", discount: 200, type: "flat", active: true, expiryDate: "2026-06-01" }, // Expired
+  { code: "STUDENT25", discount: 25, type: "percentage", active: true, expiryDate: "2026-12-31" }
 ];
 
 const DEFAULT_SUPPORT_CONVERSATIONS = [
@@ -1957,8 +1957,17 @@ class CubazeDB {
   }
 
   validateCoupon(code, originalPrice) {
-    const coupon = this.getCoupons().find(c => c.code === code.toUpperCase() && c.active);
-    if (!coupon) return { valid: false, error: "Invalid or expired coupon code." };
+    const coupon = this.getCoupons().find(c => String(c.code).trim().toUpperCase() === String(code).trim().toUpperCase());
+    if (!coupon) return { valid: false, error: "Invalid coupon code." };
+    if (!coupon.active) return { valid: false, error: "This coupon code is inactive." };
+    
+    if (coupon.expiryDate) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (todayStr > coupon.expiryDate) {
+        return { valid: false, error: "Coupon code is expired." };
+      }
+    }
+    
     const discount = coupon.type === "percentage" ? Math.round(originalPrice * coupon.discount / 100) : coupon.discount;
     const finalPrice = Math.max(0, originalPrice - discount);
     return { valid: true, discount, finalPrice, coupon };
