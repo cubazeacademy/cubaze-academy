@@ -45,13 +45,13 @@ const ContactComponent = {
                   <div class="contact-info-icon"><i class="fa-solid fa-location-dot"></i></div>
                   <div class="contact-info-text">
                     <h4>Office</h4>
-                    <p>Cubaze Academy, Tech Park, Bangalore, Karnataka, India — 560001</p>
+                    <p>Cubaze Academy, Omanoor, Kondotty, Mlappuram, Kerala, 673638</p>
                   </div>
                 </div>
               </div>
               <!-- Map -->
               <div class="contact-map">
-                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d248849.886539092!2d77.49085452708696!3d12.95428023822568!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae1670c9b44e6d%3A0xf8dfc3e8517e4fe0!2sBengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1720300000000!5m2!1sen!2sin" width="100%" height="280" style="border:0;display:block;" allowfullscreen="" loading="lazy"></iframe>
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15668.618685117467!2d75.95406450652671!3d11.213189914902196!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba645c09263af57%3A0x32d8869eba54978e!2sOmanoor%2C%20Kerala%20673645!5e0!3m2!1sen!2sin!4v1720300000000!5m2!1sen!2sin" width="100%" height="280" style="border:0;display:block;" allowfullscreen="" loading="lazy"></iframe>
               </div>
             </div>
 
@@ -91,7 +91,7 @@ const ContactComponent = {
               <div style="margin-top:24px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-xl);padding:24px;">
                 <h4 style="margin-bottom:16px;">Follow Us on Social Media</h4>
                 <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                  ${[['fa-brands fa-youtube','YouTube','youtube.com','#FF0000'],['fa-brands fa-instagram','Instagram','instagram.com','#E4405F'],['fa-brands fa-telegram','Telegram','t.me','#2CA5E0'],['fa-brands fa-linkedin-in','LinkedIn','linkedin.com','#0077B5']].map(([icon, name, url, color]) => `
+                  ${[['fa-brands fa-youtube', 'YouTube', 'youtube.com', '#FF0000'], ['fa-brands fa-instagram', 'Instagram', 'instagram.com', '#E4405F'], ['fa-brands fa-telegram', 'Telegram', 't.me', '#2CA5E0'], ['fa-brands fa-linkedin-in', 'LinkedIn', 'linkedin.com', '#0077B5']].map(([icon, name, url, color]) => `
                     <a href="https://${url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-md);font-size:0.83rem;font-weight:600;color:var(--text-secondary);transition:var(--transition);text-decoration:none;" onmouseover="this.style.borderColor='${color}';this.style.color='${color}';" onmouseout="this.style.borderColor='';this.style.color='';">
                       <i class="${icon}" style="color:${color};"></i>${name}
                     </a>
