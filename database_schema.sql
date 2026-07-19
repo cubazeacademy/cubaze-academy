@@ -313,6 +313,13 @@ CREATE POLICY "Allow public delete transactions" ON public.cubaze_transactions F
 -- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS reupload_reason TEXT;
 -- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS batch_id TEXT;
 -- ALTER TABLE public.cubaze_transactions ADD COLUMN IF NOT EXISTS batch_name TEXT;
+--
+-- ALTER TABLE public.cubaze_users ADD COLUMN IF NOT EXISTS phone TEXT;
+-- ALTER TABLE public.cubaze_users ADD COLUMN IF NOT EXISTS dob TEXT;
+-- ALTER TABLE public.cubaze_users ADD COLUMN IF NOT EXISTS qualification TEXT;
+-- ALTER TABLE public.cubaze_users ADD COLUMN IF NOT EXISTS qualification_other TEXT;
+-- ALTER TABLE public.cubaze_users ADD COLUMN IF NOT EXISTS whatsapp TEXT;
+-- ALTER TABLE public.cubaze_users ADD COLUMN IF NOT EXISTS profile_photo TEXT;
 
 
 -- =========================================================================

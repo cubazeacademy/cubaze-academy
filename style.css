@@ -6294,7 +6294,8 @@ body.dark-mode .sidebar-profile {
 .sidebar-avatar {
   width: 54px !important;
   height: 54px !important;
-  background: #3D46D8 !important;
+  background-color: #3D46D8 !important;
+  background-image: none;
   color: #ffffff !important;
   border-radius: 50% !important;
   display: flex !important;

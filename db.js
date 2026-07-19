@@ -1133,7 +1133,13 @@ class CubazeDB {
                   suspended: localUsers[uIdx].suspended === true,
                   deleted: localUsers[uIdx].deleted === true,
                   author_bio: localUsers[uIdx].authorBio || '',
-                  assigned_courses: localUsers[uIdx].assignedCourses || []
+                  assigned_courses: localUsers[uIdx].assignedCourses || [],
+                  phone: localUsers[uIdx].phone || '',
+                  dob: localUsers[uIdx].dob || '',
+                  qualification: localUsers[uIdx].qualification || '',
+                  qualification_other: localUsers[uIdx].qualificationOther || '',
+                  whatsapp: localUsers[uIdx].whatsapp || '',
+                  profile_photo: localUsers[uIdx].profilePhoto || ''
                 });
               }
             }
