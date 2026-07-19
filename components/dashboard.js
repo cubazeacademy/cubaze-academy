@@ -105,7 +105,7 @@ const DashboardComponent = {
   showReuploadModal: function (courseId) {
     const course = window.db.getCourseById(courseId);
     if (!course) return;
-    
+
     const cu = window.db.getCurrentUser();
     if (!cu) return;
 
@@ -277,7 +277,7 @@ const DashboardComponent = {
       // Find the old transaction
       const txns = window.db.getTransactions();
       const oldTxn = txns.find(t => t.username === cu.username && t.courseId === courseId && t.adminStatus === 'RE_UPLOAD_REQUESTED');
-      
+
       const details = {
         id: oldTxn ? oldTxn.id : null,
         discount: oldTxn ? oldTxn.discount : 0,
@@ -296,12 +296,12 @@ const DashboardComponent = {
       }
 
       window.db.addTransaction(cu.username, courseId, oldTxn ? oldTxn.amount : 0, 'Direct UPI QR Payment', 'PENDING', details);
-      
+
       // Remove modal
       document.getElementById('reupload-proof-modal')?.remove();
-      
+
       window.app.showToast('Payment proof re-submitted successfully! ⏳', 'success');
-      
+
       // Reload Dashboard
       window.location.reload();
     }, 1200);
@@ -318,18 +318,18 @@ const DashboardComponent = {
 
     const pendingTxns = DashboardComponent._getPendingTxns(cu);
     let pendingAlertsHtml = '';
-    
+
     if (pendingTxns.length > 0) {
       pendingAlertsHtml = `
         <div style="margin-bottom:28px;">
           <h3 style="margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-circle-exclamation" style="color:var(--brand-blue);"></i> Action Required / Pending Verification</h3>
           <div style="display:flex;flex-direction:column;gap:14px;">
             ${pendingTxns.map(t => {
-              const course = window.db.getCourseById(t.courseId);
-              if (!course) return '';
-              const isReupload = t.adminStatus === 'RE_UPLOAD_REQUESTED';
-              
-              return `
+        const course = window.db.getCourseById(t.courseId);
+        if (!course) return '';
+        const isReupload = t.adminStatus === 'RE_UPLOAD_REQUESTED';
+
+        return `
                 <div style="background:var(--bg-card);border:1px solid ${isReupload ? 'rgba(239,68,68,0.2)' : 'var(--border-color)'};border-radius:var(--radius-xl);padding:20px;display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center;">
                   <img src="${course.image}" style="width:100px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border-color);">
                   <div>
@@ -358,7 +358,7 @@ const DashboardComponent = {
                   </div>
                 </div>
               `;
-            }).join('')}
+      }).join('')}
           </div>
         </div>
       `;
@@ -550,7 +550,7 @@ const DashboardComponent = {
       const course = window.db.getCourseById(t.courseId);
       if (!course) return '';
       const isReupload = t.adminStatus === 'RE_UPLOAD_REQUESTED';
-      
+
       return `
         <div class="enrolled-course-card" style="opacity:0.85;border-color:${isReupload ? 'rgba(239,68,68,0.3)' : 'var(--border-color)'};">
           <div class="enrolled-course-left" style="position:relative;">
@@ -692,22 +692,22 @@ const DashboardComponent = {
             <tbody>
               ${txns.length === 0 ? '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px;">No purchases yet.</td></tr>' : ''}
               ${txns.map(t => {
-                let badgeHtml = '';
-                if (t.adminStatus === 'APPROVED' || t.status === 'SUCCESS') {
-                  badgeHtml = '<span class="status-badge success">Success</span>';
-                } else if (t.adminStatus === 'PENDING') {
-                  badgeHtml = '<span class="status-badge pending">Pending</span>';
-                } else if (t.adminStatus === 'RE_UPLOAD_REQUESTED') {
-                  badgeHtml = '<span class="status-badge warning" style="background:#FEF3C7;color:#D97706;border-color:#FDE68A;">Re-upload</span>';
-                } else {
-                  badgeHtml = '<span class="status-badge danger">Failed</span>';
-                }
+      let badgeHtml = '';
+      if (t.adminStatus === 'APPROVED' || t.status === 'SUCCESS') {
+        badgeHtml = '<span class="status-badge success">Success</span>';
+      } else if (t.adminStatus === 'PENDING') {
+        badgeHtml = '<span class="status-badge pending">Pending</span>';
+      } else if (t.adminStatus === 'RE_UPLOAD_REQUESTED') {
+        badgeHtml = '<span class="status-badge warning" style="background:#FEF3C7;color:#D97706;border-color:#FDE68A;">Re-upload</span>';
+      } else {
+        badgeHtml = '<span class="status-badge danger">Failed</span>';
+      }
 
-                const invoiceBtn = (t.status === 'SUCCESS' || t.adminStatus === 'APPROVED')
-                  ? `<button class="btn btn-ghost btn-sm" onclick="PhonePeComponent.printInvoice('${t.id}')" style="margin-bottom:0;padding:6px 12px;height:30px;"><i class="fa-solid fa-file-invoice"></i> Receipt</button>`
-                  : '—';
+      const invoiceBtn = (t.status === 'SUCCESS' || t.adminStatus === 'APPROVED')
+        ? `<button class="btn btn-ghost btn-sm" onclick="PhonePeComponent.printInvoice('${t.id}')" style="margin-bottom:0;padding:6px 12px;height:30px;"><i class="fa-solid fa-file-invoice"></i> Receipt</button>`
+        : '—';
 
-                return `
+      return `
                   <tr>
                     <td style="font-family:monospace;font-size:0.75rem;font-weight:700;">${t.id}</td>
                     <td style="font-weight:600;">${t.courseTitle}</td>
@@ -719,7 +719,7 @@ const DashboardComponent = {
                     <td>${invoiceBtn}</td>
                   </tr>
                 `;
-              }).join('')}
+    }).join('')}
             </tbody>
           </table>
         </div>
@@ -837,7 +837,7 @@ const DashboardComponent = {
 
   init: function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
+
     // Preserve active tab, default to 'overview'
     const tab = DashboardComponent._activeTab || 'overview';
     DashboardComponent._activeTab = tab;
@@ -1252,7 +1252,7 @@ const DashboardComponent = {
   _renderSupportPortalHTML: async function (convs) {
     const activeFilter = DashboardComponent._supportFilter || 'all';
     const search = DashboardComponent._supportSearch || '';
-    
+
     let filtered = convs;
     if (activeFilter !== 'all') {
       filtered = convs.filter(c => c.status.toLowerCase() === activeFilter);
@@ -1305,9 +1305,9 @@ const DashboardComponent = {
             ${filtered.length === 0 ? `
               <div style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.8rem; font-style:italic;">No support tickets found.</div>
             ` : filtered.map(c => {
-              const activeClass = DashboardComponent._activeConvId === c.id ? 'active' : '';
-              const relativeTime = DashboardComponent._getRelativeTime(c.last_reply_at);
-              return `
+      const activeClass = DashboardComponent._activeConvId === c.id ? 'active' : '';
+      const relativeTime = DashboardComponent._getRelativeTime(c.last_reply_at);
+      return `
                 <div class="tutor-chat-list-item ${activeClass}" data-conv-id="${c.id}">
                   <div class="tutor-chat-list-item-avatar" style="background:#0B5A43;">
                     <i class="fa-solid fa-headset" style="font-size:0.95rem;"></i>
@@ -1330,7 +1330,7 @@ const DashboardComponent = {
                   </div>
                 </div>
               `;
-            }).join('')}
+    }).join('')}
           </div>
         </div>
 
@@ -1559,16 +1559,16 @@ const DashboardComponent = {
             Messages and calls are secured with end-to-end encryption. Your admin will respond shortly.
           </div>
           ${messages.map(m => {
-            const isOwn = m.sender === cu.username;
-            const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const isOwn = m.sender === cu.username;
+      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
-            let attachmentHtml = '';
-            if (m.file_url) {
-              const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-              if (isImg) {
-                attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-              } else {
-                attachmentHtml = `
+      let attachmentHtml = '';
+      if (m.file_url) {
+        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+        if (isImg) {
+          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+        } else {
+          attachmentHtml = `
                           <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
                             <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
                             <div class="support-chat-attachment-info">
@@ -1577,21 +1577,21 @@ const DashboardComponent = {
                             </div>
                           </a>
                         `;
-              }
-            }
+        }
+      }
 
-            let linkHtml = '';
-            if (m.external_link) {
-              linkHtml = `
+      let linkHtml = '';
+      if (m.external_link) {
+        linkHtml = `
                         <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
                           <i class="fa-solid fa-cloud"></i>
                           <span>Shared File Link</span>
                           <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
                         </a>
                       `;
-            }
+      }
 
-            return `
+      return `
                       <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
                         <div class="support-msg-bubble">
                           <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${isOwn ? '#3b82f6' : '#0B5A43'};">${isOwn ? 'You' : 'Cubaze Admin'}</div>
@@ -1605,7 +1605,7 @@ const DashboardComponent = {
                         </div>
                       </div>
                     `;
-          }).join('')}
+    }).join('')}
         </div>
 
         ${conv.status === 'Resolved' ? `
@@ -2202,10 +2202,10 @@ const DashboardComponent = {
               ${filteredConvs.length === 0 ? `
                 <div style="text-align:center; padding:32px; color:var(--text-muted); font-size:0.8rem; font-style:italic;">No active chats found.</div>
               ` : filteredConvs.map(c => {
-                const activeClass = DashboardComponent._activeTutorConvId === c.id ? 'active' : '';
-                const lastActiveStr = DashboardComponent._getRelativeTime(c.last_reply_at);
-                const isUnread = c.unread_by_student;
-                return `
+        const activeClass = DashboardComponent._activeTutorConvId === c.id ? 'active' : '';
+        const lastActiveStr = DashboardComponent._getRelativeTime(c.last_reply_at);
+        const isUnread = c.unread_by_student;
+        return `
                   <div class="tutor-chat-list-item ${activeClass}" data-conv-id="${c.id}">
                     <div class="tutor-chat-list-item-avatar" style="background:${window.getAvatarColor(c.tutor_username)};">
                       ${c.tutor_username ? c.tutor_username.charAt(0).toUpperCase() : 'T'}
@@ -2228,7 +2228,7 @@ const DashboardComponent = {
                     </div>
                   </div>
                 `;
-              }).join('')}
+      }).join('')}
             </div>
           </div>
 
@@ -2267,8 +2267,8 @@ const DashboardComponent = {
         ` : `
           <div class="tutors-grid">
             ${tutors.map(t => {
-              const coursesStr = t.courses.join(', ');
-              return `
+      const coursesStr = t.courses.join(', ');
+      return `
                 <div class="tutor-card-chat">
                   <div class="tutor-avatar-wrapper">
                     ${t.photo ? `
@@ -2288,7 +2288,7 @@ const DashboardComponent = {
                   </button>
                 </div>
               `;
-            }).join('')}
+    }).join('')}
           </div>
         `}
       ` : chatsContentHtml}
@@ -2475,16 +2475,16 @@ const DashboardComponent = {
               Messages with your instructor are end-to-end secured. Only you and your tutor can read them.
             </div>
             ${messages.map(m => {
-              const isOwn = m.sender === cu.username;
-              const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const isOwn = m.sender === cu.username;
+      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
-              let attachmentHtml = '';
-              if (m.file_url) {
-                const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-                if (isImg) {
-                  attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-                } else {
-                  attachmentHtml = `
+      let attachmentHtml = '';
+      if (m.file_url) {
+        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+        if (isImg) {
+          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+        } else {
+          attachmentHtml = `
                             <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
                               <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
                               <div class="support-chat-attachment-info">
@@ -2493,21 +2493,21 @@ const DashboardComponent = {
                               </div>
                             </a>
                           `;
-                }
-              }
+        }
+      }
 
-              let linkHtml = '';
-              if (m.external_link) {
-                linkHtml = `
+      let linkHtml = '';
+      if (m.external_link) {
+        linkHtml = `
                           <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
                             <i class="fa-solid fa-cloud"></i>
                             <span>Shared File Link</span>
                             <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
                           </a>
                         `;
-              }
+      }
 
-              return `
+      return `
                         <div class="support-msg-wrapper ${isOwn ? 'student-align' : 'admin-align'}">
                           <div class="support-msg-bubble">
                             <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${isOwn ? '#3b82f6' : '#0B5A43'};">${isOwn ? 'You' : `@${conv.tutor_username} (Tutor)`}</div>
@@ -2521,7 +2521,7 @@ const DashboardComponent = {
                           </div>
                         </div>
                       `;
-            }).join('')}
+    }).join('')}
           </div>
 
           ${conv.status === 'Resolved' ? `
@@ -2903,7 +2903,7 @@ const DashboardComponent = {
     const res = window.db.saveSubmission(submissionData);
     if (res.success) {
       window.app.showToast('Project submitted successfully! 🚀', 'success');
-      
+
       // Notify tutors of this batch
       const proj = window.db.getProjectById(projId);
       if (proj) {
@@ -2957,7 +2957,7 @@ const DashboardComponent = {
     });
 
     const activeTab = DashboardComponent._activeProjectSubTab || 'active';
-    
+
     const categorized = {
       active: [],
       upcoming: [],
@@ -3030,18 +3030,18 @@ const DashboardComponent = {
 
       <div class="project-grid">
         ${activeList.map(p => {
-          const sub = window.db.getStudentSubmission(p.id, cu.username);
-          const status = sub ? sub.submission_status : 'Not Started';
-          const course = window.db.getCourseById(p.course_id);
-          const batch = window.db.getBatchById(p.batch_id);
-          
-          let statusClass = 'not_started';
-          if (status === 'Submitted') statusClass = 'submitted';
-          if (status === 'Under Review') statusClass = 'under_review';
-          if (status === 'Revision Required') statusClass = 'revision_required';
-          if (status === 'Completed') statusClass = 'completed';
+      const sub = window.db.getStudentSubmission(p.id, cu.username);
+      const status = sub ? sub.submission_status : 'Not Started';
+      const course = window.db.getCourseById(p.course_id);
+      const batch = window.db.getBatchById(p.batch_id);
 
-          return `
+      let statusClass = 'not_started';
+      if (status === 'Submitted') statusClass = 'submitted';
+      if (status === 'Under Review') statusClass = 'under_review';
+      if (status === 'Revision Required') statusClass = 'revision_required';
+      if (status === 'Completed') statusClass = 'completed';
+
+      return `
             <div class="project-card" onclick="DashboardComponent.viewProjectDetail('${p.id}')">
               <div class="project-thumbnail-wrap">
                 <img class="project-thumbnail" src="${p.thumbnail || 'cubaze-logo.png'}" onerror="this.src='cubaze-logo.png'">
@@ -3064,7 +3064,7 @@ const DashboardComponent = {
               </div>
             </div>
           `;
-        }).join('')}
+    }).join('')}
         ${activeList.length === 0 ? `
           <div style="grid-column: 1 / -1; text-align:center; padding: 48px; color: var(--text-muted);">
             <div style="font-size:3rem; margin-bottom:12px;">📁</div>
@@ -3081,7 +3081,7 @@ const DashboardComponent = {
 
     const course = window.db.getCourseById(p.course_id);
     const batch = window.db.getBatchById(p.batch_id);
-    
+
     const tutorUser = window.db.getUsers().find(u => u.username === p.tutor_id);
     const tutorName = tutorUser ? tutorUser.name : 'Your Instructor';
 

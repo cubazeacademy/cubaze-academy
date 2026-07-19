@@ -5955,7 +5955,7 @@ const AdminComponent = {
 
   _renderProjects: function () {
     const activeTab = AdminComponent._activeAdminProjTab || 'dashboard';
-    
+
     const subTabs = [
       ['dashboard', 'Dashboard'],
       ['projects', 'All Projects'],
@@ -5995,11 +5995,11 @@ const AdminComponent = {
     const projects = window.db.getProjects();
     const submissions = window.db.getSubmissions();
     const reviews = window.db.getReviews();
-    
+
     const totalProjects = projects.length;
     const totalSubmissions = submissions.length;
     const totalReviews = reviews.length;
-    
+
     const completionRate = totalSubmissions > 0
       ? Math.round((submissions.filter(s => s.submission_status === 'Completed').length / totalSubmissions) * 100)
       : 0;
@@ -6085,11 +6085,11 @@ const AdminComponent = {
     const reviews = window.db.getReviews();
     const courses = window.db.getCourses();
     const users = window.db.getUsers();
-    
+
     const totalProjects = projects.length;
     const totalSubmissions = submissions.length;
     const totalReviews = reviews.length;
-    
+
     const avgScore = reviews.length > 0
       ? Math.round(reviews.reduce((sum, r) => sum + (r.marks || 0), 0) / reviews.length)
       : 0;
@@ -6130,15 +6130,15 @@ const AdminComponent = {
             <h3 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">Projects by Course</h3>
             <div style="display:flex; flex-direction:column; gap:10px;">
               ${Object.keys(courseProjectsMap).map(cid => {
-                const course = courses.find(c => c.id === cid);
-                const count = courseProjectsMap[cid];
-                return `
+      const course = courses.find(c => c.id === cid);
+      const count = courseProjectsMap[cid];
+      return `
                   <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
                     <span style="font-weight:700; color:var(--text-primary); text-align:left;">${course ? course.title : cid}</span>
                     <span style="background:var(--brand-blue-pale); color:var(--brand-blue); padding:2px 8px; border-radius:10px; font-weight:800;">${count}</span>
                   </div>
                 `;
-              }).join('')}
+    }).join('')}
               ${Object.keys(courseProjectsMap).length === 0 ? '<p style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">No project distributions yet.</p>' : ''}
             </div>
           </div>
@@ -6147,15 +6147,15 @@ const AdminComponent = {
             <h3 style="font-size:0.95rem; font-weight:800; color:var(--text-primary); margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">Projects by Tutor</h3>
             <div style="display:flex; flex-direction:column; gap:10px;">
               ${Object.keys(tutorProjectsMap).map(tid => {
-                const user = users.find(u => u.username === tid);
-                const count = tutorProjectsMap[tid];
-                return `
+      const user = users.find(u => u.username === tid);
+      const count = tutorProjectsMap[tid];
+      return `
                   <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
                     <span style="font-weight:700; color:var(--text-primary); text-align:left;">${user ? user.name : tid}</span>
                     <span style="background:var(--brand-blue-pale); color:var(--brand-blue); padding:2px 8px; border-radius:10px; font-weight:800;">${count}</span>
                   </div>
                 `;
-              }).join('')}
+    }).join('')}
               ${Object.keys(tutorProjectsMap).length === 0 ? '<p style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">No tutor projects assigned yet.</p>' : ''}
             </div>
           </div>
@@ -6183,15 +6183,15 @@ const AdminComponent = {
           </thead>
           <tbody>
             ${projects.map(p => {
-              const course = courses.find(c => c.id === p.course_id);
-              const batch = window.db.getBatchById(p.batch_id);
-              const tutor = users.find(u => u.username === p.tutor_id);
-              
-              let statusStyle = 'background: #e2e8f0; color: #64748b;';
-              if (p.status === 'Published') statusStyle = 'background: #d1fae5; color: #10b981;';
-              if (p.status === 'Archived') statusStyle = 'background: #fee2e2; color: #ef4444;';
+      const course = courses.find(c => c.id === p.course_id);
+      const batch = window.db.getBatchById(p.batch_id);
+      const tutor = users.find(u => u.username === p.tutor_id);
 
-              return `
+      let statusStyle = 'background: #e2e8f0; color: #64748b;';
+      if (p.status === 'Published') statusStyle = 'background: #d1fae5; color: #10b981;';
+      if (p.status === 'Archived') statusStyle = 'background: #fee2e2; color: #ef4444;';
+
+      return `
                 <tr style="border-bottom:1px solid var(--border-color); font-size:0.83rem;">
                   <td style="padding:14px 8px; font-weight:700; color:var(--text-primary); text-align:left;">${p.title}</td>
                   <td style="padding:14px 8px; color:var(--text-secondary); text-align:left;">
@@ -6205,7 +6205,7 @@ const AdminComponent = {
                   </td>
                 </tr>
               `;
-            }).join('')}
+    }).join('')}
             ${projects.length === 0 ? `
               <tr>
                 <td colspan="5" style="padding:48px; text-align:center; color:var(--text-muted);">No projects found on the platform.</td>
@@ -6236,16 +6236,16 @@ const AdminComponent = {
           </thead>
           <tbody>
             ${submissions.map(s => {
-              const proj = projects.find(p => p.id === s.project_id);
-              const student = students.find(u => u.username === s.student_id);
-              
-              let statusStyle = 'background: #e2e8f0; color: #64748b;';
-              if (s.submission_status === 'Submitted') statusStyle = 'background: #dbeafe; color: #3b82f6;';
-              if (s.submission_status === 'Under Review') statusStyle = 'background: #fef3c7; color: #d97706;';
-              if (s.submission_status === 'Revision Required') statusStyle = 'background: #fee2e2; color: #b91c1c;';
-              if (s.submission_status === 'Completed') statusStyle = 'background: #d1fae5; color: #10b981;';
+      const proj = projects.find(p => p.id === s.project_id);
+      const student = students.find(u => u.username === s.student_id);
 
-              return `
+      let statusStyle = 'background: #e2e8f0; color: #64748b;';
+      if (s.submission_status === 'Submitted') statusStyle = 'background: #dbeafe; color: #3b82f6;';
+      if (s.submission_status === 'Under Review') statusStyle = 'background: #fef3c7; color: #d97706;';
+      if (s.submission_status === 'Revision Required') statusStyle = 'background: #fee2e2; color: #b91c1c;';
+      if (s.submission_status === 'Completed') statusStyle = 'background: #d1fae5; color: #10b981;';
+
+      return `
                 <tr style="border-bottom:1px solid var(--border-color); font-size:0.83rem;">
                   <td style="padding:14px 8px; font-weight:700; color:var(--text-primary); text-align:left;">${proj ? proj.title : s.project_id}</td>
                   <td style="padding:14px 8px; color:var(--text-secondary); text-align:left;">${student ? student.name : s.student_id}</td>
@@ -6254,7 +6254,7 @@ const AdminComponent = {
                   <td style="padding:14px 8px;"><span style="font-size:0.7rem; font-weight:700; border-radius:12px; padding:3px 8px; text-transform:uppercase; ${statusStyle}">${s.submission_status}</span></td>
                 </tr>
               `;
-            }).join('')}
+    }).join('')}
             ${submissions.length === 0 ? `
               <tr>
                 <td colspan="5" style="padding:48px; text-align:center; color:var(--text-muted);">No submissions found on the platform.</td>

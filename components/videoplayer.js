@@ -34,6 +34,7 @@ const VideoPlayerComponent = {
     const batchId = enrolledBatches[courseId];
     const batch = batchId ? window.db.getBatchById(batchId) : null;
     const isBatchActive = batch && (batch.status === 'Active' || batch.status === 'Completed');
+    const tutors = window.db.getTutorsForStudent(cu.username).filter(t => t.courseId === courseId);
     
     const announcements = window.db.getAnnouncementsByBatchOrCourse(courseId, batchId);
     const resources = window.db.getResourcesByBatchOrCourse(courseId, batchId);
@@ -66,11 +67,18 @@ const VideoPlayerComponent = {
               <div>Start Date: <strong>${batch.startDate}</strong></div>
               <div>End Date: <strong>${batch.endDate}</strong></div>
             </div>
-            ${batch.whatsappLink ? `
-              <a href="${batch.whatsappLink}" target="_blank" style="align-self:flex-start; background:#25D366; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-size:0.8rem; font-weight:700; text-decoration:none; display:flex; align-items:center; gap:6px;">
-                <i class="fa-brands fa-whatsapp" style="font-size:0.95rem;"></i> Join WhatsApp Group
-              </a>
-            ` : ''}
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;">
+              ${batch.whatsappLink ? `
+                <a href="${batch.whatsappLink}" target="_blank" style="background:#25D366; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-size:0.8rem; font-weight:700; text-decoration:none; display:flex; align-items:center; gap:6px;">
+                  <i class="fa-brands fa-whatsapp" style="font-size:0.95rem;"></i> Join WhatsApp Group
+                </a>
+              ` : ''}
+              ${tutors.length > 0 ? `
+                <button id="btn-talk-tutor-overview" style="background:var(--brand-blue); color:#fff; border:none; padding:8px 14px; border-radius:8px; font-size:0.8rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                  <i class="fa-solid fa-comments" style="font-size:0.95rem;"></i> Talk with Tutor Direct
+                </button>
+              ` : ''}
+            </div>
           </div>
         `;
       } else {
@@ -858,6 +866,14 @@ const VideoPlayerComponent = {
             display: none;
           }
         }
+
+        /* Tab panels visibility */
+        .tab-panel-viewport {
+          display: none;
+        }
+        .tab-panel-viewport.active {
+          display: block;
+        }
       </style>
 
       <div class="lms-workspace">
@@ -910,7 +926,11 @@ const VideoPlayerComponent = {
               </div>
             </div>
             <div class="lms-ch-right">
-              <button class="btn btn-secondary btn-sm" onclick="window.app.showToast('Copied share link!','success')" style="margin-bottom:0;"><i class="fa-solid fa-share-nodes"></i> Share</button>
+              ${tutors.length > 0 ? `
+                <button id="btn-talk-tutor" class="btn btn-secondary btn-sm" style="margin-bottom:0; font-weight:700;">
+                  <i class="fa-solid fa-comments"></i> Talk with Tutor
+                </button>
+              ` : ''}
               <button id="btn-mark-complete" class="btn ${isCompleted ? 'btn-success' : 'btn-primary'} btn-sm" style="margin-bottom:0; font-weight:700;">
                 <i class="fa-solid fa-${isCompleted ? 'circle-check' : 'circle-play'}"></i>
                 <span>${isCompleted ? 'Completed' : 'Mark Complete'}</span>
@@ -1019,7 +1039,10 @@ const VideoPlayerComponent = {
                   ${resources.map(res => `
                     <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px;">
                       <span style="font-size:0.85rem; font-weight:600; text-align: left;"><i class="fa-solid fa-link" style="color:var(--brand-blue); margin-right:8px;"></i> ${res.title}</span>
-                      <a href="${res.url}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; margin:0; line-height:1.8;">Open</a>
+                      <div style="display:flex; gap:8px;">
+                        <a href="${res.url}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; margin:0; line-height:1.8;">Open</a>
+                        <a href="${res.url}" download="${res.title}" class="btn btn-primary btn-sm" style="text-decoration:none; margin:0; line-height:1.8; background:var(--brand-blue);"><i class="fa-solid fa-download"></i> Download</a>
+                      </div>
                     </div>
                   `).join('')}
                   ${resources.length === 0 ? '<p style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">No resources shared for this batch yet.</p>' : ''}
@@ -1099,6 +1122,37 @@ const VideoPlayerComponent = {
         document.querySelector('.lms-right-sidebar').style.display = '';
         window.app.showToast('Focus Mode Disabled','info');
       }
+    }
+  },
+
+  talkToTutor: async function(courseId, tutorUsername) {
+    const cu = window.db.getCurrentUser();
+    if (!cu) return;
+    try {
+      const convs = await window.db.getTutorConversations();
+      const existing = convs.find(c => c.student_username === cu.username && c.tutor_username === tutorUsername && c.course_id === courseId);
+      window.DashboardComponent._activeTab = 'tutor_chat';
+      if (existing) {
+        window.DashboardComponent._activeTutorConvId = existing.id;
+        window.DashboardComponent._tutorSubTab = 'chats';
+        window.DashboardComponent._showNewTutorForm = false;
+      } else {
+        const res = await window.db.createTutorConversation(tutorUsername, courseId, 'Course Help', 'Technical');
+        if (res.success) {
+          window.DashboardComponent._activeTutorConvId = res.conversation.id;
+          window.DashboardComponent._tutorSubTab = 'chats';
+          window.DashboardComponent._showNewTutorForm = false;
+        } else {
+          window.DashboardComponent._tutorSubTab = 'tutors';
+          window.DashboardComponent._showNewTutorForm = false;
+        }
+      }
+      window.location.hash = '#/dashboard';
+    } catch (err) {
+      console.error(err);
+      window.DashboardComponent._activeTab = 'tutor_chat';
+      window.DashboardComponent._tutorSubTab = 'tutors';
+      window.location.hash = '#/dashboard';
     }
   },
 
@@ -1230,6 +1284,19 @@ const VideoPlayerComponent = {
       window.app.showToast('Lesson progress updated!', 'success');
       window.app.renderRoute();
     });
+
+    // Talk to Tutor button click listeners
+    const cu = window.db.getCurrentUser();
+    const tutors = cu ? window.db.getTutorsForStudent(cu.username).filter(t => t.courseId === courseId) : [];
+    const tutorUsername = tutors.length > 0 ? tutors[0].username : null;
+    if (tutorUsername) {
+      document.getElementById('btn-talk-tutor')?.addEventListener('click', () => {
+        VideoPlayerComponent.talkToTutor(courseId, tutorUsername);
+      });
+      document.getElementById('btn-talk-tutor-overview')?.addEventListener('click', () => {
+        VideoPlayerComponent.talkToTutor(courseId, tutorUsername);
+      });
+    }
 
     // Playlist routing trigger on curriculum item clicks
     document.querySelectorAll('.crs-right-lesson-item').forEach(item => {

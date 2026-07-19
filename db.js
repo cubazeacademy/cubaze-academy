@@ -2113,14 +2113,14 @@ class CubazeDB {
     const coupon = this.getCoupons().find(c => String(c.code).trim().toUpperCase() === String(code).trim().toUpperCase());
     if (!coupon) return { valid: false, error: "Invalid coupon code." };
     if (!coupon.active) return { valid: false, error: "This coupon code is inactive." };
-    
+
     if (coupon.expiryDate) {
       const todayStr = new Date().toISOString().split('T')[0];
       if (todayStr > coupon.expiryDate) {
         return { valid: false, error: "Coupon code is expired." };
       }
     }
-    
+
     const discount = coupon.type === "percentage" ? Math.round(originalPrice * coupon.discount / 100) : coupon.discount;
     const finalPrice = Math.max(0, originalPrice - discount);
     return { valid: true, discount, finalPrice, coupon };
@@ -2205,12 +2205,12 @@ class CubazeDB {
     const transactions = this.getTransactions();
     const course = this.getCourseById(courseId);
     const user = this.getUsers().find(u => u.username.toLowerCase() === username.toLowerCase()) || {};
-    
+
     // Determine unique prefix
     const prefix = paymentMethod === "UPI QR Payment" ? "TXN_UPI_" : "TXN_PHPE_";
     const txnId = details.id || (prefix + Math.floor(100000000 + Math.random() * 900000000));
     const adminStatus = status === "SUCCESS" ? "APPROVED" : (status === "FAILED" || status === "DENIED" ? "DENIED" : "PENDING");
-    
+
     const newTxn = {
       id: txnId,
       username: username,
@@ -2234,10 +2234,10 @@ class CubazeDB {
       rejectionReason: details.rejectionReason || "",
       reuploadReason: details.reuploadReason || ""
     };
-    
+
     transactions.unshift(newTxn);
     this.setItemAndSync("cubaze_transactions", transactions, txnId);
-    
+
     if (status === "SUCCESS") {
       this.handleAutomaticEnrollment(username, courseId);
     }
@@ -2455,11 +2455,11 @@ class CubazeDB {
     const prevStatus = txn.adminStatus || "PENDING";
     txn.adminStatus = newStatus; // PENDING | APPROVED | DENIED | RE_UPLOAD_REQUESTED
     txn.adminUpdatedAt = new Date().toISOString();
-    
+
     if (newStatus === "APPROVED") {
       txn.status = "SUCCESS";
       if (!txn.invoiceNumber) txn.invoiceNumber = "INV-" + Date.now();
-      
+
       // Auto-enroll student
       const users = this.getUsers();
       const uIdx = users.findIndex(u => u.username === txn.username);
@@ -2477,11 +2477,11 @@ class CubazeDB {
       }
       this.addActivity("admin", "APPROVED_PAYMENT", "transaction", txnId, `₹${txn.amount} for ${txn.courseTitle} — ${txn.username}`);
       this.addNotification(txn.username, "Payment Verified & Enrolled! 🎉", `Your payment of ₹${txn.amount} for "${txn.courseTitle}" has been verified. You can now access the course details on your dashboard!`, "success");
-      
+
     } else if (newStatus === "DENIED") {
       txn.status = "FAILED";
       txn.rejectionReason = reason;
-      
+
       // Remove enrollment if was previously approved
       if (prevStatus === "APPROVED") {
         const users = this.getUsers();
@@ -2493,14 +2493,14 @@ class CubazeDB {
       }
       this.addActivity("admin", "DENIED_PAYMENT", "transaction", txnId, `₹${txn.amount} for ${txn.courseTitle} — ${txn.username}`);
       this.addNotification(txn.username, "Payment Verification Rejected ❌", `Your payment verification for "${txn.courseTitle}" was rejected. Reason: ${reason}`, "danger");
-      
+
     } else if (newStatus === "RE_UPLOAD_REQUESTED") {
       txn.status = "PENDING";
       txn.reuploadReason = reason;
-      
+
       this.addActivity("admin", "RE_UPLOAD_REQUESTED_PAYMENT", "transaction", txnId, `Requested payment re-upload for ${txn.courseTitle} — ${txn.username}`);
       this.addNotification(txn.username, "Payment Re-upload Requested ⚠️", `We noticed an issue with your payment proof for "${txn.courseTitle}". Reason: ${reason}. Please re-upload your screenshot.`, "warning");
-      
+
     } else {
       txn.status = "PENDING";
       this.addActivity("admin", "PENDING_PAYMENT", "transaction", txnId, `₹${txn.amount} for ${txn.courseTitle}`);
@@ -3131,7 +3131,7 @@ class CubazeDB {
         if (msgErr) {
           console.warn("⚠️ Supabase message deletion warning/error:", msgErr);
         }
-        
+
         // Then delete the conversation
         const { error } = await this.sb.from('cubaze_support_conversations').delete().eq('id', id);
         if (error) {
@@ -3172,7 +3172,7 @@ class CubazeDB {
         if (msgErr) {
           console.warn("⚠️ Supabase bulk message deletion warning/error:", msgErr);
         }
-        
+
         // Then delete the conversations
         const { error } = await this.sb.from('cubaze_support_conversations').delete().in('id', ids);
         if (error) {

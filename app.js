@@ -529,7 +529,7 @@ window.resizeAndCropTo3x4 = function (file, callback) {
   reader.readAsDataURL(file);
 };
 
-window.initEmojiPicker = function(btnId, textareaId) {
+window.initEmojiPicker = function (btnId, textareaId) {
   const btn = document.getElementById(btnId);
   const textarea = document.getElementById(textareaId);
   if (!btn || !textarea) return;
@@ -558,7 +558,7 @@ window.initEmojiPicker = function(btnId, textareaId) {
       span.textContent = emoji;
       span.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        
+
         // Insert emoji at cursor position
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
@@ -567,7 +567,7 @@ window.initEmojiPicker = function(btnId, textareaId) {
         textarea.focus();
         // Move cursor after the emoji
         textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
-        
+
         picker.remove();
       });
       picker.appendChild(span);
