@@ -730,17 +730,17 @@ const TutorComponent = {
           Messages and calls are secured with end-to-end encryption. Your student will respond shortly.
         </div>
         ${messages.map(m => {
-          const isOwn = m.sender === cu.username;
-          const isStudent = m.sender === conv.student_username;
-          const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const isOwn = m.sender === cu.username;
+      const isStudent = m.sender === conv.student_username;
+      const dateStr = new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
-          let attachmentHtml = '';
-          if (m.file_url) {
-            const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
-            if (isImg) {
-              attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
-            } else {
-              attachmentHtml = `
+      let attachmentHtml = '';
+      if (m.file_url) {
+        const isImg = /\.(jpg|jpeg|png|webp|gif)$/i.test(m.file_name || '');
+        if (isImg) {
+          attachmentHtml = `<img src="${m.file_url}" alt="Attachment preview" class="support-chat-img-preview" onclick="window.open('${m.file_url}', '_blank')">`;
+        } else {
+          attachmentHtml = `
                     <a href="${m.file_url}" target="_blank" class="support-chat-attachment-card">
                       <div class="support-chat-attachment-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
                       <div class="support-chat-attachment-info">
@@ -749,30 +749,30 @@ const TutorComponent = {
                       </div>
                     </a>
                   `;
-            }
-          }
+        }
+      }
 
-          let linkHtml = '';
-          if (m.external_link) {
-            linkHtml = `
+      let linkHtml = '';
+      if (m.external_link) {
+        linkHtml = `
                   <a href="${m.external_link}" target="_blank" class="support-chat-external-link">
                     <i class="fa-solid fa-cloud"></i>
                     <span>Shared File Link</span>
                     <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem; margin-left:4px;"></i>
                   </a>
                 `;
-          }
+      }
 
-          let alignClass = 'admin-align';
-          if (m.is_internal) {
-            alignClass = 'internal-note-align';
-          } else if (isStudent) {
-            alignClass = 'admin-align';
-          } else {
-            alignClass = 'student-align';
-          }
+      let alignClass = 'admin-align';
+      if (m.is_internal) {
+        alignClass = 'internal-note-align';
+      } else if (isStudent) {
+        alignClass = 'admin-align';
+      } else {
+        alignClass = 'student-align';
+      }
 
-          return `
+      return `
                 <div class="support-msg-wrapper ${alignClass}">
                   <div class="support-msg-bubble">
                     <div style="font-weight:600; font-size:0.75rem; opacity:0.8; margin-bottom:4px; color:${m.is_internal ? '#92400e' : isStudent ? '#0B5A43' : '#3b82f6'};">
@@ -788,7 +788,7 @@ const TutorComponent = {
                   </div>
                 </div>
               `;
-        }).join('')}
+    }).join('')}
       </div>
 
       <div class="support-chat-input-wrapper">
@@ -1119,10 +1119,10 @@ const TutorComponent = {
                 ${cu.profilePhoto ? '' : '<span style="font-size:0.75rem;color:#94A3B8;text-align:center;">3:4 Photo</span>'}
               </div>
               <div>
-                <input type="file" id="prof-photo-input" accept="image/*" style="display:none;" onchange="if(this.files[0]){window.resizeAndCropTo3x4(this.files[0], function(base64){document.getElementById('prof-photo-preview').style.backgroundImage = 'url('+base64+')'; document.getElementById('prof-photo-preview').innerHTML = ''; document.getElementById('prof-photo-data').value = base64;})}">
+                <input type="file" id="prof-photo-input" accept="image/*" style="display:none;" onchange="if(this.files[0]){ const file=this.files[0]; const sizeKB=file.size/1024; if(sizeKB<60 || sizeKB>100){ window.app.showToast('Profile image size must be between 60KB and 100KB (Selected: '+sizeKB.toFixed(1)+'KB).', 'danger'); this.value=''; return; } window.resizeAndCropTo3x4(file, function(base64){document.getElementById('prof-photo-preview').style.backgroundImage = 'url('+base64+')'; document.getElementById('prof-photo-preview').innerHTML = ''; document.getElementById('prof-photo-data').value = base64;})}">
                 <button type="button" onclick="document.getElementById('prof-photo-input').click()" class="btn btn-secondary" style="padding:8px 16px;font-size:0.8rem;background:#F1F5F9;color:#374151;border:none;border-radius:10px;cursor:pointer;">Upload Photo</button>
                 <button type="button" onclick="document.getElementById('prof-photo-preview').style.backgroundImage = 'none'; document.getElementById('prof-photo-preview').innerHTML = '<span style=\'font-size:0.75rem;color:#94A3B8;text-align:center;\'>3:4 Photo</span>'; document.getElementById('prof-photo-data').value = ''; document.getElementById('prof-photo-input').value = '';" class="btn btn-danger" style="padding:8px 16px;font-size:0.8rem;margin-left:8px;background:none;border:1px solid var(--danger);color:var(--danger);border-radius:10px;cursor:pointer;">Remove</button>
-                <div style="font-size:0.72rem;color:#94A3B8;margin-top:6px;">Upload a portrait image. It will be resized and cropped to 3:4 aspect ratio.</div>
+                <div style="font-size:0.72rem;color:#94A3B8;margin-top:6px;">Upload a portrait image. Only 60KB - 100KB files allowed. It will be resized/cropped to 3:4 aspect ratio.</div>
               </div>
             </div>
           </div>
@@ -1413,13 +1413,13 @@ const TutorComponent = {
   // =====================================================
   init: function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
+
     // Preserve active tab, default to 'dashboard'
     const tab = TutorComponent._activeTab || 'dashboard';
     TutorComponent._activeTab = tab;
 
     TutorComponent._bindSidebar();
-    
+
     // Bind correct event handlers for active tab
     if (tab === 'messages') {
       TutorComponent._loadAndRenderMessages();
@@ -2037,11 +2037,11 @@ const TutorComponent = {
           <h3 style="font-size:0.9rem; font-weight:800; margin-bottom:16px; color:var(--text-primary);">Assigned Batches</h3>
           <div style="display:flex; flex-direction:column; gap:10px;">
             ${batches.map(b => {
-              const isActive = TutorComponent._openBatchId === b.id;
-              const course = courses.find(c => c.id === b.courseId);
-              const courseImage = course ? course.image : 'cubaze-logo.png';
-              const daysText = (b.classDays || []).join(', ');
-              return `
+      const isActive = TutorComponent._openBatchId === b.id;
+      const course = courses.find(c => c.id === b.courseId);
+      const courseImage = course ? course.image : 'cubaze-logo.png';
+      const daysText = (b.classDays || []).join(', ');
+      return `
                 <div class="t-batch-list-item ${isActive ? 'active' : ''}" 
                      onclick="TutorComponent._selectBatch('${b.id}')"
                      style="padding: 14px; border-radius: 12px; border: 1.5px solid ${isActive ? 'var(--brand-blue)' : 'var(--border-color)'}; 
@@ -2073,7 +2073,7 @@ const TutorComponent = {
                   </div>
                 </div>
               `;
-            }).join('')}
+    }).join('')}
             ${batches.length === 0 ? '<p style="color:var(--text-muted); font-size:0.8rem; font-style:italic;">No batches assigned to you yet.</p>' : ''}
           </div>
         </div>
@@ -2846,20 +2846,20 @@ const TutorComponent = {
     }
 
     const projId = TutorComponent._editingProjectId || 'PRJ-' + Math.floor(100000 + Math.random() * 900000);
-    
-    const titleEl    = document.getElementById('proj-title');
-    const thumbEl    = document.getElementById('proj-thumb');
-    const courseEl   = document.getElementById('proj-course');
-    const batchEl    = document.getElementById('proj-batch');
-    const diffEl     = document.getElementById('proj-diff');
-    const descEl     = document.getElementById('proj-desc');
-    const instEl     = document.getElementById('proj-inst');
-    const objEl      = document.getElementById('proj-obj');
-    const dueDateEl  = document.getElementById('proj-due-date');
-    const dueTimeEl  = document.getElementById('proj-due-time');
-    const marksEl    = document.getElementById('proj-marks');
-    const estTimeEl  = document.getElementById('proj-est-time');
-    const statusEl   = document.getElementById('proj-status');
+
+    const titleEl = document.getElementById('proj-title');
+    const thumbEl = document.getElementById('proj-thumb');
+    const courseEl = document.getElementById('proj-course');
+    const batchEl = document.getElementById('proj-batch');
+    const diffEl = document.getElementById('proj-diff');
+    const descEl = document.getElementById('proj-desc');
+    const instEl = document.getElementById('proj-inst');
+    const objEl = document.getElementById('proj-obj');
+    const dueDateEl = document.getElementById('proj-due-date');
+    const dueTimeEl = document.getElementById('proj-due-time');
+    const marksEl = document.getElementById('proj-marks');
+    const estTimeEl = document.getElementById('proj-est-time');
+    const statusEl = document.getElementById('proj-status');
 
     // Validate critical fields exist on page
     if (!titleEl || !courseEl || !batchEl || !dueDateEl || !descEl || !instEl) {
@@ -2867,19 +2867,19 @@ const TutorComponent = {
       return;
     }
 
-    const title    = titleEl.value.trim();
+    const title = titleEl.value.trim();
     const thumbnail = thumbEl ? thumbEl.value.trim() : '';
     const courseId = courseEl.value;
-    const batchId  = batchEl.value;
+    const batchId = batchEl.value;
     const difficulty = diffEl ? diffEl.value : 'Beginner';
-    const desc     = descEl.value.trim();
-    const inst     = instEl.value.trim();
-    const obj      = objEl ? objEl.value.trim() : '';
-    const dueDate  = dueDateEl.value;
-    const dueTime  = dueTimeEl ? dueTimeEl.value : '23:59';
+    const desc = descEl.value.trim();
+    const inst = instEl.value.trim();
+    const obj = objEl ? objEl.value.trim() : '';
+    const dueDate = dueDateEl.value;
+    const dueTime = dueTimeEl ? dueTimeEl.value : '23:59';
     const maxMarks = parseInt(marksEl ? marksEl.value : '100') || 100;
-    const estTime  = estTimeEl ? estTimeEl.value.trim() : '';
-    const status   = statusEl ? statusEl.value : 'Draft';
+    const estTime = estTimeEl ? estTimeEl.value.trim() : '';
+    const status = statusEl ? statusEl.value : 'Draft';
 
     // Manual validation
     if (!title) {
@@ -2946,7 +2946,7 @@ const TutorComponent = {
       const res = window.db.saveProject(projectData, assetsList);
       if (res && res.success) {
         window.app.showToast(TutorComponent._editingProjectId ? '✅ Project updated!' : '✅ Project created and saved!', 'success');
-        
+
         if (status === 'Published' && !TutorComponent._editingProjectId) {
           const students = window.db.getUsers().filter(u => u.role === 'student' && u.enrolledBatches && u.enrolledBatches[courseId] === batchId);
           students.forEach(stud => {
@@ -3032,7 +3032,7 @@ const TutorComponent = {
 
     const reviewId = 'REV-' + Math.floor(100000 + Math.random() * 900000);
     const existingReview = window.db.getSubmissionReview(subId);
-    
+
     const reviewData = {
       id: existingReview ? existingReview.id : reviewId,
       submission_id: subId,
@@ -3051,10 +3051,10 @@ const TutorComponent = {
 
         const proj = window.db.getProjectById(projId);
         const notifyTitle = status === 'Completed' ? "Project Graded! 🎓" : "Project Revision Required ⚠️";
-        const notifyMsg = status === 'Completed' 
+        const notifyMsg = status === 'Completed'
           ? `Your project "${proj ? proj.title : 'Assignment'}" has been graded with ${marks} Marks. Feedback: "${feedback}"`
           : `Tutor requested revision for project "${proj ? proj.title : 'Assignment'}". Feedback: "${feedback}"`;
-        
+
         window.db.addNotification(sub.student_id, notifyTitle, notifyMsg, status === 'Completed' ? "success" : "warning");
         window.db.addActivity(cu.username, "GRADE_PROJECT", "submission", subId, `Tutor graded ${sub.student_id}'s submission with ${marks} Marks.`);
       }
@@ -3163,15 +3163,15 @@ const TutorComponent = {
           </thead>
           <tbody>
             ${filtered.map(p => {
-              const course = window.db.getCourseById(p.course_id);
-              const batch = window.db.getBatchById(p.batch_id);
-              const subs = window.db.getSubmissionsByProject(p.id);
-              
-              let statusStyle = 'background: #e2e8f0; color: #64748b;';
-              if (p.status === 'Published') statusStyle = 'background: #d1fae5; color: #10b981;';
-              if (p.status === 'Archived') statusStyle = 'background: #fee2e2; color: #ef4444;';
+      const course = window.db.getCourseById(p.course_id);
+      const batch = window.db.getBatchById(p.batch_id);
+      const subs = window.db.getSubmissionsByProject(p.id);
 
-              return `
+      let statusStyle = 'background: #e2e8f0; color: #64748b;';
+      if (p.status === 'Published') statusStyle = 'background: #d1fae5; color: #10b981;';
+      if (p.status === 'Archived') statusStyle = 'background: #fee2e2; color: #ef4444;';
+
+      return `
                 <tr style="border-bottom:1px solid var(--border-color); font-size:0.83rem;">
                   <td style="padding:14px 8px; font-weight:700; color:var(--text-primary); text-align:left;">${p.title}</td>
                   <td style="padding:14px 8px; color:var(--text-secondary); text-align:left;">
@@ -3187,7 +3187,7 @@ const TutorComponent = {
                   </td>
                 </tr>
               `;
-            }).join('')}
+    }).join('')}
             ${tutorProjects.length === 0 ? `
               <tr>
                 <td colspan="6" style="padding:48px; text-align:center; color:var(--text-muted);">
@@ -3359,16 +3359,16 @@ const TutorComponent = {
                 </thead>
                 <tbody>
                   ${subs.map(s => {
-                    const student = students.find(u => u.username === s.student_id);
-                    const review = window.db.getSubmissionReview(s.id);
-                    
-                    let statusStyle = 'background: #e2e8f0; color: #64748b;';
-                    if (s.submission_status === 'Submitted') statusStyle = 'background: #dbeafe; color: #3b82f6;';
-                    if (s.submission_status === 'Under Review') statusStyle = 'background: #fef3c7; color: #d97706;';
-                    if (s.submission_status === 'Revision Required') statusStyle = 'background: #fee2e2; color: #b91c1c;';
-                    if (s.submission_status === 'Completed') statusStyle = 'background: #d1fae5; color: #10b981;';
+      const student = students.find(u => u.username === s.student_id);
+      const review = window.db.getSubmissionReview(s.id);
 
-                    return `
+      let statusStyle = 'background: #e2e8f0; color: #64748b;';
+      if (s.submission_status === 'Submitted') statusStyle = 'background: #dbeafe; color: #3b82f6;';
+      if (s.submission_status === 'Under Review') statusStyle = 'background: #fef3c7; color: #d97706;';
+      if (s.submission_status === 'Revision Required') statusStyle = 'background: #fee2e2; color: #b91c1c;';
+      if (s.submission_status === 'Completed') statusStyle = 'background: #d1fae5; color: #10b981;';
+
+      return `
                       <tr style="border-bottom:1px solid var(--border-color); font-size:0.82rem;">
                         <td style="padding:12px 4px; font-weight:700; color:var(--text-primary); text-align:left;">${student ? student.name : s.student_id}</td>
                         <td style="padding:12px 4px; color:var(--text-secondary); text-align:left;">${new Date(s.submitted_at).toLocaleDateString()}</td>
@@ -3379,7 +3379,7 @@ const TutorComponent = {
                         </td>
                       </tr>
                     `;
-                  }).join('')}
+    }).join('')}
                   ${subs.length === 0 ? `
                     <tr>
                       <td colspan="5" style="padding:36px; text-align:center; color:var(--text-muted); font-size:0.8rem; font-style:italic;">No submissions received yet for this project.</td>
@@ -3417,11 +3417,11 @@ const TutorComponent = {
           </thead>
           <tbody>
             ${reviews.map(r => {
-              const sub = submissions.find(s => s.id === r.submission_id);
-              const proj = sub ? projects.find(p => p.id === sub.project_id) : null;
-              const student = sub ? students.find(u => u.username === sub.student_id) : null;
+      const sub = submissions.find(s => s.id === r.submission_id);
+      const proj = sub ? projects.find(p => p.id === sub.project_id) : null;
+      const student = sub ? students.find(u => u.username === sub.student_id) : null;
 
-              return `
+      return `
                 <tr style="border-bottom:1px solid var(--border-color); font-size:0.83rem;">
                   <td style="padding:14px 8px; font-weight:700; color:var(--text-primary); text-align:left;">${proj ? proj.title : 'Deleted Project'}</td>
                   <td style="padding:14px 8px; color:var(--text-secondary); text-align:left;">${student ? student.name : (sub ? sub.student_id : 'Unknown Student')}</td>
@@ -3430,7 +3430,7 @@ const TutorComponent = {
                   <td style="padding:14px 8px; color:var(--text-secondary); font-style:italic; text-align:left;">"${r.feedback || ''}"</td>
                 </tr>
               `;
-            }).join('')}
+    }).join('')}
             ${reviews.length === 0 ? `
               <tr>
                 <td colspan="5" style="padding:48px; text-align:center; color:var(--text-muted);">No reviews graded yet.</td>

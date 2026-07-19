@@ -1528,7 +1528,13 @@ class CubazeDB {
           suspended: user.suspended === true,
           deleted: user.deleted === true,
           author_bio: user.authorBio || '',
-          assigned_courses: user.assignedCourses || []
+          assigned_courses: user.assignedCourses || [],
+          phone: user.phone || '',
+          dob: user.dob || '',
+          qualification: user.qualification || '',
+          qualification_other: user.qualificationOther || '',
+          whatsapp: user.whatsapp || '',
+          profile_photo: user.profilePhoto || ''
         });
       });
     } else if (key === "cubaze_batches") {

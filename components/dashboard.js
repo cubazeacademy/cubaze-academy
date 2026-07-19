@@ -778,10 +778,10 @@ const DashboardComponent = {
                   ${cu.profilePhoto ? '' : '<span style="font-size:0.75rem;color:var(--text-muted);text-align:center;">3:4 Photo</span>'}
                 </div>
                 <div>
-                  <input type="file" id="profile-photo-input" accept="image/*" style="display:none;" onchange="if(this.files[0]){window.resizeAndCropTo3x4(this.files[0], function(base64){document.getElementById('profile-photo-preview').style.backgroundImage = 'url('+base64+')'; document.getElementById('profile-photo-preview').innerHTML = ''; document.getElementById('profile-photo-data').value = base64;})}">
+                  <input type="file" id="profile-photo-input" accept="image/*" style="display:none;" onchange="if(this.files[0]){ const file=this.files[0]; const sizeKB=file.size/1024; if(sizeKB<60 || sizeKB>100){ window.app.showToast('Profile image size must be between 60KB and 100KB (Selected: '+sizeKB.toFixed(1)+'KB).', 'danger'); this.value=''; return; } window.resizeAndCropTo3x4(file, function(base64){document.getElementById('profile-photo-preview').style.backgroundImage = 'url('+base64+')'; document.getElementById('profile-photo-preview').innerHTML = ''; document.getElementById('profile-photo-data').value = base64;})}">
                   <button type="button" onclick="document.getElementById('profile-photo-input').click()" class="btn btn-secondary" style="padding:8px 16px;font-size:0.8rem;">Upload Photo</button>
                   <button type="button" onclick="document.getElementById('profile-photo-preview').style.backgroundImage = 'none'; document.getElementById('profile-photo-preview').innerHTML = '<span style=\'font-size:0.75rem;color:var(--text-muted);text-align:center;\'>3:4 Photo</span>'; document.getElementById('profile-photo-data').value = ''; document.getElementById('profile-photo-input').value = '';" class="btn btn-danger" style="padding:8px 16px;font-size:0.8rem;margin-left:8px;background:none;border:1px solid var(--danger);color:var(--danger);">Remove</button>
-                  <div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px;">Upload a portrait image. It will be resized and cropped to 3:4 aspect ratio.</div>
+                  <div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px;">Upload a portrait image. Only 60KB - 100KB files allowed. It will be resized/cropped to 3:4 aspect ratio.</div>
                 </div>
               </div>
             </div>

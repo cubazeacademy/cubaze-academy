@@ -100,7 +100,7 @@ const AdminComponent = {
       { title: 'People', items: [['students', 'fa-users', 'Students'], ['tutors', 'fa-chalkboard-user', 'Tutors'], ['requests', 'fa-comments', 'Student Request']] },
       { title: 'Content', items: [['courses', 'fa-book-open', 'Courses'], ['batches', 'fa-cubes', 'Batches'], ['common_meeting', 'fa-calendar-days', 'Common Meeting'], ['projects', 'fa-diagram-project', 'Projects'], ['submissions', 'fa-inbox', 'Submissions'], ['blog', 'fa-newspaper', 'Blog'], ['reviews', 'fa-star', 'Reviews'], ['coupons', 'fa-tag', 'Coupons'], ['liveclasses', 'fa-video', 'Live Classes'], ['posters', 'fa-image', 'Dashboard Posters']] },
       { title: 'Finance', items: [['payments', 'fa-credit-card', 'Payments']] },
-      { title: 'System', items: [['settings', 'fa-gear', 'Settings']] }
+      { title: 'System', items: [['profile', 'fa-user', 'Profile'], ['settings', 'fa-gear', 'Settings']] }
     ];
 
     const collapsedSections = JSON.parse(localStorage.getItem('cubaze_admin_collapsed_sections')) || [];
@@ -167,6 +167,7 @@ const AdminComponent = {
       case 'liveclasses': return AdminComponent._renderLiveClasses();
       case 'common_meeting': return AdminComponent._renderCommonMeetings();
       case 'posters': return AdminComponent._renderPosters();
+      case 'profile': return AdminComponent._renderProfile(cu);
       case 'settings': return AdminComponent._renderSettings();
       case 'requests': return `<div id="admin-support-loading"><div class="spinner"></div></div>`;
       default: return AdminComponent._renderDashboard();
@@ -233,6 +234,7 @@ const AdminComponent = {
       return {
         name: t.name,
         username: t.username,
+        profilePhoto: t.profilePhoto,
         batchesCount: assignedB.length,
         studentsCount: totalStuds,
         avgAttendance: avgAtt !== null ? `${avgAtt}%` : '—',
@@ -672,7 +674,7 @@ const AdminComponent = {
                     <tr>
                       <td>
                         <div style="display:flex; align-items:center; gap:8px;">
-                          <div class="avatar-modern" style="background: linear-gradient(135deg, var(--accent), var(--brand-blue-light));">${t.name.charAt(0)}</div>
+                          <div class="avatar-modern" style="${t.profilePhoto ? `background-image:url(${t.profilePhoto}); background-size:cover; background-position:center; background-repeat:no-repeat;` : 'background: linear-gradient(135deg, var(--accent), var(--brand-blue-light)); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;'}">${t.profilePhoto ? '' : t.name.charAt(0)}</div>
                           <span style="font-weight: 700; color:var(--text-primary);">${t.name}</span>
                         </div>
                       </td>
@@ -795,7 +797,9 @@ const AdminComponent = {
                 <td><input type="checkbox" class="stu-check" data-username="${u.username}"></td>
                 <td>
                   <div style="display:flex;align-items:center;gap:10px;">
-                    <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3D46D8,#6366F1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.82rem;color:#fff;flex-shrink:0;">${u.name.charAt(0)}</div>
+                    <div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;${u.profilePhoto ? `background-image:url(${u.profilePhoto}); background-size:cover; background-position:center; background-repeat:no-repeat;` : 'background:linear-gradient(135deg,#3D46D8,#6366F1); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.82rem; color:#fff;'}">
+                      ${u.profilePhoto ? '' : u.name.charAt(0).toUpperCase()}
+                    </div>
                     <div><div style="font-weight:700;color:var(--text-primary);font-size:0.85rem;">${u.name}</div></div>
                   </div>
                 </td>
@@ -977,7 +981,9 @@ const AdminComponent = {
                 <td><input type="checkbox" class="tut-check" data-username="${u.username}"></td>
                 <td>
                   <div style="display:flex;align-items:center;gap:10px;">
-                    <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#6366F1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;color:#fff;flex-shrink:0;">${u.name.charAt(0)}</div>
+                    <div style="width:36px;height:36px;border-radius:50%;flex-shrink:0;${u.profilePhoto ? `background-image:url(${u.profilePhoto}); background-size:cover; background-position:center; background-repeat:no-repeat;` : 'background:linear-gradient(135deg,#7C3AED,#6366F1); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; color:#fff;'}">
+                      ${u.profilePhoto ? '' : u.name.charAt(0).toUpperCase()}
+                    </div>
                     <div>
                       <div style="font-weight:700;color:var(--text-primary);font-size:0.85rem;">${u.name}</div>
                       <div style="font-size:0.72rem;color:#94A3B8;">${u.authorBio ? u.authorBio.slice(0, 40) + '...' : 'No bio'}</div>
@@ -4155,6 +4161,9 @@ const AdminComponent = {
     if (sec === 'posters') {
       AdminComponent._bindPostersEvents();
     }
+    if (sec === 'profile') {
+      AdminComponent._bindProfileEvents();
+    }
   },
 
   _bindTutorForm: function () {
@@ -6264,6 +6273,138 @@ const AdminComponent = {
         </table>
       </div>
     `;
+  },
+
+  _renderProfile: function (cu) {
+    return `
+      <div style="max-width: 600px; text-align: left;">
+        <h2 style="margin:0; font-size:1.6rem; font-weight:800; color:var(--text-primary);">My Profile</h2>
+        <p style="margin:4px 0 20px 0; font-size:0.83rem; color:var(--text-secondary);">Manage your public administrator profile and details.</p>
+
+        <div class="glass-panel" style="padding:28px; border-radius:20px; display:flex; flex-direction:column; gap:20px;">
+          <div style="display:flex; align-items:center; gap:16px; border-bottom:1px solid var(--border-color); padding-bottom:20px;">
+            <div style="width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg,#3D46D8,#6366F1); display:flex; align-items:center; justify-content:center; font-size:1.8rem; font-weight:800; color:#fff; flex-shrink:0; background-size:cover; background-position:center; background-repeat:no-repeat; ${cu.profilePhoto ? `background-image:url(${cu.profilePhoto});` : ''}">
+              ${cu.profilePhoto ? '' : cu.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style="font-weight:800; font-size:1.15rem; color:var(--text-primary);">${cu.name}</div>
+              <div style="color:var(--brand-blue); font-weight:600; font-size:0.83rem;">@${cu.username} · Administrator</div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:6px;">Full Name</label>
+              <input type="text" value="${cu.name}" id="prof-name" class="form-control" style="width:100%; box-sizing:border-box; margin:0;">
+            </div>
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:6px;">Username</label>
+              <input type="text" value="${cu.username}" disabled class="form-control" style="width:100%; box-sizing:border-box; margin:0; opacity:0.6;">
+            </div>
+            
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:6px;">WhatsApp Number (Optional)</label>
+              <input type="text" value="${cu.whatsapp || ''}" id="prof-whatsapp" placeholder="e.g. +91 98765 43210" class="form-control" style="width:100%; box-sizing:border-box; margin:0;">
+            </div>
+            <div>
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:6px;">Date of Birth (Optional)</label>
+              <input type="date" value="${cu.dob || ''}" id="prof-dob" class="form-control" style="width:100%; box-sizing:border-box; margin:0;">
+            </div>
+          </div>
+
+          <!-- Hidden input to store profile photo Base64 data -->
+          <input type="hidden" id="prof-photo-data" value="${cu.profilePhoto || ''}">
+
+          <div>
+            <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:6px;">Profile Photo (Aspect Ratio 3:4 - Height 4, Width 3)</label>
+            <div style="display:flex; align-items:center; gap:16px; margin-top:8px;">
+              <div id="prof-photo-preview" style="width:90px; height:120px; border-radius:8px; border:2px dashed var(--border-color); display:flex; align-items:center; justify-content:center; background-size:cover; background-position:center; background-repeat:no-repeat; background-image:${cu.profilePhoto ? `url(${cu.profilePhoto})` : 'none'};">
+                ${cu.profilePhoto ? '' : '<span style="font-size:0.75rem; color:var(--text-muted); text-align:center;">3:4 Photo</span>'}
+              </div>
+              <div>
+                <input type="file" id="prof-photo-input" accept="image/*" style="display:none;">
+                <button type="button" id="btn-prof-photo-upload" class="btn btn-secondary btn-sm" style="margin:0; padding:8px 16px;">Upload Photo</button>
+                <button type="button" id="btn-prof-photo-remove" class="btn btn-danger btn-sm" style="margin:0 0 0 8px; padding:8px 16px; background:none; border:1px solid var(--danger); color:var(--danger);">Remove</button>
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:6px;">Upload a portrait image. Only 60KB - 100KB files allowed. It will be resized/cropped to 3:4 aspect ratio.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <button id="btn-save-profile" class="btn btn-primary" style="margin:0; padding:11px 24px;">
+              <i class="fa-solid fa-save"></i> Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _bindProfileEvents: function () {
+    const fileInput = document.getElementById('prof-photo-input');
+    const previewDiv = document.getElementById('prof-photo-preview');
+    const hiddenData = document.getElementById('prof-photo-data');
+
+    document.getElementById('btn-prof-photo-upload')?.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput?.addEventListener('change', function () {
+      if (this.files && this.files[0]) {
+        const file = this.files[0];
+        const sizeKB = file.size / 1024;
+        if (sizeKB < 60 || sizeKB > 100) {
+          window.app.showToast('Profile image size must be between 60KB and 100KB (Selected: ' + sizeKB.toFixed(1) + 'KB).', 'danger');
+          this.value = '';
+          return;
+        }
+
+        window.resizeAndCropTo3x4(file, function (base64) {
+          previewDiv.style.backgroundImage = `url(${base64})`;
+          previewDiv.innerHTML = '';
+          hiddenData.value = base64;
+        });
+      }
+    });
+
+    document.getElementById('btn-prof-photo-remove')?.addEventListener('click', () => {
+      previewDiv.style.backgroundImage = 'none';
+      previewDiv.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted); text-align:center;">3:4 Photo</span>';
+      hiddenData.value = '';
+      if (fileInput) fileInput.value = '';
+    });
+
+    document.getElementById('btn-save-profile')?.addEventListener('click', () => {
+      const cu = window.db.getCurrentUser();
+      if (!cu) return;
+
+      const newName = document.getElementById('prof-name').value.trim();
+      const newWhatsapp = document.getElementById('prof-whatsapp').value.trim();
+      const newDob = document.getElementById('prof-dob').value;
+      const newPhoto = hiddenData.value;
+
+      if (!newName) {
+        window.app.showToast('Please enter your full name.', 'danger');
+        return;
+      }
+
+      cu.name = newName;
+      cu.whatsapp = newWhatsapp;
+      cu.dob = newDob;
+      cu.profilePhoto = newPhoto;
+
+      const users = window.db.getUsers();
+      const idx = users.findIndex(u => u.username === cu.username);
+      if (idx !== -1) {
+        users[idx] = cu;
+        window.db.setItemAndSync('cubaze_users', users);
+        localStorage.setItem('cubaze_current_user', JSON.stringify(cu));
+      }
+
+      window.app.showToast('Profile updated successfully!', 'success');
+      window.app.updateNavbarAuth();
+      AdminComponent._nav('profile');
+    });
   }
 };
 
