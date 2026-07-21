@@ -1070,6 +1070,11 @@ class CubazeDB {
 
         mappedTxns.forEach(t => {
           if (t.status === "SUCCESS") {
+            const course = this.getCourseById(t.courseId);
+            if (!course) {
+              console.warn(`Skipping self-healing reconciliation for transaction ${t.id} because course ${t.courseId} does not exist.`);
+              return;
+            }
             const uIdx = localUsers.findIndex(u => u.username.toLowerCase() === t.username.toLowerCase());
             if (uIdx > -1) {
               let userModified = false;

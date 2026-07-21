@@ -1436,14 +1436,147 @@ const AdminComponent = {
   },
 
   _deleteBatch: function (id) {
-    if (!confirm('Are you sure you want to permanently delete this batch? This action cannot be undone.')) return;
-    const res = window.db.deleteBatch(id);
-    if (res.success) {
-      window.app.showToast('Batch deleted permanently.', 'success');
-      AdminComponent._nav('batches');
-    } else {
-      window.app.showToast(res.error || 'Failed to delete batch.', 'danger');
+    const batch = window.db.getBatchById(id);
+    if (!batch) return;
+    const courseId = batch.courseId;
+    const users = window.db.getUsers();
+    
+    // Find students enrolled in this batch
+    const studentsInBatch = users.filter(u => 
+      u.role === 'student' && 
+      u.enrolledBatches && 
+      u.enrolledBatches[courseId] === id
+    );
+
+    if (studentsInBatch.length === 0) {
+      if (!confirm('Are you sure you want to permanently delete this batch? This action cannot be undone.')) return;
+      const res = window.db.deleteBatch(id);
+      if (res.success) {
+        window.app.showToast('Batch deleted permanently.', 'success');
+        AdminComponent._nav('batches');
+      } else {
+        window.app.showToast(res.error || 'Failed to delete batch.', 'danger');
+      }
+      return;
     }
+
+    // This batch has students! Find other active batches for the same course
+    const otherBatches = window.db.getBatches().filter(b => 
+      b.courseId === courseId && 
+      b.id !== id && 
+      b.status !== 'Archived'
+    );
+
+    if (otherBatches.length === 0) {
+      // Show error overlay/modal
+      const modal = document.createElement('div');
+      modal.className = 'adm-modal-overlay';
+      modal.id = 'delete-batch-error-modal';
+      modal.innerHTML = `
+        <div class="adm-modal" style="max-width: 500px; width: 100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1.5px solid var(--border-color); padding-bottom:12px;">
+            <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:var(--danger);"><i class="fa-solid fa-triangle-exclamation" style="margin-right:8px;"></i>Cannot Delete Batch</h3>
+            <button onclick="document.getElementById('delete-batch-error-modal').remove()" style="background:none; border:none; color:#64748B; font-size:1.2rem; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div style="text-align: left; margin-bottom: 24px; line-height: 1.6; font-size: 0.9rem;">
+            <p>The batch <strong>${batch.name}</strong> currently has <strong>${studentsInBatch.length}</strong> student(s) enrolled.</p>
+            <p style="color:var(--text-secondary);">There are no other active batches for this course to reassign them to. Please create a new batch for this course first, or edit the students' profiles to change their batch before deleting this one.</p>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap: 10px;">
+            <button class="btn btn-outline-white" onclick="document.getElementById('delete-batch-error-modal').remove()">Cancel</button>
+            <button class="btn btn-primary" onclick="document.getElementById('delete-batch-error-modal').remove(); AdminComponent._nav('batches');">Create New Batch</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+      return;
+    }
+
+    // Show reassignment selection modal
+    const modal = document.createElement('div');
+    modal.className = 'adm-modal-overlay';
+    modal.id = 'reassign-batch-modal';
+    modal.innerHTML = `
+      <div class="adm-modal" style="max-width: 550px; width: 100%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1.5px solid var(--border-color); padding-bottom:12px;">
+          <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:var(--text-primary);"><i class="fa-solid fa-arrows-spin" style="color:#3D46D8; margin-right:8px;"></i>Reassign Students before Deletion</h3>
+          <button onclick="document.getElementById('reassign-batch-modal').remove()" style="background:none; border:none; color:#64748B; font-size:1.2rem; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div style="text-align: left; margin-bottom: 20px; font-size:0.9rem; line-height:1.6;">
+          <p>The batch <strong>${batch.name}</strong> has <strong>${studentsInBatch.length}</strong> student(s) enrolled.</p>
+          <p style="color:var(--text-secondary);">Please select another batch of the same course to reassign these students to before permanently deleting this batch:</p>
+          
+          <div style="margin-top: 16px;">
+            <label style="font-weight:700; display:block; margin-bottom:6px;">Select New Batch *</label>
+            <select id="reassign-target-batch" style="width: 100%; height: 46px; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-card); font-family: inherit; font-size: 0.9rem; padding: 0 12px; color: var(--text-primary);">
+              ${otherBatches.map(b => `<option value="${b.id}">${b.name} (${b.id})</option>`).join('')}
+            </select>
+          </div>
+
+          <div style="margin-top:20px; max-height:180px; overflow-y:auto; background:var(--bg-primary); border-radius:8px; padding:12px; border:1px solid var(--border-color);">
+            <div style="font-weight:700; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">Students to move:</div>
+            ${studentsInBatch.map(s => `
+              <div style="display:flex; align-items:center; gap:8px; padding:4px 0; font-size:0.85rem;">
+                <div class="profile-avatar" style="width:20px; height:20px; font-size:0.65rem; border-radius:50%; background:var(--brand-blue-light); color:var(--brand-blue); display:flex; align-items:center; justify-content:center; font-weight:700; ${s.profilePhoto ? `background-image:url(${s.profilePhoto}); background-size:cover;` : ''}">
+                  ${s.profilePhoto ? '' : s.name.charAt(0).toUpperCase()}
+                </div>
+                <strong style="color:var(--text-primary);">${s.name}</strong> <span style="font-family:monospace; color:#6366F1;">@${s.username}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button class="btn btn-outline-white" onclick="document.getElementById('reassign-batch-modal').remove()">Cancel</button>
+          <button class="btn btn-danger" id="btn-confirm-reassign-delete">Reassign & Delete</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    document.getElementById('btn-confirm-reassign-delete').addEventListener('click', () => {
+      const targetBatchId = document.getElementById('reassign-target-batch').value;
+      if (!targetBatchId) return;
+
+      const targetBatch = window.db.getBatches().find(b => b.id === targetBatchId);
+      if (!targetBatch) {
+        window.app.showToast('Selected target batch not found.', 'danger');
+        return;
+      }
+
+      // Reassign students
+      const allUsers = window.db.getUsers();
+      allUsers.forEach(u => {
+        if (u.role === 'student' && u.enrolledBatches && u.enrolledBatches[courseId] === id) {
+          u.enrolledBatches[courseId] = targetBatchId;
+        }
+      });
+      window.db.setItemAndSync("cubaze_users", allUsers);
+
+      // Recalculate target batch enrollment count
+      const batches = window.db.getBatches();
+      const bIdx = batches.findIndex(b => b.id === targetBatchId);
+      if (bIdx > -1) {
+        batches[bIdx].currentEnrollment = allUsers.filter(u => 
+          u.role === 'student' && 
+          u.enrolledBatches && 
+          u.enrolledBatches[courseId] === targetBatchId
+        ).length;
+        window.db.setItemAndSync("cubaze_batches", batches, targetBatchId);
+      }
+
+      // Delete old batch
+      const res = window.db.deleteBatch(id);
+      if (res.success) {
+        window.app.showToast(`Students successfully reassigned to ${targetBatch.name} and batch deleted.`, 'success');
+        modal.remove();
+        AdminComponent._nav('batches');
+      } else {
+        window.app.showToast(res.error || 'Failed to delete batch.', 'danger');
+      }
+    });
   },
 
   _renderCourses: function (search = '', filter = '') {
