@@ -145,6 +145,7 @@ const AdminComponent = {
   },
 
   _renderSection: function (s) {
+    const cu = window.db.getCurrentUser();
     switch (s) {
       case 'dashboard': return AdminComponent._renderDashboard();
       case 'students':
