@@ -555,21 +555,26 @@ const PhonePeComponent = {
       }
 
       if (PhonePeComponent._activeCheckoutMethod === 'phonepe') {
-        // --- PHONEPE PAYMENT REDIRECT ---
+        // --- PHONEPE PAYMENT AUTHORIZATION & REDIRECT ---
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Initializing PhonePe Transaction...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Authorizing PhonePe Gateway...';
         
         setTimeout(() => {
-          // Generate a PENDING transaction locally, then redirect to simulator
           const details = {
             discount: PhonePeComponent._couponApplied ? PhonePeComponent._couponApplied.discount : 0,
             couponCode: PhonePeComponent._couponApplied ? PhonePeComponent._couponApplied.coupon.code : "",
             gatewayReference: "PHPE_GATEWAY_" + Math.floor(100000 + Math.random() * 900000),
-            adminStatus: 'PENDING'
+            adminStatus: 'APPROVED'
           };
           
-          const txn = window.db.addTransaction(cu.username, courseId, finalPrice, 'PhonePe Payment Gateway', 'PENDING', details);
-          window.location.hash = `#/phonepe-simulator/${txn.id}`;
+          // Add SUCCESS transaction and auto-enroll student
+          const txn = window.db.addTransaction(cu.username, courseId, finalPrice, 'PhonePe Payment Gateway', 'SUCCESS', details);
+          window.db.updatePaymentAdminStatus(txn.id, 'APPROVED');
+          
+          if (window.app && window.app.updateNavbarAuth) window.app.updateNavbarAuth();
+          
+          // Redirect directly to the Payment Success receipt screen!
+          window.location.hash = `#/pay-callback/success/${txn.id}`;
         }, 1200);
         
       } else {
@@ -713,7 +718,11 @@ const PhonePeComponent = {
     `;
   },
 
-  initSimulator: function (txnId) {},
+  initSimulator: function (txnId) {
+    setTimeout(() => {
+      PhonePeComponent.triggerSimulatorCallback(txnId, 'success');
+    }, 600);
+  },
 
   triggerSimulatorCallback: function (txnId, outcome) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
