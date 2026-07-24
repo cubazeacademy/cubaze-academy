@@ -45,6 +45,17 @@ const PhonePeComponent = {
     }
 
     const settings = window.db.getPaymentSettings();
+    const isPhpeEnabled = settings.phonepe ? settings.phonepe.enabled !== false : true;
+    const isUpiEnabled = settings.upi ? settings.upi.enabled !== false : true;
+
+    let initialMethod = PhonePeComponent._activeCheckoutMethod;
+    if (!initialMethod || (initialMethod === 'phonepe' && !isPhpeEnabled) || (initialMethod === 'direct_upi' && !isUpiEnabled)) {
+      if (isPhpeEnabled) initialMethod = 'phonepe';
+      else if (isUpiEnabled) initialMethod = 'direct_upi';
+      else initialMethod = 'none';
+      PhonePeComponent._activeCheckoutMethod = initialMethod;
+    }
+
     const activeUpiId = course.upiId || settings.upi.upiId || '';
     const activeAccountName = course.accountName || settings.upi.accountName || 'Cubaze Academy';
     const activeInstructions = course.instructions || settings.upi.instructions || '';
@@ -87,13 +98,21 @@ const PhonePeComponent = {
 
               <!-- Main Checkout Methods Grid -->
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
-                <div class="checkout-method-card active" id="chk-method-phonepe" onclick="PhonePeComponent.selectCheckoutMethod('phonepe')">
-                  <div class="recommended-badge">Recommended</div>
+                <div class="checkout-method-card ${initialMethod === 'phonepe' ? 'active' : ''} ${!isPhpeEnabled ? 'disabled' : ''}" 
+                     id="chk-method-phonepe" 
+                     onclick="PhonePeComponent.selectCheckoutMethod('phonepe')"
+                     style="${!isPhpeEnabled ? 'opacity:0.45;cursor:not-allowed;' : ''}">
+                  <div class="recommended-badge" style="${!isPhpeEnabled ? 'background:#64748B;' : ''}">
+                    ${isPhpeEnabled ? 'Recommended' : 'Inactive'}
+                  </div>
                   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                     <span style="font-weight:800;font-size:1rem;color:var(--text-primary);">PhonePe Gateway</span>
-                    <i class="fa-solid fa-circle-check select-dot" style="color:var(--brand-blue);"></i>
+                    <i class="${initialMethod === 'phonepe' ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'} select-dot" 
+                       style="color:${initialMethod === 'phonepe' ? 'var(--brand-blue)' : 'var(--text-muted)'};"></i>
                   </div>
-                  <p style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.4;">Automated instant activation. Supports UPI, Cards, Netbanking, and Wallets.</p>
+                  <p style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.4;">
+                    ${isPhpeEnabled ? 'Automated instant activation. Supports UPI, Cards, Netbanking, and Wallets.' : 'Currently disabled by administrator.'}
+                  </p>
                   <div style="display:flex;gap:6px;font-size:0.85rem;color:var(--text-muted);">
                     <i class="fa-brands fa-cc-visa"></i>
                     <i class="fa-brands fa-cc-mastercard"></i>
@@ -102,17 +121,34 @@ const PhonePeComponent = {
                   </div>
                 </div>
 
-                <div class="checkout-method-card ${settings.upi.enabled ? '' : 'disabled'}" id="chk-method-upi" onclick="PhonePeComponent.selectCheckoutMethod('direct_upi')">
+                <div class="checkout-method-card ${initialMethod === 'direct_upi' ? 'active' : ''} ${!isUpiEnabled ? 'disabled' : ''}" 
+                     id="chk-method-upi" 
+                     onclick="PhonePeComponent.selectCheckoutMethod('direct_upi')"
+                     style="${!isUpiEnabled ? 'opacity:0.45;cursor:not-allowed;' : ''}">
+                  ${!isUpiEnabled ? `<div class="recommended-badge" style="background:#64748B;">Inactive</div>` : ''}
                   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                     <span style="font-weight:800;font-size:1rem;color:var(--text-primary);">Direct UPI Transfer</span>
-                    <i class="fa-regular fa-circle select-dot" style="color:var(--text-muted);"></i>
+                    <i class="${initialMethod === 'direct_upi' ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'} select-dot" 
+                       style="color:${initialMethod === 'direct_upi' ? 'var(--brand-blue)' : 'var(--text-muted)'};"></i>
                   </div>
-                  <p style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.4;">Manual verification. Scan QR Code & upload screenshot. Enrolled after approval.</p>
+                  <p style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.4;">
+                    ${isUpiEnabled ? 'Manual verification. Scan QR Code & upload screenshot. Enrolled after approval.' : 'Currently disabled by administrator.'}
+                  </p>
                   <div style="display:flex;gap:8px;font-size:0.75rem;font-weight:700;color:var(--brand-blue);">
                     <span>QR CODE</span> · <span>UPI ID</span>
                   </div>
                 </div>
               </div>
+
+              ${!isPhpeEnabled && !isUpiEnabled ? `
+                <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:14px;padding:24px;text-align:center;margin-bottom:28px;">
+                  <i class="fa-solid fa-triangle-exclamation" style="font-size:2.2rem;color:var(--danger);margin-bottom:12px;"></i>
+                  <h4 style="color:var(--danger);margin-bottom:6px;font-weight:800;">No Payment Methods Available</h4>
+                  <p style="font-size:0.83rem;color:var(--text-secondary);margin-bottom:0;line-height:1.5;">
+                    Online payment options are currently turned off by the academy administrator.<br>Please contact support or try again later.
+                  </p>
+                </div>
+              ` : ''}
 
               <!-- PhonePe Payment Gateway Area -->
               <div id="checkout-panel-phonepe">
@@ -273,6 +309,19 @@ const PhonePeComponent = {
   },
 
   selectCheckoutMethod: function (method) {
+    const settings = window.db.getPaymentSettings();
+    const isPhpeEnabled = settings.phonepe ? settings.phonepe.enabled !== false : true;
+    const isUpiEnabled = settings.upi ? settings.upi.enabled !== false : true;
+
+    if (method === 'phonepe' && !isPhpeEnabled) {
+      if (window.app && window.app.showToast) window.app.showToast('PhonePe Gateway is currently disabled by Admin.', 'warning');
+      return;
+    }
+    if (method === 'direct_upi' && !isUpiEnabled) {
+      if (window.app && window.app.showToast) window.app.showToast('Direct UPI Payment is currently disabled by Admin.', 'warning');
+      return;
+    }
+
     PhonePeComponent._activeCheckoutMethod = method;
     
     // Toggle active classes on cards

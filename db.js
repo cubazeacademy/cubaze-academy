@@ -2271,9 +2271,23 @@ class CubazeDB {
 
   // --- PAYMENT SETTINGS ---
   getPaymentSettings() {
-    return JSON.parse(localStorage.getItem("cubaze_payment_settings")) || {
-      phonepe: { merchantId: "M_PHPE_CUBAZE", clientId: "client-phpe-5829103", clientSecret: "client-secret-sec-81057", clientVersion: "v1", environment: "Sandbox" },
+    const defaults = {
+      phonepe: { enabled: true, merchantId: "M_PHPE_CUBAZE", clientId: "client-phpe-5829103", clientSecret: "client-secret-sec-81057", clientVersion: "v1", environment: "Sandbox" },
       upi: { enabled: true, upiId: "7510337087@ybl", accountName: "Cubaze Academy", qrCodeImage: "", instructions: "Scan the QR code or copy the UPI ID to pay. After successful transaction, enter the 12-digit UTR/Transaction Number and upload the payment screenshot as proof." }
+    };
+    const ps = JSON.parse(localStorage.getItem("cubaze_payment_settings"));
+    if (!ps) return defaults;
+    return {
+      phonepe: {
+        ...defaults.phonepe,
+        ...(ps.phonepe || {}),
+        enabled: ps.phonepe ? ps.phonepe.enabled !== false : true
+      },
+      upi: {
+        ...defaults.upi,
+        ...(ps.upi || {}),
+        enabled: ps.upi ? ps.upi.enabled !== false : true
+      }
     };
   }
 

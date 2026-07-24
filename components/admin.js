@@ -2566,7 +2566,19 @@ const AdminComponent = {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;">
               <!-- PhonePe Section -->
               <div>
-                <h3 style="border-bottom:1.5px solid var(--border-color);padding-bottom:10px;margin-bottom:20px;color:var(--text-primary);"><span style="background:#5f259f;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.8rem;margin-right:8px;font-weight:900;">Pe</span>PhonePe Gateway API</h3>
+                <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid var(--border-color);padding-bottom:12px;margin-bottom:20px;">
+                  <h3 style="margin:0;color:var(--text-primary);display:flex;align-items:center;font-size:1.05rem;font-weight:800;">
+                    <span style="background:#5f259f;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.8rem;margin-right:8px;font-weight:900;">Pe</span>PhonePe Gateway API
+                  </h3>
+                  <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;">
+                    <span style="font-size:0.75rem;font-weight:800;color:var(--text-muted);letter-spacing:0.05em;">STATUS</span>
+                    <span id="phpe-status-badge" style="font-size:0.78rem;font-weight:800;padding:4px 10px;border-radius:12px;background:${window.db.getPaymentSettings().phonepe.enabled ? 'rgba(16,185,129,0.12)' : 'rgba(100,116,139,0.12)'};color:${window.db.getPaymentSettings().phonepe.enabled ? '#10B981' : '#64748B'};">${window.db.getPaymentSettings().phonepe.enabled ? 'ACTIVE' : 'INACTIVE'}</span>
+                    <input type="checkbox" id="adm-phpe-enabled" ${window.db.getPaymentSettings().phonepe.enabled ? 'checked' : ''} style="display:none;" onchange="AdminComponent.togglePaymentMethodStatus('phpe', this.checked)">
+                    <div id="toggle-slider-phpe" style="width:46px;height:24px;background:${window.db.getPaymentSettings().phonepe.enabled ? 'var(--brand-blue)' : '#CBD5E1'};border-radius:12px;position:relative;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:inset 0 1px 2px rgba(0,0,0,0.1);">
+                      <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:${window.db.getPaymentSettings().phonepe.enabled ? '25px' : '3px'};transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+                    </div>
+                  </label>
+                </div>
                 
                 <div class="form-group" style="margin-bottom:14px;">
                   <label>Merchant ID</label>
@@ -2595,14 +2607,18 @@ const AdminComponent = {
 
               <!-- Direct UPI Section -->
               <div>
-                <h3 style="border-bottom:1.5px solid var(--border-color);padding-bottom:10px;margin-bottom:20px;color:var(--text-primary);"><i class="fa-solid fa-mobile-screen" style="color:var(--brand-blue);margin-right:8px;"></i>Direct UPI Settings</h3>
-                
-                <div class="form-group" style="margin-bottom:14px;">
-                  <label>Enable UPI Payments</label>
-                  <select class="form-control" id="adm-upi-enabled" style="width:100%;">
-                    <option value="true" ${window.db.getPaymentSettings().upi.enabled ? 'selected' : ''}>Enabled</option>
-                    <option value="false" ${!window.db.getPaymentSettings().upi.enabled ? 'selected' : ''}>Disabled</option>
-                  </select>
+                <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid var(--border-color);padding-bottom:12px;margin-bottom:20px;">
+                  <h3 style="margin:0;color:var(--text-primary);display:flex;align-items:center;font-size:1.05rem;font-weight:800;">
+                    <i class="fa-solid fa-mobile-screen" style="color:var(--brand-blue);margin-right:8px;"></i>Direct UPI Settings
+                  </h3>
+                  <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;">
+                    <span style="font-size:0.75rem;font-weight:800;color:var(--text-muted);letter-spacing:0.05em;">STATUS</span>
+                    <span id="upi-status-badge" style="font-size:0.78rem;font-weight:800;padding:4px 10px;border-radius:12px;background:${window.db.getPaymentSettings().upi.enabled ? 'rgba(16,185,129,0.12)' : 'rgba(100,116,139,0.12)'};color:${window.db.getPaymentSettings().upi.enabled ? '#10B981' : '#64748B'};">${window.db.getPaymentSettings().upi.enabled ? 'ACTIVE' : 'INACTIVE'}</span>
+                    <input type="checkbox" id="adm-upi-enabled" ${window.db.getPaymentSettings().upi.enabled ? 'checked' : ''} style="display:none;" onchange="AdminComponent.togglePaymentMethodStatus('upi', this.checked)">
+                    <div id="toggle-slider-upi" style="width:46px;height:24px;background:${window.db.getPaymentSettings().upi.enabled ? 'var(--brand-blue)' : '#CBD5E1'};border-radius:12px;position:relative;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:inset 0 1px 2px rgba(0,0,0,0.1);">
+                      <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:${window.db.getPaymentSettings().upi.enabled ? '25px' : '3px'};transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+                    </div>
+                  </label>
                 </div>
                 <div class="form-group" style="margin-bottom:14px;">
                   <label>UPI ID</label>
@@ -2858,30 +2874,57 @@ const AdminComponent = {
     AdminComponent._bindSection('payments');
   },
 
+  togglePaymentMethodStatus: function (type, isChecked) {
+    const slider = document.getElementById(`toggle-slider-${type}`);
+    const knob = slider?.querySelector('div');
+    const badge = document.getElementById(`${type}-status-badge`);
+
+    if (isChecked) {
+      if (slider) slider.style.background = 'var(--brand-blue)';
+      if (knob) knob.style.left = '25px';
+      if (badge) {
+        badge.innerText = 'ACTIVE';
+        badge.style.background = 'rgba(16,185,129,0.12)';
+        badge.style.color = '#10B981';
+      }
+    } else {
+      if (slider) slider.style.background = '#CBD5E1';
+      if (knob) knob.style.left = '3px';
+      if (badge) {
+        badge.innerText = 'INACTIVE';
+        badge.style.background = 'rgba(100,116,139,0.12)';
+        badge.style.color = '#64748B';
+      }
+    }
+  },
+
   _savePaymentSettings: function () {
+    const phpeEnabled = document.getElementById('adm-phpe-enabled')?.checked === true;
+    const upiEnabled = document.getElementById('adm-upi-enabled')?.checked === true;
+
     const merchantId = document.getElementById('adm-phpe-merchant-id')?.value.trim();
     const clientId = document.getElementById('adm-phpe-client-id')?.value.trim();
     const clientSecret = document.getElementById('adm-phpe-client-secret')?.value.trim();
     const clientVersion = document.getElementById('adm-phpe-client-version')?.value.trim();
     const env = document.getElementById('adm-phpe-env')?.value;
 
-    const upiEnabled = document.getElementById('adm-upi-enabled')?.value === 'true';
     const upiId = document.getElementById('adm-upi-id')?.value.trim();
     const upiName = document.getElementById('adm-upi-account-name')?.value.trim();
     const upiInstructions = document.getElementById('adm-upi-instructions')?.value.trim();
     const qrCode = AdminComponent._selectedSettingsQR || window.db.getPaymentSettings().upi.qrCodeImage;
 
-    if (!merchantId) {
-      window.app.showToast('PhonePe Merchant ID is required.', 'danger');
+    if (phpeEnabled && !merchantId) {
+      window.app.showToast('PhonePe Merchant ID is required when PhonePe is active.', 'danger');
       return;
     }
     if (upiEnabled && (!upiId || !upiName)) {
-      window.app.showToast('UPI ID and Account Name are required when UPI is enabled.', 'danger');
+      window.app.showToast('UPI ID and Account Name are required when Direct UPI is active.', 'danger');
       return;
     }
 
     const settings = {
       phonepe: {
+        enabled: phpeEnabled,
         merchantId,
         clientId,
         clientSecret,
