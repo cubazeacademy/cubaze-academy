@@ -928,7 +928,11 @@ class CubazeDB {
           archived: course.archived === true,
           createdDate: course.created_at || new Date().toISOString(),
           updatedDate: course.updated_at || new Date().toISOString(),
-          category: course.category || "General"
+          category: course.category || "General",
+          upiId: course.upi_id || "",
+          accountName: course.account_name || "",
+          qrCodeImage: course.qr_code_image || "",
+          instructions: course.instructions || ""
         }));
         localStorage.setItem("cubaze_courses", JSON.stringify(mappedCourses));
       }
@@ -1519,7 +1523,11 @@ class CubazeDB {
           archived: course.archived === true,
           created_at: course.createdDate || new Date().toISOString(),
           updated_at: course.updatedDate || new Date().toISOString(),
-          category: course.category || "General"
+          category: course.category || "General",
+          upi_id: course.upiId || "",
+          account_name: course.accountName || "",
+          qr_code_image: course.qrCodeImage || "",
+          instructions: course.instructions || ""
         });
       });
     } else if (key === "cubaze_users") {
