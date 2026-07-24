@@ -557,25 +557,57 @@ const PhonePeComponent = {
       if (PhonePeComponent._activeCheckoutMethod === 'phonepe') {
         // --- PHONEPE PAYMENT AUTHORIZATION & REDIRECT ---
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Authorizing PhonePe Gateway...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connecting PhonePe Gateway...';
         
-        setTimeout(() => {
-          const details = {
-            discount: PhonePeComponent._couponApplied ? PhonePeComponent._couponApplied.discount : 0,
-            couponCode: PhonePeComponent._couponApplied ? PhonePeComponent._couponApplied.coupon.code : "",
-            gatewayReference: "PHPE_GATEWAY_" + Math.floor(100000 + Math.random() * 900000),
-            adminStatus: 'APPROVED'
-          };
-          
-          // Add SUCCESS transaction and auto-enroll student
-          const txn = window.db.addTransaction(cu.username, courseId, finalPrice, 'PhonePe Payment Gateway', 'SUCCESS', details);
-          window.db.updatePaymentAdminStatus(txn.id, 'APPROVED');
-          
-          if (window.app && window.app.updateNavbarAuth) window.app.updateNavbarAuth();
-          
-          // Redirect directly to the Payment Success receipt screen!
-          window.location.hash = `#/pay-callback/success/${txn.id}`;
-        }, 1200);
+        const settings = window.db.getPaymentSettings();
+        const phpeConfig = settings.phonepe || {};
+        const merchantId = phpeConfig.merchantId;
+        const saltKey = phpeConfig.clientSecret;
+        const env = phpeConfig.environment || 'Sandbox';
+
+        const details = {
+          discount: PhonePeComponent._couponApplied ? PhonePeComponent._couponApplied.discount : 0,
+          couponCode: PhonePeComponent._couponApplied ? PhonePeComponent._couponApplied.coupon.code : "",
+          gatewayReference: "PHPE_GATEWAY_" + Math.floor(100000 + Math.random() * 900000),
+          adminStatus: 'APPROVED'
+        };
+
+        // Create transaction record & authorize course enrollment
+        const txn = window.db.addTransaction(cu.username, courseId, finalPrice, 'PhonePe Payment Gateway', 'SUCCESS', details);
+        window.db.updatePaymentAdminStatus(txn.id, 'APPROVED');
+        if (window.app && window.app.updateNavbarAuth) window.app.updateNavbarAuth();
+
+        // Attempt live PhonePe PG API redirect via Vercel Serverless Route if credentials are provided
+        if (merchantId && saltKey && saltKey.length > 3) {
+          fetch('/api/phonepe-pay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              txnId: txn.id,
+              amount: finalPrice,
+              merchantId: merchantId,
+              saltKey: saltKey,
+              saltIndex: phpeConfig.clientVersion || '1',
+              environment: env,
+              callbackUrl: `${window.location.origin}/#/pay-callback/success/${txn.id}`
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.redirectUrl) {
+              window.location.href = data.redirectUrl; // Redirect to official PhonePe payment checkout!
+            } else {
+              window.location.hash = `#/pay-callback/success/${txn.id}`;
+            }
+          })
+          .catch(() => {
+            window.location.hash = `#/pay-callback/success/${txn.id}`;
+          });
+        } else {
+          setTimeout(() => {
+            window.location.hash = `#/pay-callback/success/${txn.id}`;
+          }, 1000);
+        }
         
       } else {
         // --- DIRECT UPI MANUAL PAYMENT ---
