@@ -45,6 +45,24 @@ const PhonePeComponent = {
     }
 
     const settings = window.db.getPaymentSettings();
+    const activeUpiId = course.upiId || settings.upi.upiId || '';
+    const activeAccountName = course.accountName || settings.upi.accountName || 'Cubaze Academy';
+    const activeInstructions = course.instructions || settings.upi.instructions || '';
+    const isCourseSpecificQR = !!(course.qrCodeImage || course.upiId);
+
+    // Auto-generate scannable UPI QR Code if explicit custom scanner image is not uploaded
+    let activeQR = course.qrCodeImage;
+    if (!activeQR) {
+      if (activeUpiId) {
+        const upiUri = `upi://pay?pa=${encodeURIComponent(activeUpiId)}&pn=${encodeURIComponent(activeAccountName)}&am=${course.price}&cu=INR`;
+        activeQR = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
+      } else if (settings.upi.qrCodeImage) {
+        activeQR = settings.upi.qrCodeImage;
+      } else {
+        activeQR = 'https://via.placeholder.com/150?text=Scan+to+Pay';
+      }
+    }
+
     const originalPrice = Math.floor(course.price * 2.5);
     const discountPct = Math.round(((originalPrice - course.price) / originalPrice) * 100);
 
@@ -133,17 +151,22 @@ const PhonePeComponent = {
                 </div>
 
                 <!-- QR code and UPI details -->
-                <div style="display:grid;grid-template-columns:160px 1fr;gap:20px;margin-bottom:24px;align-items:center;background:var(--bg-primary);padding:18px;border-radius:var(--radius-xl);border:1px solid var(--border-color);">
+                <div style="display:grid;grid-template-columns:160px 1fr;gap:20px;margin-bottom:24px;align-items:center;background:var(--bg-primary);padding:18px;border-radius:var(--radius-xl);border:1px solid var(--border-color);position:relative;">
+                  ${isCourseSpecificQR ? `
+                    <div style="position:absolute;top:-10px;right:16px;background:var(--brand-blue-pale);color:var(--brand-blue);font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:12px;border:1px solid var(--brand-blue-light);display:flex;align-items:center;gap:5px;">
+                      <i class="fa-solid fa-qrcode"></i> Dedicated Course Scanner
+                    </div>
+                  ` : ''}
                   <div style="text-align:center;background:#fff;padding:8px;border-radius:12px;border:1px solid #E2E8F0;display:flex;justify-content:center;align-items:center;">
-                    <img id="checkout-qr-img" src="${settings.upi.qrCodeImage || 'https://via.placeholder.com/150?text=Scan+to+Pay'}" style="width:140px;height:140px;object-fit:contain;">
+                    <img id="checkout-qr-img" src="${activeQR}" style="width:140px;height:140px;object-fit:contain;">
                   </div>
                   <div>
                     <div style="font-size:0.78rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Account Name</div>
-                    <div style="font-weight:700;font-size:0.95rem;color:var(--text-primary);margin-bottom:12px;">${settings.upi.accountName}</div>
+                    <div style="font-weight:700;font-size:0.95rem;color:var(--text-primary);margin-bottom:12px;">${activeAccountName}</div>
 
                     <div style="font-size:0.78rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">UPI ID</div>
                     <div style="display:flex;gap:6px;align-items:center;">
-                      <code style="font-family:monospace;font-size:0.95rem;background:var(--bg-card);border:1px solid var(--border-color);padding:6px 12px;border-radius:6px;font-weight:700;color:var(--brand-blue);word-break:break-all;" id="checkout-upi-id-txt">${settings.upi.upiId}</code>
+                      <code style="font-family:monospace;font-size:0.95rem;background:var(--bg-card);border:1px solid var(--border-color);padding:6px 12px;border-radius:6px;font-weight:700;color:var(--brand-blue);word-break:break-all;" id="checkout-upi-id-txt">${activeUpiId}</code>
                       <button class="btn btn-ghost btn-sm" style="padding:8px 12px;height:34px;margin-bottom:0;" onclick="PhonePeComponent.copyUPI()"><i class="fa-solid fa-copy"></i> Copy</button>
                     </div>
                   </div>
@@ -151,7 +174,7 @@ const PhonePeComponent = {
 
                 <div class="form-group" style="margin-bottom:16px;">
                   <label style="font-weight:600;font-size:0.83rem;">Instructions:</label>
-                  <div style="font-size:0.82rem;line-height:1.5;color:var(--text-secondary);background:var(--bg-card);padding:12px;border-radius:8px;white-space:pre-line;" id="checkout-instructions-box">${settings.upi.instructions}</div>
+                  <div style="font-size:0.82rem;line-height:1.5;color:var(--text-secondary);background:var(--bg-card);padding:12px;border-radius:8px;white-space:pre-line;" id="checkout-instructions-box">${activeInstructions}</div>
                 </div>
 
                 <!-- Proof input fields -->
@@ -865,6 +888,16 @@ const PhonePeComponent = {
 
     printWindow.document.write(htmlContent);
     printWindow.document.close();
+  },
+
+  copyUPI: function () {
+    const upiTxt = document.getElementById('checkout-upi-id-txt')?.innerText;
+    if (upiTxt) {
+      navigator.clipboard.writeText(upiTxt);
+      if (window.app && window.app.showToast) {
+        window.app.showToast('UPI ID copied to clipboard! 📋', 'success');
+      }
+    }
   }
 };
 window.PhonePeComponent = PhonePeComponent;

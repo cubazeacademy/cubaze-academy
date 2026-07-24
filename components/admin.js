@@ -1699,6 +1699,47 @@ const AdminComponent = {
             <div class="form-group" style="margin-bottom:14px;"><label>Full Description</label><textarea class="form-control" id="cf-desc" rows="4" placeholder="Detailed course description...">${course ? course.description : ''}</textarea></div>
             <div class="form-group" style="margin-bottom:14px;"><label>Thumbnail URL</label><input class="form-control" type="url" id="cf-image" placeholder="https://..." value="${course ? course.image : ''}"></div>
             <div class="form-group" style="margin-bottom:20px;"><label>Preview Video URL</label><input class="form-control" type="url" id="cf-preview" placeholder="https://youtube.com/embed/..." value="${course ? course.previewVideo : ''}"></div>
+            
+            <!-- Course Specific Payment Scanner & Details -->
+            <div style="background:var(--bg-secondary);padding:18px;border-radius:12px;border:1px solid var(--border-color);margin-bottom:20px;">
+              <div style="font-weight:700;font-size:0.9rem;color:var(--text-primary);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+                <i class="fa-solid fa-qrcode" style="color:var(--brand-blue);"></i> Course Payment QR Code & Scanner (Optional)
+              </div>
+              <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;line-height:1.4;">
+                Upload a custom scanner/QR code image for this course. When students buy this course, they will see this QR code instead of the default payment scanner.
+              </p>
+
+              <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                <div class="form-group" style="margin:0;">
+                  <label>Course UPI ID</label>
+                  <input class="form-control" type="text" id="cf-upi-id" placeholder="e.g. courseupi@ybl" value="${course && course.upiId ? course.upiId : ''}">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label>Course Account Name</label>
+                  <input class="form-control" type="text" id="cf-account-name" placeholder="e.g. Cubaze Academy - Course" value="${course && course.accountName ? course.accountName : ''}">
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:14px;">
+                <label>QR Code / Scanner Image (File Upload or Image URL)</label>
+                <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('cf-qr-file').click()" style="margin-bottom:0;"><i class="fa-solid fa-image"></i> Select QR Image File</button>
+                  <input type="file" id="cf-qr-file" accept="image/*" style="display:none;">
+                  <div id="cf-qr-preview-container" style="width:48px;height:48px;border-radius:6px;overflow:hidden;border:1px solid var(--border-color);${course && course.qrCodeImage ? '' : 'display:none;'}">
+                    <img id="cf-qr-preview" src="${course && course.qrCodeImage ? course.qrCodeImage : ''}" style="width:100%;height:100%;object-fit:cover;">
+                  </div>
+                  <button type="button" id="cf-qr-remove-btn" class="btn btn-ghost btn-sm" style="color:var(--danger);${course && course.qrCodeImage ? '' : 'display:none;'}" onclick="AdminComponent._removeCourseQR()"><i class="fa-solid fa-trash"></i> Remove QR</button>
+                </div>
+                <input class="form-control" type="text" id="cf-qr-url" placeholder="Or paste image URL (https://...)" value="${course && course.qrCodeImage && !course.qrCodeImage.startsWith('data:') ? course.qrCodeImage : ''}" style="font-size:0.8rem;">
+                <span style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;display:block;">✨ Leave QR Code Image empty to automatically generate a live scannable UPI QR code for the Course UPI ID and Price.</span>
+              </div>
+
+              <div class="form-group" style="margin:0;">
+                <label>Custom Payment Instructions</label>
+                <textarea class="form-control" id="cf-instructions" rows="2" placeholder="Custom instructions shown on payment screen...">${course && course.instructions ? course.instructions : ''}</textarea>
+              </div>
+            </div>
+
             <div style="display:flex; gap:10px; justify-content:flex-end; border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
               <button type="button" class="btn btn-outline-white" onclick="document.getElementById('course-form-panel').style.display='none'">Cancel</button>
               <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> ${isEdit ? 'Save Changes' : 'Create Course'}</button>
@@ -2860,6 +2901,18 @@ const AdminComponent = {
   },
 
   _selectedSettingsQR: null,
+  _selectedCourseQR: null,
+
+  _removeCourseQR: function () {
+    AdminComponent._selectedCourseQR = '';
+    const prev = document.getElementById('cf-qr-preview');
+    const container = document.getElementById('cf-qr-preview-container');
+    const rmBtn = document.getElementById('cf-qr-remove-btn');
+    if (prev) prev.src = '';
+    if (container) container.style.display = 'none';
+    if (rmBtn) rmBtn.style.display = 'none';
+    if (window.app && window.app.showToast) window.app.showToast('Course QR Code scanner removed', 'info');
+  },
 
   _filterPayments: function (status) {
     document.getElementById('adm-main').innerHTML = AdminComponent._renderPayments('', status);
@@ -2867,6 +2920,7 @@ const AdminComponent = {
   },
 
   _showCreateCourse: function () {
+    AdminComponent._selectedCourseQR = null;
     const panel = document.getElementById('course-form-panel');
     panel.style.display = 'flex';
     panel.innerHTML = AdminComponent._renderCourseForm(null);
@@ -2876,6 +2930,7 @@ const AdminComponent = {
 
   _showEditCourse: function (courseId) {
     const course = window.db.getCourseById(courseId);
+    AdminComponent._selectedCourseQR = course ? (course.qrCodeImage || '') : null;
     const panel = document.getElementById('course-form-panel');
     panel.style.display = 'flex';
     panel.innerHTML = AdminComponent._renderCourseForm(course);
@@ -4395,12 +4450,48 @@ const AdminComponent = {
   },
 
   _bindCourseForm: function () {
+    const qrInput = document.getElementById('cf-qr-file');
+    if (qrInput) {
+      qrInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+          if (file.size > 5 * 1024 * 1024) {
+            window.app.showToast('Image file size must be less than 5MB.', 'danger');
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = function (evt) {
+            AdminComponent._selectedCourseQR = evt.target.result;
+            const prev = document.getElementById('cf-qr-preview');
+            const container = document.getElementById('cf-qr-preview-container');
+            const rmBtn = document.getElementById('cf-qr-remove-btn');
+            if (prev) prev.src = evt.target.result;
+            if (container) container.style.display = 'block';
+            if (rmBtn) rmBtn.style.display = 'inline-flex';
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
     document.getElementById('form-course')?.addEventListener('submit', e => {
       e.preventDefault();
       const id = document.getElementById('cf-id').value;
+      const existingCourse = id ? window.db.getCourseById(id) : null;
+
+      const qrUrlVal = document.getElementById('cf-qr-url')?.value.trim() || '';
+      let finalQrCodeImage = '';
+      if (AdminComponent._selectedCourseQR !== null && AdminComponent._selectedCourseQR !== '') {
+        finalQrCodeImage = AdminComponent._selectedCourseQR;
+      } else if (qrUrlVal) {
+        finalQrCodeImage = qrUrlVal;
+      } else if (AdminComponent._selectedCourseQR === null && existingCourse && existingCourse.qrCodeImage) {
+        finalQrCodeImage = existingCourse.qrCodeImage;
+      }
+
       const data = {
         title: document.getElementById('cf-title').value,
-        price: document.getElementById('cf-price').value,
+        price: parseFloat(document.getElementById('cf-price').value) || 0,
         level: document.getElementById('cf-level').value,
         duration: document.getElementById('cf-duration').value,
         category: document.getElementById('cf-category').value,
@@ -4408,7 +4499,11 @@ const AdminComponent = {
         shortDescription: document.getElementById('cf-sdesc').value,
         description: document.getElementById('cf-desc').value,
         image: document.getElementById('cf-image').value || 'https://images.unsplash.com/photo-1588702547919-26089e690ecc?w=600',
-        previewVideo: document.getElementById('cf-preview').value
+        previewVideo: document.getElementById('cf-preview').value,
+        upiId: document.getElementById('cf-upi-id')?.value.trim() || '',
+        accountName: document.getElementById('cf-account-name')?.value.trim() || '',
+        qrCodeImage: finalQrCodeImage,
+        instructions: document.getElementById('cf-instructions')?.value.trim() || ''
       };
       let res;
       if (id) {
