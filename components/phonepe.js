@@ -155,17 +155,28 @@ const PhonePeComponent = {
                   </div>
                 </div>
                 
-                <h4 style="margin-bottom:12px;">Supported Gateway Sub-methods:</h4>
-                <div class="payment-method-tabs" style="margin-bottom:20px;">
-                  <div class="payment-tab active" data-sub="upi"><i class="fa-solid fa-mobile-screen"></i> UPI</div>
-                  <div class="payment-tab" data-sub="card"><i class="fa-solid fa-credit-card"></i> Card</div>
-                  <div class="payment-tab" data-sub="nb"><i class="fa-solid fa-building-columns"></i> Net Banking</div>
-                  <div class="payment-tab" data-sub="wallet"><i class="fa-solid fa-wallet"></i> Wallets</div>
+                <h4 style="margin-bottom:12px;">Select Payment Option:</h4>
+                <div class="payment-method-tabs" style="margin-bottom:16px;">
+                  <div class="payment-tab active" data-sub="upi" onclick="PhonePeComponent.switchPhonePeSubTab('upi')"><i class="fa-solid fa-mobile-screen"></i> UPI</div>
+                  <div class="payment-tab" data-sub="card" onclick="PhonePeComponent.switchPhonePeSubTab('card')"><i class="fa-solid fa-credit-card"></i> Card</div>
+                  <div class="payment-tab" data-sub="nb" onclick="PhonePeComponent.switchPhonePeSubTab('nb')"><i class="fa-solid fa-building-columns"></i> Net Banking</div>
+                  <div class="payment-tab" data-sub="wallet" onclick="PhonePeComponent.switchPhonePeSubTab('wallet')"><i class="fa-solid fa-wallet"></i> Wallets</div>
+                </div>
+
+                <!-- Sub-method interactive content container -->
+                <div id="phonepe-sub-content">
+                  <div style="background:var(--bg-primary);border:1px solid var(--border-color);border-radius:12px;padding:18px;margin-bottom:20px;">
+                    <div style="font-weight:700;font-size:0.88rem;color:var(--text-primary);margin-bottom:10px;">Pay via UPI / VPA</div>
+                    <div class="form-group" style="margin-bottom:8px;">
+                      <input type="text" id="phpe-upi-vpa" class="form-control" placeholder="e.g. 9876543210@ybl or username@upi" style="width:100%;height:44px;">
+                      <span style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;display:block;">Supports GPay, PhonePe, Paytm, BHIM & all bank UPI apps.</span>
+                    </div>
+                  </div>
                 </div>
                 
                 <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:20px;line-height:1.5;background:var(--bg-primary);padding:12px;border-radius:8px;">
                   <i class="fa-solid fa-info-circle" style="color:var(--brand-blue);margin-right:6px;"></i>
-                  You will be securely redirected to PhonePe's secure checkout page to finalize payment using the latest checksum-secured API callback redirects.
+                  You will be securely processed via PhonePe's gateway authorization.
                 </p>
               </div>
 
@@ -392,11 +403,73 @@ const PhonePeComponent = {
     document.getElementById('screenshot-drop-area').style.display = 'flex';
   },
 
+  _activeSubTab: 'upi',
+
+  switchPhonePeSubTab: function (sub) {
+    PhonePeComponent._activeSubTab = sub;
+    document.querySelectorAll('.payment-tab').forEach(t => t.classList.remove('active'));
+    const activeTab = document.querySelector(`.payment-tab[data-sub="${sub}"]`);
+    if (activeTab) activeTab.classList.add('active');
+
+    const container = document.getElementById('phonepe-sub-content');
+    if (!container) return;
+
+    if (sub === 'upi') {
+      container.innerHTML = `
+        <div style="background:var(--bg-primary);border:1px solid var(--border-color);border-radius:12px;padding:18px;margin-bottom:20px;">
+          <div style="font-weight:700;font-size:0.88rem;color:var(--text-primary);margin-bottom:10px;">Pay via UPI / VPA</div>
+          <div class="form-group" style="margin-bottom:8px;">
+            <input type="text" id="phpe-upi-vpa" class="form-control" placeholder="e.g. 9876543210@ybl or username@upi" style="width:100%;height:44px;">
+            <span style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;display:block;">Supports GPay, PhonePe, Paytm, BHIM & all bank UPI apps.</span>
+          </div>
+        </div>
+      `;
+    } else if (sub === 'card') {
+      container.innerHTML = `
+        <div style="background:var(--bg-primary);border:1px solid var(--border-color);border-radius:12px;padding:18px;margin-bottom:20px;">
+          <div style="font-weight:700;font-size:0.88rem;color:var(--text-primary);margin-bottom:12px;">Credit / Debit Card Details</div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <input type="text" id="phpe-card-num" class="form-control" placeholder="4532 •••• •••• 8921" maxlength="19" style="width:100%;height:44px;">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <input type="text" id="phpe-card-exp" class="form-control" placeholder="MM/YY" maxlength="5" style="height:44px;">
+            <input type="password" id="phpe-card-cvv" class="form-control" placeholder="CVV (•••)" maxlength="4" style="height:44px;">
+          </div>
+        </div>
+      `;
+    } else if (sub === 'nb') {
+      container.innerHTML = `
+        <div style="background:var(--bg-primary);border:1px solid var(--border-color);border-radius:12px;padding:18px;margin-bottom:20px;">
+          <div style="font-weight:700;font-size:0.88rem;color:var(--text-primary);margin-bottom:10px;">Select Net Banking Provider</div>
+          <select id="phpe-bank-select" class="form-control" style="width:100%;height:44px;">
+            <option value="HDFC">HDFC Bank</option>
+            <option value="ICICI">ICICI Bank</option>
+            <option value="SBI">State Bank of India (SBI)</option>
+            <option value="AXIS">Axis Bank</option>
+            <option value="KOTAK">Kotak Mahindra Bank</option>
+            <option value="PNB">Punjab National Bank</option>
+          </select>
+        </div>
+      `;
+    } else if (sub === 'wallet') {
+      container.innerHTML = `
+        <div style="background:var(--bg-primary);border:1px solid var(--border-color);border-radius:12px;padding:18px;margin-bottom:20px;">
+          <div style="font-weight:700;font-size:0.88rem;color:var(--text-primary);margin-bottom:10px;">Select Digital Wallet</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.83rem;">
+            <label style="border:1px solid var(--border-color);border-radius:8px;padding:10px;display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--bg-card);"><input type="radio" name="phpe_wallet" value="phonepe" checked> PhonePe Wallet</label>
+            <label style="border:1px solid var(--border-color);border-radius:8px;padding:10px;display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--bg-card);"><input type="radio" name="phpe_wallet" value="paytm"> Paytm Wallet</label>
+          </div>
+        </div>
+      `;
+    }
+  },
+
   init: function (courseId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     PhonePeComponent._couponApplied = null;
     PhonePeComponent._uploadedScreenshot = null;
     PhonePeComponent._activeCheckoutMethod = 'phonepe';
+    PhonePeComponent._activeSubTab = 'upi';
 
     const course = window.db.getCourseById(courseId);
     if (!course) return;
@@ -406,14 +479,6 @@ const PhonePeComponent = {
     if (dateInput) {
       dateInput.value = new Date().toISOString().split('T')[0];
     }
-
-    // Sub-payment tabs for PhonePe Gateway
-    document.querySelectorAll('.payment-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.payment-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-      });
-    });
 
     // Setup drag and drop events
     const dropArea = document.getElementById('screenshot-drop-area');
