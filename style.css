@@ -4155,8 +4155,8 @@ body.dark-mode .page-hero {
 }
 
 html, body {
-  overflow-x: hidden;
-  max-width: 100vw;
+  min-width: 1200px;
+  overflow-x: auto;
 }
 
 img, iframe, canvas, video {
