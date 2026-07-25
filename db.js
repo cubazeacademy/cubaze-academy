@@ -4173,6 +4173,17 @@ class CubazeDB {
         p.id = 'PST-' + (Date.now() + idx);
         updated = true;
       }
+      const str = (p.image || '') + ' ' + (p.originalImage || '') + ' ' + (p.buttonLink || '') + ' ' + (p.targetUrl || '');
+      if (/(?:instagram\.com|instagr\.am)\/(p|reel|tv)\//i.test(str)) {
+        if (!p.isInstagram) {
+          p.isInstagram = true;
+          updated = true;
+        }
+        if (!p.displayMode) {
+          p.displayMode = 'instagram_embed';
+          updated = true;
+        }
+      }
       return p;
     });
     if (updated) {

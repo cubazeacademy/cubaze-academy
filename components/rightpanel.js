@@ -360,22 +360,22 @@ const DashboardRightPanel = {
     });
   },
 
+  _getIgShortcode: function (p) {
+    if (!p) return null;
+    const str = (p.originalImage || '') + ' ' + (p.image || '') + ' ' + (p.buttonLink || '') + ' ' + (p.targetUrl || '');
+    const match = str.match(/(?:instagram\.com|instagr\.am)\/(p|reel|tv)\/([A-Za-z0-9_-]+)/i);
+    return match ? { type: match[1].toLowerCase(), shortcode: match[2] } : null;
+  },
+
   _getPosterImgSrc: function (p) {
     if (!p) return 'cubaze-logo.png';
-    let src = p.image || p.imageUrl || p.originalImage || '';
-    const igMatch = (src + ' ' + (p.buttonLink || '')).match(/(?:instagram\.com|instagr\.am)\/(p|reel|tv)\/([A-Za-z0-9_-]+)/i);
-    if (igMatch) {
-      const shortcode = igMatch[2];
-      return `https://www.instagram.com/p/${shortcode}/media/?size=l`;
-    }
-    return src || 'cubaze-logo.png';
+    return p.image || p.imageUrl || p.originalImage || 'cubaze-logo.png';
   },
 
   _isInstagramPoster: function (p) {
     if (!p) return false;
     if (p.isInstagram) return true;
-    const str = (p.image || '') + ' ' + (p.originalImage || '') + ' ' + (p.buttonLink || '') + ' ' + (p.targetUrl || '');
-    return /(?:instagram\.com|instagr\.am)\/(p|reel|tv)\//i.test(str);
+    return !!this._getIgShortcode(p);
   },
 
   _renderPosterCard: function (posters) {
@@ -393,13 +393,24 @@ const DashboardRightPanel = {
 
     return `
       <div class="poster-card">
-        <div class="poster-slider-container" onclick="DashboardRightPanel._openFullPreview()">
+        <div class="poster-slider-container">
           ${posters.map((p, idx) => {
+            const igData = this._getIgShortcode(p);
+            const isIgEmbed = (p.displayMode === 'instagram_embed' || (!p.image || p.image.includes('instagram.com') || p.isInstagram)) && igData;
+
+            if (isIgEmbed) {
+              return `
+                <div class="poster-slide-wrapper" data-index="${idx}" style="display: ${idx === 0 ? 'block' : 'none'}; position: relative; width: 100%; height: 100%; min-height: 440px; background: var(--bg-card); overflow: hidden; border-radius: var(--radius-xl);">
+                  <iframe src="https://www.instagram.com/p/${igData.shortcode}/embed/" class="poster-ig-iframe" frameborder="0" scrolling="no" allowtransparency="true" style="width: 100%; height: 100%; min-height: 440px; border: none; border-radius: var(--radius-xl);"></iframe>
+                </div>
+              `;
+            }
+
             const imgSrc = this._getPosterImgSrc(p);
             const isIg = this._isInstagramPoster(p);
             return `
-              <div class="poster-slide-wrapper" data-index="${idx}" style="display: ${idx === 0 ? 'block' : 'none'}; position: relative; width: 100%; height: 100%;">
-                <img class="poster-slide-img" src="${imgSrc}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='cubaze-logo.png';" data-index="${idx}" style="width: 100%; height: 100%; object-fit: cover;">
+              <div class="poster-slide-wrapper" data-index="${idx}" onclick="DashboardRightPanel._openFullPreview()" style="display: ${idx === 0 ? 'block' : 'none'}; position: relative; width: 100%; height: 100%; cursor: pointer;">
+                <img class="poster-slide-img" src="${imgSrc}" onerror="this.onerror=null; this.src='cubaze-logo.png';" data-index="${idx}" style="width: 100%; height: 100%; object-fit: cover;">
                 ${isIg ? `<span class="poster-ig-badge"><i class="fa-brands fa-instagram"></i> Instagram</span>` : ''}
               </div>
             `;
