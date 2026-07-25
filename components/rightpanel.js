@@ -360,6 +360,24 @@ const DashboardRightPanel = {
     });
   },
 
+  _getPosterImgSrc: function (p) {
+    if (!p) return 'cubaze-logo.png';
+    let src = p.image || p.imageUrl || p.originalImage || '';
+    const igMatch = (src + ' ' + (p.buttonLink || '')).match(/(?:instagram\.com|instagr\.am)\/(p|reel|tv)\/([A-Za-z0-9_-]+)/i);
+    if (igMatch) {
+      const shortcode = igMatch[2];
+      return `https://www.instagram.com/p/${shortcode}/media/?size=l`;
+    }
+    return src || 'cubaze-logo.png';
+  },
+
+  _isInstagramPoster: function (p) {
+    if (!p) return false;
+    if (p.isInstagram) return true;
+    const str = (p.image || '') + ' ' + (p.originalImage || '') + ' ' + (p.buttonLink || '') + ' ' + (p.targetUrl || '');
+    return /(?:instagram\.com|instagr\.am)\/(p|reel|tv)\//i.test(str);
+  },
+
   _renderPosterCard: function (posters) {
     if (posters.length === 0) {
       return `
@@ -376,9 +394,16 @@ const DashboardRightPanel = {
     return `
       <div class="poster-card">
         <div class="poster-slider-container" onclick="DashboardRightPanel._openFullPreview()">
-          ${posters.map((p, idx) => `
-            <img class="poster-slide-img" src="${p.image}" data-index="${idx}" style="display: ${idx === 0 ? 'block' : 'none'};">
-          `).join('')}
+          ${posters.map((p, idx) => {
+            const imgSrc = this._getPosterImgSrc(p);
+            const isIg = this._isInstagramPoster(p);
+            return `
+              <div class="poster-slide-wrapper" data-index="${idx}" style="display: ${idx === 0 ? 'block' : 'none'}; position: relative; width: 100%; height: 100%;">
+                <img class="poster-slide-img" src="${imgSrc}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='cubaze-logo.png';" data-index="${idx}" style="width: 100%; height: 100%; object-fit: cover;">
+                ${isIg ? `<span class="poster-ig-badge"><i class="fa-brands fa-instagram"></i> Instagram</span>` : ''}
+              </div>
+            `;
+          }).join('')}
           
           ${showControls ? `
             <button class="poster-nav-btn prev" onclick="event.stopPropagation(); DashboardRightPanel.changeSlide(-1)"><i class="fa-solid fa-chevron-left"></i></button>
@@ -399,6 +424,11 @@ const DashboardRightPanel = {
 
   _renderPosterInfo: function (p) {
     if (!p) return '';
+    const isIg = this._isInstagramPoster(p);
+    const link = p.buttonLink || p.targetUrl;
+    const btnIcon = isIg ? 'fa-brands fa-instagram' : 'fa-solid fa-arrow-up-right-from-square';
+    const btnText = p.buttonText || (isIg ? 'View on Instagram' : 'Learn More');
+
     return `
       <div class="poster-info-title">${p.title}</div>
       ${p.shortDescription ? `<div class="poster-info-desc">${p.shortDescription}</div>` : ''}
@@ -412,9 +442,9 @@ const DashboardRightPanel = {
           </div>
         ` : ''}
         
-        ${p.buttonLink || p.targetUrl ? `
-          <a href="${p.buttonLink || p.targetUrl}" target="_blank" class="btn btn-primary btn-sm" style="margin: 0; padding: 6px 14px; font-size: 0.78rem; font-weight: 700; width: fit-content;">
-            ${p.buttonText || 'Learn More'} <i class="fa-solid fa-arrow-up-right-from-square" style="margin-left: 4px; font-size: 0.7rem;"></i>
+        ${link ? `
+          <a href="${link}" target="_blank" onclick="event.stopPropagation();" class="btn ${isIg ? 'btn-instagram' : 'btn-primary'} btn-sm" style="margin: 0; padding: 6px 14px; font-size: 0.78rem; font-weight: 700; width: fit-content; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="${btnIcon}"></i> ${btnText}
           </a>
         ` : ''}
       </div>
@@ -642,7 +672,8 @@ const DashboardRightPanel = {
     if (posters.length <= 1) return;
 
     let currentIdx = this._activeSlides[activeRole] || 0;
-    const slides = document.querySelectorAll('.poster-slide-img');
+    let slides = document.querySelectorAll('.poster-slide-wrapper');
+    if (slides.length === 0) slides = document.querySelectorAll('.poster-slide-img');
     const dots = document.querySelectorAll('.poster-dot');
     
     if (slides.length === 0) return;
@@ -673,7 +704,8 @@ const DashboardRightPanel = {
     if (posters.length <= 1) return;
 
     let currentIdx = this._activeSlides[activeRole] || 0;
-    const slides = document.querySelectorAll('.poster-slide-img');
+    let slides = document.querySelectorAll('.poster-slide-wrapper');
+    if (slides.length === 0) slides = document.querySelectorAll('.poster-slide-img');
     const dots = document.querySelectorAll('.poster-dot');
 
     if (slides.length === 0 || idx === currentIdx) return;
@@ -808,6 +840,10 @@ const DashboardRightPanel = {
     const poster = posters[currentIdx];
     if (!poster) return;
 
+    const imgSrc = this._getPosterImgSrc(poster);
+    const isIg = this._isInstagramPoster(poster);
+    const link = poster.buttonLink || poster.targetUrl;
+
     const overlay = document.createElement('div');
     overlay.className = 'adm-modal-overlay';
     overlay.id = 'poster-preview-modal';
@@ -816,12 +852,16 @@ const DashboardRightPanel = {
       <div class="adm-modal" style="max-width: 90%; width: 700px; padding: 16px; position: relative;">
         <button class="btn btn-outline-white btn-sm btn-icon" style="position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" onclick="document.getElementById('poster-preview-modal').remove()"><i class="fa-solid fa-xmark"></i></button>
         <div style="text-align: center; margin-top: 14px;">
-          <img src="${poster.image}" style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px;">
+          <div style="position: relative; display: inline-block; max-width: 100%;">
+            <img src="${imgSrc}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='cubaze-logo.png';" style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px;">
+            ${isIg ? `<span class="poster-ig-badge" style="top: 12px; left: 12px;"><i class="fa-brands fa-instagram"></i> Instagram</span>` : ''}
+          </div>
           <h3 style="margin: 16px 0 8px 0; font-size: 1.1rem;">${poster.title}</h3>
           ${poster.shortDescription ? `<p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">${poster.shortDescription}</p>` : ''}
-          ${poster.buttonLink || poster.targetUrl ? `
-            <a href="${poster.buttonLink || poster.targetUrl}" target="_blank" class="btn btn-primary" style="margin-top: 8px;">
-              ${poster.buttonText || 'Learn More'} <i class="fa-solid fa-arrow-up-right-from-square" style="margin-left: 6px;"></i>
+          ${link ? `
+            <a href="${link}" target="_blank" class="btn ${isIg ? 'btn-instagram' : 'btn-primary'}" style="margin-top: 8px;">
+              <i class="${isIg ? 'fa-brands fa-instagram' : 'fa-solid fa-arrow-up-right-from-square'}" style="margin-right: 6px;"></i>
+              ${poster.buttonText || (isIg ? 'View on Instagram' : 'Learn More')}
             </a>
           ` : ''}
         </div>

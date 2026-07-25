@@ -3991,18 +3991,19 @@ const AdminComponent = {
     overlay.innerHTML = `
       <div class="adm-modal" style="max-width:500px; text-align:left;">
         <h3><i class="fa-solid fa-image" style="color:var(--brand-blue); margin-right:8px;"></i>${posterId ? 'Edit Dashboard Poster' : 'Add Dashboard Poster'}</h3>
-        <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:20px;">Paste a link of the poster image and set up target links or event countdowns.</p>
+        <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:20px;">Paste a link of the poster image (direct image URL or Instagram Post/Reel link) and set up target links or event countdowns.</p>
         
         <form id="form-manage-poster">
           <div class="form-group" style="margin-bottom:14px;">
             <label>Poster Title *</label>
-            <input type="text" id="post-title" required value="${poster ? poster.title : ''}" placeholder="e.g. 50% Off sculpting masterclass" style="font-family:inherit;">
+            <input type="text" id="post-title" required value="${poster ? poster.title : ''}" placeholder="e.g. Freshers Party / Masterclass" style="font-family:inherit;">
           </div>
           
           <div class="form-group" style="margin-bottom:14px;">
-            <label>Poster Image Link (URL) *</label>
-            <input type="url" id="post-image-url" required value="${poster ? (poster.image || poster.imageUrl || '') : ''}" placeholder="https://example.com/poster.jpg" style="font-family:inherit;">
-            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">Paste the direct link to the image poster (PNG, JPG, WEBP).</div>
+            <label>Poster Image Link (URL) or Instagram Post Link *</label>
+            <input type="url" id="post-image-url" required value="${poster ? (poster.originalImage || poster.image || poster.imageUrl || '') : ''}" placeholder="https://example.com/poster.jpg or https://www.instagram.com/p/..." style="font-family:inherit;">
+            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">Supports direct image links (PNG, JPG, WEBP) <strong>and Instagram Post / Reel URLs</strong> (e.g. https://www.instagram.com/p/XXXXX/).</div>
+            <div id="ig-detection-notice" style="display:none; margin-top:6px; font-size:0.75rem; color:var(--brand-blue); font-weight:600;"></div>
           </div>
           
           <div class="form-group" style="margin-bottom:14px;">
@@ -4012,12 +4013,12 @@ const AdminComponent = {
 
           <div class="form-group" style="margin-bottom:14px;">
             <label>Button Link / Target URL (Optional)</label>
-            <input type="url" id="post-url" value="${poster ? (poster.buttonLink || poster.targetUrl || '') : ''}" placeholder="https://cubaze.in/..." style="font-family:inherit;">
+            <input type="url" id="post-url" value="${poster ? (poster.buttonLink || poster.targetUrl || '') : ''}" placeholder="https://cubaze.in/... or Instagram post link" style="font-family:inherit;">
           </div>
 
           <div class="form-group" style="margin-bottom:14px;">
             <label>Button Text (Optional)</label>
-            <input type="text" id="post-btn-text" value="${poster ? (poster.buttonText || '') : 'Learn More'}" placeholder="e.g. Learn More" style="font-family:inherit;">
+            <input type="text" id="post-btn-text" value="${poster ? (poster.buttonText || '') : 'Learn More'}" placeholder="e.g. Learn More or View on Instagram" style="font-family:inherit;">
           </div>
 
           <div class="form-group" style="margin-bottom:14px;">
@@ -4041,6 +4042,35 @@ const AdminComponent = {
 
     document.body.appendChild(overlay);
 
+    const imgInput = overlay.querySelector('#post-image-url');
+    const targetUrlInput = overlay.querySelector('#post-url');
+    const btnTextInput = overlay.querySelector('#post-btn-text');
+    const noticeDiv = overlay.querySelector('#ig-detection-notice');
+
+    const handleIgCheck = () => {
+      const val = imgInput.value.trim();
+      const igMatch = val.match(/(?:instagram\.com|instagr\.am)\/(p|reel|tv)\/([A-Za-z0-9_-]+)/i);
+      if (igMatch) {
+        const type = igMatch[1].toLowerCase();
+        const shortcode = igMatch[2];
+        const igPostUrl = `https://www.instagram.com/${type}/${shortcode}/`;
+        noticeDiv.style.display = 'block';
+        noticeDiv.innerHTML = `<i class="fa-brands fa-instagram" style="color:#E1306C; margin-right:4px;"></i> Instagram Post detected! Cover photo & target link configured automatically.`;
+        if (!targetUrlInput.value.trim()) {
+          targetUrlInput.value = igPostUrl;
+        }
+        if (!btnTextInput.value.trim() || btnTextInput.value === 'Learn More') {
+          btnTextInput.value = 'View on Instagram';
+        }
+      } else {
+        noticeDiv.style.display = 'none';
+      }
+    };
+
+    imgInput.addEventListener('input', handleIgCheck);
+    imgInput.addEventListener('paste', () => setTimeout(handleIgCheck, 50));
+    handleIgCheck();
+
     overlay.addEventListener('click', e => {
       if (e.target === overlay) overlay.remove();
     });
@@ -4055,7 +4085,7 @@ const AdminComponent = {
 
       try {
         const title = overlay.querySelector('#post-title').value.trim();
-        const image = overlay.querySelector('#post-image-url').value.trim();
+        const rawImage = overlay.querySelector('#post-image-url').value.trim();
         const shortDescription = overlay.querySelector('#post-desc').value.trim();
         const buttonLink = overlay.querySelector('#post-url').value.trim();
         const buttonText = overlay.querySelector('#post-btn-text').value.trim();
@@ -4067,17 +4097,33 @@ const AdminComponent = {
           formattedButtonLink = 'https://' + formattedButtonLink;
         }
 
-        let formattedImage = image;
+        let formattedImage = rawImage;
         if (formattedImage && !/^https?:\/\//i.test(formattedImage)) {
           formattedImage = 'https://' + formattedImage;
+        }
+
+        // Instagram URL processing
+        let isIg = false;
+        const igMatch = formattedImage.match(/(?:instagram\.com|instagr\.am)\/(p|reel|tv)\/([A-Za-z0-9_-]+)/i);
+        if (igMatch) {
+          isIg = true;
+          const type = igMatch[1].toLowerCase();
+          const shortcode = igMatch[2];
+          const igPostUrl = `https://www.instagram.com/${type}/${shortcode}/`;
+          formattedImage = `https://www.instagram.com/p/${shortcode}/media/?size=l`;
+          if (!formattedButtonLink) {
+            formattedButtonLink = igPostUrl;
+          }
         }
 
         const posterData = {
           title,
           image: formattedImage,
+          originalImage: rawImage,
+          isInstagram: isIg || /(?:instagram\.com|instagr\.am)/i.test(formattedButtonLink),
           shortDescription,
           buttonLink: formattedButtonLink,
-          buttonText: formattedButtonLink ? buttonText || 'Learn More' : '',
+          buttonText: formattedButtonLink ? (buttonText || (isIg ? 'View on Instagram' : 'Learn More')) : '',
           eventDate: eventDate || '',
           status: isPublished ? 'Published' : 'Draft',
           isActive: isPublished,

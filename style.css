@@ -752,6 +752,38 @@ body.mobile-nav-active {
   transform: translateY(-1px);
 }
 
+.btn-instagram {
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(220, 39, 67, 0.3);
+  border: none;
+}
+
+.btn-instagram:hover {
+  background: linear-gradient(45deg, #e08423 0%, #d6582c 25%, #cc1733 50%, #bc1356 75%, #ac0878 100%);
+  box-shadow: 0 6px 16px rgba(220, 39, 67, 0.45);
+  transform: translateY(-1px);
+  color: #ffffff !important;
+}
+
+.poster-ig-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  z-index: 5;
+  letter-spacing: 0.02em;
+}
+
 .btn-outline {
   background: transparent;
   color: var(--brand-blue);
