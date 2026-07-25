@@ -336,31 +336,58 @@ class CubazeApp {
   initMobileNav() {
     const btn = document.getElementById('mobile-menu-btn');
     const nav = document.getElementById('mobile-nav');
+    const backdrop = document.getElementById('mobile-nav-backdrop');
     const icon = document.getElementById('hamburger-icon');
+
+    const closeNav = () => {
+      nav?.classList.remove('open');
+      backdrop?.classList.remove('open');
+      document.body.classList.remove('mobile-nav-active');
+      if (icon) {
+        icon.className = 'fa-solid fa-bars';
+      }
+    };
+
+    const openNav = () => {
+      nav?.classList.add('open');
+      backdrop?.classList.add('open');
+      document.body.classList.add('mobile-nav-active');
+      if (icon) {
+        icon.className = 'fa-solid fa-xmark';
+      }
+    };
 
     btn?.addEventListener('click', e => {
       e.stopPropagation();
-      nav?.classList.toggle('open');
       if (nav?.classList.contains('open')) {
-        icon?.classList.remove('fa-bars'); icon?.classList.add('fa-xmark');
+        closeNav();
       } else {
-        icon?.classList.remove('fa-xmark'); icon?.classList.add('fa-bars');
+        openNav();
       }
     });
 
+    backdrop?.addEventListener('click', () => {
+      closeNav();
+    });
+
     // Close on nav link click
-    nav?.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('click', () => {
-        nav.classList.remove('open');
-        icon?.classList.remove('fa-xmark'); icon?.classList.add('fa-bars');
+    nav?.querySelectorAll('.nav-link, button').forEach(el => {
+      el.addEventListener('click', () => {
+        closeNav();
       });
+    });
+
+    // Close on window resize if expanded to desktop width
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768 && nav?.classList.contains('open')) {
+        closeNav();
+      }
     });
 
     // Close on outside click
     document.addEventListener('click', e => {
       if (nav?.classList.contains('open') && !btn?.contains(e.target) && !nav.contains(e.target)) {
-        nav.classList.remove('open');
-        icon?.classList.remove('fa-xmark'); icon?.classList.add('fa-bars');
+        closeNav();
       }
     });
   }
