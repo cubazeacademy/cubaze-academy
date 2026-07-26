@@ -2052,9 +2052,9 @@ class CubazeDB {
     }
 
     return userSessions.find(s => s.username.toLowerCase() === username.toLowerCase() && s.status === 'Active');
-  },
+  }
 
-  detectDeviceInfoAndLocation: async function () {
+  async detectDeviceInfoAndLocation() {
     const ua = navigator.userAgent || "";
     let browser = "Google Chrome";
     if (ua.includes("Firefox/")) browser = "Mozilla Firefox";
@@ -2110,7 +2110,7 @@ class CubazeDB {
     }
 
     return { browser, os, deviceName, location };
-  },
+  }
 
   registerUser(username, password, name, role = "student", phone = "") {
     const users = this.getUsers();
@@ -2119,7 +2119,7 @@ class CubazeDB {
     users.push(newUser);
     this.setItemAndSync("cubaze_users", users);
     return { success: true, user: newUser };
-  },
+  }
 
   async loginUserAsync(username, password) {
     const users = this.getUsers();
@@ -2206,7 +2206,7 @@ class CubazeDB {
     this.sendSuccessfulLoginEmail(user, info);
 
     return { success: true, user, session: newSession };
-  },
+  }
 
   loginUser(username, password) {
     const users = this.getUsers();
@@ -2255,11 +2255,11 @@ class CubazeDB {
     this.initSupabase();
 
     return { success: true, user, session: newSession };
-  },
+  }
 
   login(username, password) {
     return this.loginUser(username, password);
-  },
+  }
 
   updateSessionPulse() {
     const token = localStorage.getItem("cubaze_session_token");
@@ -2279,7 +2279,7 @@ class CubazeDB {
     session.lastActivity = new Date().toISOString();
     this.setSessions(sessions);
     return true;
-  },
+  }
 
   forceLogoutSession(sessionId) {
     const sessions = this.getSessions();
@@ -2291,7 +2291,7 @@ class CubazeDB {
       return { success: true };
     }
     return { success: false, error: "Session not found." };
-  },
+  }
 
   sendSuccessfulLoginEmail(user, info) {
     const timeStr = new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' });
@@ -2301,7 +2301,7 @@ class CubazeDB {
       subject: "New Login to Your Cubaze Academy Account",
       body: `Hi ${user.name},\n\nA new login to your Cubaze Academy account was detected.\n\nDevice: ${info.deviceName}\nBrowser: ${info.browser}\nOS: ${info.os}\nIP Address: ${info.location.ip}\nLocation: ${info.location.city}, ${info.location.state}, ${info.location.country}\nLogin Time: ${timeStr}\n\nIf this was you, no action is needed.`
     });
-  },
+  }
 
   sendBlockedLoginEmail(user, info, activeSession) {
     const timeStr = new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' });
@@ -2311,15 +2311,15 @@ class CubazeDB {
       subject: "Blocked Login Attempt on Your Cubaze Academy Account",
       body: `Hi ${user.name},\n\nA login attempt was blocked because your account is already active on another device.\n\nAttempted Device: ${info.deviceName}\nBrowser: ${info.browser}\nLocation: ${info.location.city}, ${info.location.state}, ${info.location.country}\nTime: ${timeStr}\n\nCurrently Active Session:\nDevice: ${activeSession.deviceName}\nBrowser: ${activeSession.browser}\nLocation: ${activeSession.city}, ${activeSession.state}, ${activeSession.country}\n\nIf this was not you, please contact Cubaze Academy support immediately.`
     });
-  },
+  }
 
-  getCurrentUser() { return JSON.parse(localStorage.getItem("cubaze_current_user")) || null; },
+  getCurrentUser() { return JSON.parse(localStorage.getItem("cubaze_current_user")) || null; }
 
   setCurrentUser(user) {
     if (user) localStorage.setItem("cubaze_current_user", JSON.stringify(user));
     else localStorage.removeItem("cubaze_current_user");
     this.initSupabase();
-  },
+  }
 
   logout() {
     const token = localStorage.getItem("cubaze_session_token");
@@ -2335,7 +2335,7 @@ class CubazeDB {
     localStorage.removeItem("cubaze_current_user");
     localStorage.removeItem("cubaze_session_token");
     this.initSupabase();
-  },
+  }
 
   updateUser(username, updates) {
     const users = this.getUsers();
