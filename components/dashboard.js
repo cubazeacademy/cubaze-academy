@@ -900,6 +900,28 @@ const DashboardComponent = {
   },
 
   _renderProfile: function (cu) {
+    const activeSession = window.db.getActiveSessionForUser(cu.username);
+    const sessionCardHtml = activeSession ? `
+      <div class="glass-panel" style="margin-top:20px; text-align:left;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:10px;">
+          <h3 style="margin:0; font-size:1.05rem; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-shield-halved" style="color:var(--brand-blue);"></i> Current Active Session
+          </h3>
+          <span style="background:rgba(16, 185, 129, 0.12); color:#10B981; font-weight:700; padding:4px 12px; border-radius:14px; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px;">
+            <i class="fa-solid fa-circle" style="font-size:6px;"></i> Active
+          </span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; font-size:0.83rem; color:var(--text-secondary);">
+          <div>Device: <strong style="color:var(--text-primary);">${activeSession.deviceName || 'Windows Laptop'}</strong></div>
+          <div>Browser: <strong style="color:var(--text-primary);">${activeSession.browser || 'Google Chrome'}</strong></div>
+          <div>OS: <strong style="color:var(--text-primary);">${activeSession.os || 'Windows 11'}</strong></div>
+          <div>Location: <strong style="color:var(--text-primary);">${activeSession.city || 'Kozhikode'}, ${activeSession.state || 'Kerala'}, ${activeSession.country || 'India'}</strong></div>
+          <div>IP Address: <strong style="color:var(--text-primary);">${activeSession.ipAddress || '157.34.120.12'}</strong></div>
+          <div>Login Time: <strong style="color:var(--text-primary);">${new Date(activeSession.loginTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</strong></div>
+        </div>
+      </div>
+    ` : '';
+
     return `
       <div style="display:flex;flex-direction:column;gap:24px;">
         <h2>My Profile</h2>

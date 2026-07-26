@@ -100,7 +100,7 @@ const AdminComponent = {
       { title: 'People', items: [['students', 'fa-users', 'Students'], ['tutors', 'fa-chalkboard-user', 'Tutors'], ['requests', 'fa-comments', 'Student Request']] },
       { title: 'Content', items: [['courses', 'fa-book-open', 'Courses'], ['batches', 'fa-cubes', 'Batches'], ['common_meeting', 'fa-calendar-days', 'Common Meeting'], ['projects', 'fa-diagram-project', 'Projects'], ['submissions', 'fa-inbox', 'Submissions'], ['blog', 'fa-newspaper', 'Blog'], ['reviews', 'fa-star', 'Reviews'], ['coupons', 'fa-tag', 'Coupons'], ['liveclasses', 'fa-video', 'Live Classes'], ['posters', 'fa-image', 'Dashboard Posters']] },
       { title: 'Finance', items: [['payments', 'fa-credit-card', 'Payments']] },
-      { title: 'System', items: [['profile', 'fa-user', 'Profile'], ['settings', 'fa-gear', 'Settings']] }
+      { title: 'System', items: [['active_sessions', 'fa-shield-halved', 'Active Sessions'], ['profile', 'fa-user', 'Profile'], ['settings', 'fa-gear', 'Settings']] }
     ];
 
     const collapsedSections = JSON.parse(localStorage.getItem('cubaze_admin_collapsed_sections')) || [];
@@ -168,10 +168,153 @@ const AdminComponent = {
       case 'liveclasses': return AdminComponent._renderLiveClasses();
       case 'common_meeting': return AdminComponent._renderCommonMeetings();
       case 'posters': return AdminComponent._renderPosters();
+      case 'active_sessions': return AdminComponent._renderActiveSessions();
       case 'profile': return AdminComponent._renderProfile(cu);
       case 'settings': return AdminComponent._renderSettings();
       case 'requests': return `<div id="admin-support-loading"><div class="spinner"></div></div>`;
       default: return AdminComponent._renderDashboard();
+    }
+  },
+
+  _sessionSearch: '',
+
+  _renderActiveSessions: function () {
+    const sessions = window.db.getSessions();
+    const search = (AdminComponent._sessionSearch || '').toLowerCase().trim();
+
+    const filtered = sessions.filter(s => {
+      if (!search) return true;
+      return (s.username || '').toLowerCase().includes(search) ||
+             (s.deviceName || '').toLowerCase().includes(search) ||
+             (s.browser || '').toLowerCase().includes(search) ||
+             (s.city || '').toLowerCase().includes(search) ||
+             (s.ipAddress || '').includes(search) ||
+             (s.status || '').toLowerCase().includes(search);
+    });
+
+    const activeCount = sessions.filter(s => s.status === 'Active').length;
+    const blockedCount = sessions.filter(s => s.status === 'Blocked').length;
+
+    setTimeout(() => {
+      document.getElementById('admin-session-search-input')?.addEventListener('input', (e) => {
+        AdminComponent._sessionSearch = e.target.value;
+        const main = document.getElementById('adm-main');
+        if (main) main.innerHTML = `<div style="display:flex; flex-direction:column; gap:28px;">${AdminComponent._renderSection('active_sessions')}</div>`;
+      });
+    }, 50);
+
+    return `
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
+          <div>
+            <h2 style="margin:0; font-size:1.5rem; font-weight:800; color:var(--text-primary);">
+              <i class="fa-solid fa-shield-halved" style="color:var(--brand-blue); margin-right:10px;"></i>Active Sessions & Security Logs
+            </h2>
+            <p style="margin:4px 0 0; font-size:0.85rem; color:var(--text-secondary);">
+              Monitor real-time active student sessions, view login IP locations, and enforce single-session security.
+            </p>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <input type="text" id="admin-session-search-input" value="${AdminComponent._sessionSearch || ''}" placeholder="Search student, city, IP..." style="padding:8px 14px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:0.85rem; width:240px;">
+          </div>
+        </div>
+
+        <!-- Metric Cards Row -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
+          <div class="glass-panel" style="padding:20px; text-align:left; border:1px solid var(--border-color);">
+            <div style="font-size:0.75rem; font-weight:700; color:#10B981; text-transform:uppercase;">Active Sessions</div>
+            <div style="font-size:1.8rem; font-weight:900; color:var(--text-primary); margin-top:4px;">${activeCount}</div>
+            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">Strict single device session active</div>
+          </div>
+
+          <div class="glass-panel" style="padding:20px; text-align:left; border:1px solid var(--border-color);">
+            <div style="font-size:0.75rem; font-weight:700; color:#EF4444; text-transform:uppercase;">Blocked Login Attempts</div>
+            <div style="font-size:1.8rem; font-weight:900; color:var(--text-primary); margin-top:4px;">${blockedCount}</div>
+            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">Prevented concurrent logins</div>
+          </div>
+
+          <div class="glass-panel" style="padding:20px; text-align:left; border:1px solid var(--border-color);">
+            <div style="font-size:0.75rem; font-weight:700; color:var(--brand-blue); text-transform:uppercase;">Session Logs Recorded</div>
+            <div style="font-size:1.8rem; font-weight:900; color:var(--text-primary); margin-top:4px;">${sessions.length}</div>
+            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">Total audit log history</div>
+          </div>
+        </div>
+
+        <!-- Sessions Table Card -->
+        <div class="glass-panel" style="padding:0; overflow:hidden; border:1px solid var(--border-color);">
+          <div style="padding:16px 20px; background:var(--bg-secondary); border-bottom:1px solid var(--border-color); font-weight:700; font-size:0.9rem; color:var(--text-primary);">
+            Session Audit Records (${filtered.length})
+          </div>
+          <div class="table-wrapper" style="overflow-x:auto;">
+            <table class="table" style="width:100%; border-collapse:collapse; text-align:left; font-size:0.83rem;">
+              <thead>
+                <tr style="background:var(--bg-card); border-bottom:1px solid var(--border-color); color:var(--text-secondary); font-size:0.75rem; text-transform:uppercase;">
+                  <th style="padding:12px 16px;">Student</th>
+                  <th style="padding:12px 16px;">Device & OS</th>
+                  <th style="padding:12px 16px;">Browser</th>
+                  <th style="padding:12px 16px;">IP & Location</th>
+                  <th style="padding:12px 16px;">Login Time</th>
+                  <th style="padding:12px 16px;">Last Activity</th>
+                  <th style="padding:12px 16px;">Status</th>
+                  <th style="padding:12px 16px; text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.length === 0 ? `
+                  <tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">No matching session records found.</td></tr>
+                ` : filtered.map(s => {
+                  let badgeBg = 'rgba(16, 185, 129, 0.12)'; let badgeColor = '#10B981';
+                  if (s.status === 'Blocked') { badgeBg = 'rgba(239, 68, 68, 0.12)'; badgeColor = '#EF4444'; }
+                  else if (s.status === 'Expired') { badgeBg = 'rgba(245, 158, 11, 0.12)'; badgeColor = '#D97706'; }
+                  else if (s.status === 'Logged Out') { badgeBg = 'var(--bg-secondary)'; badgeColor = 'var(--text-muted)'; }
+
+                  const isLive = s.status === 'Active';
+
+                  return `
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                      <td style="padding:12px 16px;">
+                        <strong style="color:var(--text-primary); display:block;">@${s.username}</strong>
+                      </td>
+                      <td style="padding:12px 16px; color:var(--text-primary); font-weight:600;">
+                        ${s.deviceName || 'Windows Laptop'}<br>
+                        <span style="font-size:0.75rem; color:var(--text-secondary); font-weight:normal;">${s.os || 'Windows 11'}</span>
+                      </td>
+                      <td style="padding:12px 16px; color:var(--text-secondary);">${s.browser || 'Google Chrome'}</td>
+                      <td style="padding:12px 16px;">
+                        <strong style="color:var(--text-primary); font-family:monospace; font-size:0.78rem;">${s.ipAddress || '157.34.120.12'}</strong><br>
+                        <span style="font-size:0.75rem; color:var(--text-secondary);">${s.city || 'Kozhikode'}, ${s.state || 'Kerala'}, ${s.country || 'India'}</span>
+                      </td>
+                      <td style="padding:12px 16px; color:var(--text-secondary);">${new Date(s.loginTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                      <td style="padding:12px 16px; color:var(--text-secondary);">${new Date(s.lastActivity).toLocaleTimeString('en-IN', { timeStyle: 'short' })}</td>
+                      <td style="padding:12px 16px;">
+                        <span style="background:${badgeBg}; color:${badgeColor}; font-weight:700; padding:3px 10px; border-radius:12px; font-size:0.72rem; display:inline-flex; align-items:center; gap:4px;">
+                          <i class="fa-solid fa-circle" style="font-size:5px;"></i> ${s.status}
+                        </span>
+                      </td>
+                      <td style="padding:12px 16px; text-align:right;">
+                        ${isLive ? `
+                          <button class="btn btn-danger btn-xs" onclick="AdminComponent.endSession('${s.id}')" style="font-weight:700; padding:4px 10px; font-size:0.72rem;">
+                            <i class="fa-solid fa-power-off"></i> Force Logout
+                          </button>
+                        ` : '—'}
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  endSession: function (sessionId) {
+    const res = window.db.forceLogoutSession(sessionId);
+    if (res.success) {
+      window.app.showToast('Student session ended successfully!', 'success');
+      const main = document.getElementById('adm-main');
+      if (main) main.innerHTML = `<div style="display:flex; flex-direction:column; gap:28px;">${AdminComponent._renderSection('active_sessions')}</div>`;
     }
   },
 

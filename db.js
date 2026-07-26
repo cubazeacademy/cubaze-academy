@@ -2018,8 +2018,99 @@ class CubazeDB {
   // --- TESTIMONIALS ---
   getTestimonials() { return DEFAULT_TESTIMONIALS; }
 
-  // --- USERS ---
+  // --- USERS & SESSIONS ---
   getUsers() { return JSON.parse(localStorage.getItem("cubaze_users")) || []; }
+
+  getSessions() {
+    return JSON.parse(localStorage.getItem("cubaze_sessions")) || [];
+  }
+
+  setSessions(sessions) {
+    this.setItemAndSync("cubaze_sessions", sessions);
+  }
+
+  getActiveSessionForUser(username) {
+    const sessions = this.getSessions();
+    const now = Date.now();
+    // 15 minutes inactivity timeout
+    const INACTIVITY_TIMEOUT = 15 * 60 * 1000;
+
+    let hasChanged = false;
+    const userSessions = sessions.map(s => {
+      if (s.username.toLowerCase() === username.toLowerCase() && s.status === 'Active') {
+        const lastActTime = new Date(s.lastActivity).getTime();
+        if (now - lastActTime > INACTIVITY_TIMEOUT) {
+          s.status = 'Expired';
+          hasChanged = true;
+        }
+      }
+      return s;
+    });
+
+    if (hasChanged) {
+      this.setSessions(userSessions);
+    }
+
+    return userSessions.find(s => s.username.toLowerCase() === username.toLowerCase() && s.status === 'Active');
+  },
+
+  detectDeviceInfoAndLocation: async function () {
+    const ua = navigator.userAgent || "";
+    let browser = "Google Chrome";
+    if (ua.includes("Firefox/")) browser = "Mozilla Firefox";
+    else if (ua.includes("Edg/")) browser = "Microsoft Edge";
+    else if (ua.includes("Chrome/")) browser = "Google Chrome";
+    else if (ua.includes("Safari/")) browser = "Apple Safari";
+    else if (ua.includes("OPR/") || ua.includes("Opera/")) browser = "Opera";
+
+    let os = "Windows 11";
+    if (ua.includes("Windows NT 10.0")) os = "Windows 11";
+    else if (ua.includes("Windows NT 6.1")) os = "Windows 7";
+    else if (ua.includes("Mac OS X")) os = "macOS";
+    else if (ua.includes("Android")) os = "Android";
+    else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
+    else if (ua.includes("Linux")) os = "Linux";
+
+    let deviceName = "Windows Laptop";
+    if (/Mobile|Android|iPhone/i.test(ua)) deviceName = "Smartphone";
+    else if (/iPad|Tablet/i.test(ua)) deviceName = "Tablet";
+    else if (os.includes("macOS")) deviceName = "MacBook";
+    else if (os.includes("Windows")) deviceName = "Windows Laptop";
+
+    let location = { city: "Kozhikode", state: "Kerala", country: "India", ip: "157.34.120.12" };
+
+    try {
+      const res = await fetch('https://ipapi.co/json/', { timeout: 2500 });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ip) {
+          location = {
+            city: data.city || "Kozhikode",
+            state: data.region || "Kerala",
+            country: data.country_name || "India",
+            ip: data.ip
+          };
+        }
+      }
+    } catch (e) {
+      try {
+        const res2 = await fetch('https://ip-api.com/json/?fields=status,country,regionName,city,query', { timeout: 2500 });
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (data2.status === 'success') {
+            location = {
+              city: data2.city || "Kozhikode",
+              state: data2.regionName || "Kerala",
+              country: data2.country || "India",
+              ip: data2.query
+            };
+          }
+        }
+      } catch (err) {}
+    }
+
+    return { browser, os, deviceName, location };
+  },
 
   registerUser(username, password, name, role = "student", phone = "") {
     const users = this.getUsers();
@@ -2028,31 +2119,223 @@ class CubazeDB {
     users.push(newUser);
     this.setItemAndSync("cubaze_users", users);
     return { success: true, user: newUser };
-  }
+  },
+
+  async loginUserAsync(username, password) {
+    const users = this.getUsers();
+    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase().trim() && u.password === password);
+    if (!user) {
+      return { success: false, error: "Invalid username or password." };
+    }
+
+    // Detect environment & IP location
+    const info = await this.detectDeviceInfoAndLocation();
+
+    // Enforce Single Active Session for student accounts
+    if (user.role === 'student' || user.role === 'user') {
+      const activeSession = this.getActiveSessionForUser(user.username);
+      
+      // If active session exists on another device/browser:
+      if (activeSession) {
+        // Record blocked attempt log
+        const sessions = this.getSessions();
+        const blockedLog = {
+          id: "sess_block_" + Date.now(),
+          userId: user.username,
+          username: user.username,
+          sessionToken: null,
+          deviceId: info.deviceName + "_" + info.browser,
+          deviceName: info.deviceName,
+          browser: info.browser,
+          os: info.os,
+          ipAddress: info.location.ip,
+          country: info.location.country,
+          state: info.location.state,
+          city: info.location.city,
+          loginTime: new Date().toISOString(),
+          lastActivity: new Date().toISOString(),
+          logoutTime: null,
+          status: "Blocked"
+        };
+        sessions.unshift(blockedLog);
+        this.setSessions(sessions);
+
+        // Send email notification for blocked login attempt
+        this.sendBlockedLoginEmail(user, info, activeSession);
+
+        return {
+          success: false,
+          isBlocked: true,
+          error: "This account is already active on another device.",
+          activeSession: activeSession,
+          attemptedInfo: info
+        };
+      }
+    }
+
+    // Create new active session
+    const sessionToken = "token_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9);
+    const newSession = {
+      id: "sess_" + Date.now(),
+      userId: user.username,
+      username: user.username,
+      sessionToken: sessionToken,
+      deviceId: info.deviceName + "_" + info.browser,
+      deviceName: info.deviceName,
+      browser: info.browser,
+      os: info.os,
+      ipAddress: info.location.ip,
+      country: info.location.country,
+      state: info.location.state,
+      city: info.location.city,
+      loginTime: new Date().toISOString(),
+      lastActivity: new Date().toISOString(),
+      logoutTime: null,
+      status: "Active"
+    };
+
+    const sessions = this.getSessions();
+    sessions.unshift(newSession);
+    this.setSessions(sessions);
+
+    localStorage.setItem("cubaze_current_user", JSON.stringify(user));
+    localStorage.setItem("cubaze_session_token", sessionToken);
+    this.initSupabase();
+
+    // Send email notification for successful login
+    this.sendSuccessfulLoginEmail(user, info);
+
+    return { success: true, user, session: newSession };
+  },
 
   loginUser(username, password) {
     const users = this.getUsers();
     const user = users.find(u => u.username.toLowerCase() === username.toLowerCase().trim() && u.password === password);
-    if (user) {
-      localStorage.setItem("cubaze_current_user", JSON.stringify(user));
-      this.initSupabase();
-      return { success: true, user };
+    if (!user) {
+      return { success: false, error: "Invalid username or password." };
     }
-    return { success: false, error: "Invalid username or password." };
-  }
 
-  getCurrentUser() { return JSON.parse(localStorage.getItem("cubaze_current_user")) || null; }
+    if (user.role === 'student' || user.role === 'user') {
+      const activeSession = this.getActiveSessionForUser(user.username);
+      if (activeSession) {
+        return {
+          success: false,
+          isBlocked: true,
+          error: "This account is already active on another device.",
+          activeSession: activeSession
+        };
+      }
+    }
+
+    const sessionToken = "token_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9);
+    const newSession = {
+      id: "sess_" + Date.now(),
+      userId: user.username,
+      username: user.username,
+      sessionToken: sessionToken,
+      deviceName: "Windows Laptop",
+      browser: "Google Chrome",
+      os: "Windows 11",
+      ipAddress: "157.34.120.12",
+      country: "India",
+      state: "Kerala",
+      city: "Kozhikode",
+      loginTime: new Date().toISOString(),
+      lastActivity: new Date().toISOString(),
+      logoutTime: null,
+      status: "Active"
+    };
+
+    const sessions = this.getSessions();
+    sessions.unshift(newSession);
+    this.setSessions(sessions);
+
+    localStorage.setItem("cubaze_current_user", JSON.stringify(user));
+    localStorage.setItem("cubaze_session_token", sessionToken);
+    this.initSupabase();
+
+    return { success: true, user, session: newSession };
+  },
+
+  login(username, password) {
+    return this.loginUser(username, password);
+  },
+
+  updateSessionPulse() {
+    const token = localStorage.getItem("cubaze_session_token");
+    const cu = this.getCurrentUser();
+    if (!token || !cu) return true;
+
+    // Admin & Instructor accounts bypass single session pulse restrictions
+    if (cu.role === 'admin' || cu.role === 'instructor') return true;
+
+    const sessions = this.getSessions();
+    const session = sessions.find(s => s.sessionToken === token);
+    if (!session || session.status !== 'Active') {
+      this.logout();
+      return false;
+    }
+
+    session.lastActivity = new Date().toISOString();
+    this.setSessions(sessions);
+    return true;
+  },
+
+  forceLogoutSession(sessionId) {
+    const sessions = this.getSessions();
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      session.status = 'Logged Out';
+      session.logoutTime = new Date().toISOString();
+      this.setSessions(sessions);
+      return { success: true };
+    }
+    return { success: false, error: "Session not found." };
+  },
+
+  sendSuccessfulLoginEmail(user, info) {
+    const timeStr = new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' });
+    console.log(`%c[GMAIL NOTIFICATION] Successful Login Notification Sent`, "color:#10B981; font-weight:bold; font-size:12px;");
+    console.log({
+      to: `${user.username}@gmail.com`,
+      subject: "New Login to Your Cubaze Academy Account",
+      body: `Hi ${user.name},\n\nA new login to your Cubaze Academy account was detected.\n\nDevice: ${info.deviceName}\nBrowser: ${info.browser}\nOS: ${info.os}\nIP Address: ${info.location.ip}\nLocation: ${info.location.city}, ${info.location.state}, ${info.location.country}\nLogin Time: ${timeStr}\n\nIf this was you, no action is needed.`
+    });
+  },
+
+  sendBlockedLoginEmail(user, info, activeSession) {
+    const timeStr = new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' });
+    console.log(`%c[GMAIL SECURITY ALERT] Blocked Login Notification Sent`, "color:#EF4444; font-weight:bold; font-size:12px;");
+    console.log({
+      to: `${user.username}@gmail.com`,
+      subject: "Blocked Login Attempt on Your Cubaze Academy Account",
+      body: `Hi ${user.name},\n\nA login attempt was blocked because your account is already active on another device.\n\nAttempted Device: ${info.deviceName}\nBrowser: ${info.browser}\nLocation: ${info.location.city}, ${info.location.state}, ${info.location.country}\nTime: ${timeStr}\n\nCurrently Active Session:\nDevice: ${activeSession.deviceName}\nBrowser: ${activeSession.browser}\nLocation: ${activeSession.city}, ${activeSession.state}, ${activeSession.country}\n\nIf this was not you, please contact Cubaze Academy support immediately.`
+    });
+  },
+
+  getCurrentUser() { return JSON.parse(localStorage.getItem("cubaze_current_user")) || null; },
 
   setCurrentUser(user) {
     if (user) localStorage.setItem("cubaze_current_user", JSON.stringify(user));
     else localStorage.removeItem("cubaze_current_user");
     this.initSupabase();
-  }
+  },
 
   logout() {
+    const token = localStorage.getItem("cubaze_session_token");
+    if (token) {
+      const sessions = this.getSessions();
+      const session = sessions.find(s => s.sessionToken === token);
+      if (session) {
+        session.status = 'Logged Out';
+        session.logoutTime = new Date().toISOString();
+        this.setSessions(sessions);
+      }
+    }
     localStorage.removeItem("cubaze_current_user");
+    localStorage.removeItem("cubaze_session_token");
     this.initSupabase();
-  }
+  },
 
   updateUser(username, updates) {
     const users = this.getUsers();

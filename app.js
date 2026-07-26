@@ -10,6 +10,7 @@ class CubazeApp {
     this.bindDarkMode();
     this.initMobileNav();
     this.updateNavbarAuth();
+    this.initSessionPulse();
     this.renderRoute();
     this.initCommonMeetingScheduler();
   }
@@ -199,11 +200,24 @@ class CubazeApp {
     tabRegister?.addEventListener('click', () => this._switchAuthTab(false));
 
     // Login form
-    formLogin?.addEventListener('submit', e => {
+    formLogin?.addEventListener('submit', async e => {
       e.preventDefault();
       const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value;
-      const result = window.db.login(username, password);
+
+      const submitBtn = formLogin.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Authenticating...`;
+      }
+
+      const result = await window.db.loginUserAsync(username, password);
+
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `Login`;
+      }
+
       if (result.success) {
         this.hideAuthModal();
         this.updateNavbarAuth();
@@ -218,6 +232,9 @@ class CubazeApp {
         } else {
           window.location.hash = targetHash;
         }
+      } else if (result.isBlocked) {
+        this.hideAuthModal();
+        this.showBlockedLoginModal(result.activeSession, result.attemptedInfo);
       } else {
         this.showToast(result.error || 'Invalid credentials', 'danger');
       }
@@ -248,6 +265,64 @@ class CubazeApp {
         this.showToast(result.error || 'Registration failed', 'danger');
       }
     });
+  }
+
+  showBlockedLoginModal(activeSession, attemptedInfo) {
+    document.getElementById('blocked-login-modal')?.remove();
+
+    const activeDevice = activeSession ? (activeSession.deviceName || 'Windows Laptop') : 'Active Device';
+    const activeBrowser = activeSession ? (activeSession.browser || 'Google Chrome') : 'Browser';
+    const activeOs = activeSession ? (activeSession.os || 'Windows 11') : 'Windows';
+    const activeLoc = activeSession ? `${activeSession.city || 'Kozhikode'}, ${activeSession.state || 'Kerala'}, ${activeSession.country || 'India'}` : 'India';
+    const loginTimeStr = activeSession ? new Date(activeSession.loginTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recently';
+    const lastActStr = activeSession ? new Date(activeSession.lastActivity).toLocaleTimeString('en-IN', { timeStyle: 'short' }) : 'Recently';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay show';
+    overlay.id = 'blocked-login-modal';
+    overlay.style.zIndex = '99999';
+    overlay.style.background = 'rgba(15, 23, 42, 0.92)';
+    overlay.style.backdropFilter = 'blur(8px)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.padding = '20px';
+
+    overlay.innerHTML = `
+      <div style="background:var(--bg-card); width:100%; max-width:500px; border-radius:24px; padding:32px; border:1px solid var(--border-color); box-shadow:0 25px 60px rgba(0,0,0,0.4); text-align:left;">
+        
+        <div style="text-align:center; margin-bottom:20px;">
+          <div style="width:64px; height:64px; border-radius:50%; background:rgba(239, 68, 68, 0.12); color:#EF4444; display:inline-flex; align-items:center; justify-content:center; font-size:1.8rem; margin-bottom:12px;">
+            <i class="fa-solid fa-shield-cat"></i>
+          </div>
+          <h2 style="margin:0; font-size:1.4rem; font-weight:800; color:var(--text-primary);">🚫 Account Already Active</h2>
+          <p style="margin:8px 0 0; font-size:0.85rem; color:var(--text-secondary); line-height:1.4;">
+            This account is currently being used on another device.
+          </p>
+        </div>
+
+        <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:16px; padding:20px; margin-bottom:20px; font-size:0.85rem; line-height:1.8;">
+          <div style="font-weight:700; color:var(--brand-blue); text-transform:uppercase; font-size:0.75rem; letter-spacing:0.05em; margin-bottom:6px;">Active Device Details:</div>
+          <div><strong>Device:</strong> ${activeDevice}</div>
+          <div><strong>Browser:</strong> ${activeBrowser}</div>
+          <div><strong>Operating System:</strong> ${activeOs}</div>
+          <div><strong>Location:</strong> ${activeLoc}</div>
+          <div><strong>Logged In:</strong> ${loginTimeStr}</div>
+          <div><strong>Last Activity:</strong> ${lastActStr}</div>
+        </div>
+
+        <div style="background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.2); border-radius:12px; padding:12px 16px; font-size:0.8rem; color:#D97706; margin-bottom:24px; display:flex; align-items:flex-start; gap:8px;">
+          <i class="fa-solid fa-circle-info" style="margin-top:2px;"></i>
+          <span>Please log out from the active device before logging in here.</span>
+        </div>
+
+        <button type="button" class="btn btn-secondary btn-block btn-lg" onclick="document.getElementById('blocked-login-modal').remove()" style="font-weight:700; border-radius:12px; margin:0;">
+          Close
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
   }
 
   showAuthModal(isLogin = true) {
@@ -446,6 +521,16 @@ class CubazeApp {
     toast.innerHTML = `<i class="fa-solid ${icons[type] || 'fa-circle-info'}"></i><span>${message}</span>`;
     container.appendChild(toast);
     setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(20px)'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 3500);
+  }
+
+  initSessionPulse() {
+    setInterval(() => {
+      const isValid = window.db.updateSessionPulse();
+      if (!isValid && window.db.getCurrentUser()) {
+        this.logout();
+        this.showToast('Your session was ended on another device or by administrator.', 'warning');
+      }
+    }, 30000);
   }
 
   initCommonMeetingScheduler() {
