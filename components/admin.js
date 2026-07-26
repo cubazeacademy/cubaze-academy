@@ -3572,8 +3572,8 @@ const AdminComponent = {
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
             <div class="form-group" style="margin:0;">
-              <label style="margin-bottom:6px;">Password *</label>
-              <input class="form-control" type="password" id="s-password" required placeholder="Min 6 characters" style="margin-bottom:0; width:100%; box-sizing:border-box;">
+              <label style="margin-bottom:6px;">Gmail Address *</label>
+              <input class="form-control" type="email" id="s-email" required placeholder="e.g. john@gmail.com" style="margin-bottom:0; width:100%; box-sizing:border-box;">
             </div>
             <div class="form-group" style="margin:0;">
               <label style="margin-bottom:6px;">Phone Number *</label>
@@ -3582,15 +3582,19 @@ const AdminComponent = {
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
             <div class="form-group" style="margin:0;">
+              <label style="margin-bottom:6px;">Password *</label>
+              <input class="form-control" type="password" id="s-password" required placeholder="Min 6 characters" style="margin-bottom:0; width:100%; box-sizing:border-box;">
+            </div>
+            <div class="form-group" style="margin:0;">
               <label style="margin-bottom:6px;">WhatsApp Number (Optional)</label>
               <input class="form-control" type="text" id="s-whatsapp" placeholder="e.g. +91 98765 43210" style="margin-bottom:0; width:100%; box-sizing:border-box;">
             </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px;">
             <div class="form-group" style="margin:0;">
               <label style="margin-bottom:6px;">Date of Birth (Optional)</label>
               <input class="form-control" type="date" id="s-dob" style="margin-bottom:0; width:100%; box-sizing:border-box; color:var(--text-primary);">
             </div>
-          </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px;">
             <div class="form-group" style="margin:0;">
               <label style="margin-bottom:6px;">Qualification (Optional)</label>
               <select id="s-qualification" onchange="document.getElementById('s-qualification-other-wrap').style.display = this.value === 'other' ? 'block' : 'none';" style="width:100%; padding:11px 16px; border:1.5px solid var(--border-color); border-radius:var(--radius-lg); font-size:0.88rem; font-family:inherit; outline:none; box-sizing:border-box; background:var(--bg-primary); color:var(--text-primary);">
@@ -3602,7 +3606,7 @@ const AdminComponent = {
                 <option value="other">Other</option>
               </select>
             </div>
-            <div class="form-group" id="s-qualification-other-wrap" style="display:none; margin:0;">
+            <div class="form-group" id="s-qualification-other-wrap" style="display:none; margin:0; grid-column:span 2;">
               <label style="margin-bottom:6px;">Specify Qualification</label>
               <input class="form-control" type="text" id="s-qualification-other" placeholder="Specify..." style="margin-bottom:0; width:100%; box-sizing:border-box;">
             </div>
@@ -3622,6 +3626,7 @@ const AdminComponent = {
       e.preventDefault();
       const name = document.getElementById('s-name').value.trim();
       const username = document.getElementById('s-username').value.trim().toLowerCase();
+      const email = document.getElementById('s-email')?.value.trim().toLowerCase() || '';
       const password = document.getElementById('s-password').value;
       const phone = document.getElementById('s-phone').value.trim();
       const whatsapp = document.getElementById('s-whatsapp').value.trim();
@@ -3629,20 +3634,25 @@ const AdminComponent = {
       const qualification = document.getElementById('s-qualification').value;
       const qualificationOther = document.getElementById('s-qualification-other').value.trim();
 
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        window.app.showToast('Please enter a valid Gmail address.', 'danger');
+        return;
+      }
+
       if (password.length < 6) {
         window.app.showToast('Password must be at least 6 characters.', 'danger');
         return;
       }
 
       // Check if user already exists
-      const exists = window.db.getUsers().some(u => u.username === username);
+      const exists = window.db.getUsers().some(u => u.username === username || (u.email && u.email.toLowerCase() === email));
       if (exists) {
-        window.app.showToast('Username already exists.', 'danger');
+        window.app.showToast('Username or Gmail address already exists.', 'danger');
         return;
       }
 
       // Add student to DB
-      const res = window.db.registerUser(username, password, name, 'student', phone);
+      const res = window.db.registerUser(username, password, name, 'student', phone, email);
       if (res.success) {
         // Update additional fields
         const users = window.db.getUsers();

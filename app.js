@@ -245,9 +245,11 @@ class CubazeApp {
       e.preventDefault();
       const name = document.getElementById('reg-name').value.trim();
       const username = document.getElementById('reg-username').value.trim().toLowerCase();
+      const email = document.getElementById('reg-email')?.value.trim().toLowerCase() || '';
       const password = document.getElementById('reg-password').value;
       const phone = document.getElementById('reg-phone')?.value.trim() || '';
-      if (!name || !username || !password || !phone) { this.showToast('All fields are required.', 'danger'); return; }
+      if (!name || !username || !email || !password || !phone) { this.showToast('All fields are required.', 'danger'); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { this.showToast('Please enter a valid email address.', 'danger'); return; }
       if (password.length < 6) { this.showToast('Password must be at least 6 characters.', 'danger'); return; }
       if (!/^[a-z0-9_]+$/.test(username)) { this.showToast('Username can only contain letters, numbers, and underscores.', 'danger'); return; }
 
@@ -257,7 +259,7 @@ class CubazeApp {
         submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Creating Account...`;
       }
 
-      const result = await window.db.registerAsync(name, username, password, phone);
+      const result = await window.db.registerAsync(name, username, password, phone, email);
 
       if (submitBtn) {
         submitBtn.disabled = false;

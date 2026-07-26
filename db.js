@@ -835,6 +835,7 @@ class CubazeDB {
           password: u.password,
           name: u.name,
           role: u.role || 'student',
+          email: u.email || '',
           registeredDate: u.registered_date || '',
           enrolledCourses: (u.enrolled_courses || []).map(item => item.includes(':') ? item.split(':')[0] : item),
           enrolledBatches: (() => {
@@ -1136,6 +1137,7 @@ class CubazeDB {
                   password: localUsers[uIdx].password,
                   name: localUsers[uIdx].name,
                   role: localUsers[uIdx].role || "student",
+                  email: localUsers[uIdx].email || '',
                   registered_date: localUsers[uIdx].registeredDate || new Date().toISOString().split('T')[0],
                   enrolled_courses: localUsers[uIdx].enrolledCourses || [],
                   wishlist: localUsers[uIdx].wishlist || [],
@@ -1566,6 +1568,7 @@ class CubazeDB {
           password: user.password,
           name: user.name,
           role: user.role || "student",
+          email: user.email || '',
           registered_date: user.registeredDate || new Date().toISOString().split('T')[0],
           enrolled_courses: (user.enrolledCourses || []).map(cid => {
             const bid = user.enrolledBatches ? user.enrolledBatches[cid] : null;
@@ -2162,19 +2165,21 @@ class CubazeDB {
     return { browser, os, deviceName, location };
   }
 
-  registerUser(username, password, name, role = "student", phone = "") {
+  registerUser(username, password, name, role = "student", phone = "", email = "") {
     const users = this.getUsers();
-    if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) return { success: false, error: "Username already exists." };
-    const newUser = { username: username.trim(), password, name: name.trim(), role, registeredDate: new Date().toISOString().split('T')[0], enrolledCourses: [], wishlist: [], phone: phone.trim() };
+    if (users.some(u => u.username.toLowerCase() === username.toLowerCase().trim())) return { success: false, error: "Username already exists." };
+    if (email && users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase().trim())) return { success: false, error: "Gmail address is already registered." };
+    const newUser = { username: username.trim(), password, name: name.trim(), role, email: email.trim().toLowerCase(), registeredDate: new Date().toISOString().split('T')[0], enrolledCourses: [], wishlist: [], phone: phone.trim() };
     users.push(newUser);
     this.setItemAndSync("cubaze_users", users);
     return { success: true, user: newUser };
   }
 
-  async registerUserAsync(username, password, name, role = "student", phone = "") {
+  async registerUserAsync(username, password, name, role = "student", phone = "", email = "") {
     const users = this.getUsers();
-    if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) return { success: false, error: "Username already exists." };
-    const newUser = { username: username.trim(), password, name: name.trim(), role, registeredDate: new Date().toISOString().split('T')[0], enrolledCourses: [], wishlist: [], phone: phone.trim() };
+    if (users.some(u => u.username.toLowerCase() === username.toLowerCase().trim())) return { success: false, error: "Username already exists." };
+    if (email && users.some(u => u.email && u.email.toLowerCase() === email.toLowerCase().trim())) return { success: false, error: "Gmail address is already registered." };
+    const newUser = { username: username.trim(), password, name: name.trim(), role, email: email.trim().toLowerCase(), registeredDate: new Date().toISOString().split('T')[0], enrolledCourses: [], wishlist: [], phone: phone.trim() };
     users.push(newUser);
     this.setItemAndSync("cubaze_users", users);
 
@@ -2254,7 +2259,8 @@ class CubazeDB {
     }
 
     const users = this.getUsers();
-    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase().trim() && u.password === password);
+    const identifier = (username || "").toLowerCase().trim();
+    const user = users.find(u => (u.username.toLowerCase() === identifier || (u.email && u.email.toLowerCase() === identifier)) && u.password === password);
     if (!user) {
       return { success: false, error: "Invalid username or password." };
     }
@@ -2341,7 +2347,8 @@ class CubazeDB {
 
   loginUser(username, password) {
     const users = this.getUsers();
-    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase().trim() && u.password === password);
+    const identifier = (username || "").toLowerCase().trim();
+    const user = users.find(u => (u.username.toLowerCase() === identifier || (u.email && u.email.toLowerCase() === identifier)) && u.password === password);
     if (!user) {
       return { success: false, error: "Invalid username or password." };
     }
@@ -2428,7 +2435,7 @@ class CubazeDB {
     const timeStr = new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' });
     console.log(`%c[GMAIL NOTIFICATION] Successful Login Notification Sent`, "color:#10B981; font-weight:bold; font-size:12px;");
     console.log({
-      to: `${user.username}@gmail.com`,
+      to: user.email || `${user.username}@gmail.com`,
       subject: "New Login to Your Cubaze Academy Account",
       body: `Hi ${user.name},\n\nA new login to your Cubaze Academy account was detected.\n\nDevice: ${info.deviceName}\nBrowser: ${info.browser}\nOS: ${info.os}\nIP Address: ${info.location.ip}\nLocation: ${info.location.city}, ${info.location.state}, ${info.location.country}\nLogin Time: ${timeStr}\n\nIf this was you, no action is needed.`
     });
@@ -2438,7 +2445,7 @@ class CubazeDB {
     const timeStr = new Date().toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' });
     console.log(`%c[GMAIL SECURITY ALERT] Blocked Login Notification Sent`, "color:#EF4444; font-weight:bold; font-size:12px;");
     console.log({
-      to: `${user.username}@gmail.com`,
+      to: user.email || `${user.username}@gmail.com`,
       subject: "Blocked Login Attempt on Your Cubaze Academy Account",
       body: `Hi ${user.name},\n\nA login attempt was blocked because your account is already active on another device.\n\nAttempted Device: ${info.deviceName}\nBrowser: ${info.browser}\nLocation: ${info.location.city}, ${info.location.state}, ${info.location.country}\nTime: ${timeStr}\n\nCurrently Active Session:\nDevice: ${activeSession.deviceName}\nBrowser: ${activeSession.browser}\nLocation: ${activeSession.city}, ${activeSession.state}, ${activeSession.country}\n\nIf this was not you, please contact Cubaze Academy support immediately.`
     });
@@ -3185,8 +3192,8 @@ class CubazeDB {
 
   // --- CONVENIENCE ALIASES ---
   login(username, password) { return this.loginUser(username, password); }
-  register(name, username, password, phone = "") { return this.registerUser(username, password, name, "student", phone); }
-  async registerAsync(name, username, password, phone = "") { return this.registerUserAsync(username, password, name, "student", phone); }
+  register(name, username, password, phone = "", email = "") { return this.registerUser(username, password, name, "student", phone, email); }
+  async registerAsync(name, username, password, phone = "", email = "") { return this.registerUserAsync(username, password, name, "student", phone, email); }
 
   // --- TUTORS MANAGEMENT BY ADMIN ---
   addTutor(username, password, name, bio = "", assignedCourseIds = []) {

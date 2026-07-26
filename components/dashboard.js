@@ -936,6 +936,7 @@ const DashboardComponent = {
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div class="form-group"><label>Full Name</label><input type="text" id="profile-name" value="${cu.name}"></div>
+            <div class="form-group"><label>Gmail Address</label><input type="email" id="profile-email" value="${cu.email || ''}" placeholder="e.g. priya@gmail.com"></div>
             <div class="form-group"><label>Phone Number</label><input type="text" id="profile-phone" value="${cu.phone || ''}" placeholder="e.g. +91 98765 43210"></div>
             
             <div class="form-group"><label>WhatsApp Number (Optional)</label><input type="text" id="profile-whatsapp" value="${cu.whatsapp || ''}" placeholder="e.g. +91 98765 43210"></div>
@@ -999,6 +1000,7 @@ const DashboardComponent = {
     const cu = window.db.getCurrentUser();
     if (!cu) return;
     const newName = document.getElementById('profile-name')?.value;
+    const newEmail = document.getElementById('profile-email')?.value?.trim()?.toLowerCase() || '';
     const newPwd = document.getElementById('profile-password')?.value;
     const newPhone = document.getElementById('profile-phone')?.value || '';
 
@@ -1008,7 +1010,13 @@ const DashboardComponent = {
     const newQualOther = document.getElementById('profile-qualification-other')?.value || '';
     const newPhoto = document.getElementById('profile-photo-data')?.value || '';
 
+    if (newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      window.app.showToast('Please enter a valid Gmail / Email address.', 'danger');
+      return;
+    }
+
     if (newName) cu.name = newName;
+    if (newEmail) cu.email = newEmail;
     if (newPwd && newPwd.length >= 6) cu.password = newPwd;
     cu.phone = newPhone;
     cu.whatsapp = newWhatsapp;
