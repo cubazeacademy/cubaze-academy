@@ -453,93 +453,121 @@ const DashboardComponent = {
     const batchId = enrolledBatches[c.id];
     const batch = batchId ? window.db.getBatchById(batchId) : null;
 
-    let batchHtml = '';
-    if (batch) {
+    const isBatchActive = batch ? (batch.status === 'Active' || batch.status === 'Completed') : false;
+    const batchName = batch ? batch.name : `${c.title} – Batch 1`;
+
+    let tutorsList = 'SHIFIN SIR, Sinan Sir';
+    if (batch && batch.tutorIds && batch.tutorIds.length > 0) {
       const tutors = window.db.getUsers().filter(u => u.role === 'instructor');
-      const tutorNames = batch.tutorIds.map(tid => {
+      tutorsList = batch.tutorIds.map(tid => {
         const t = tutors.find(x => x.username === tid);
         return t ? t.name : tid;
       }).join(', ');
+    }
 
-      const isBatchActive = batch.status === 'Active' || batch.status === 'Completed';
-
-      if (isBatchActive) {
-        // Find next live class for this batch
-        const nextClass = window.db.getLiveClasses()
-          .filter(lc => lc.status === 'published' && lc.batch_id === batch.id && new Date(`${lc.date}T${lc.start_time}`) > new Date())
-          .sort((a, b) => new Date(`${a.date}T${a.start_time}`) - new Date(`${b.date}T${b.start_time}`))[0];
-
-        const nextClassText = nextClass
-          ? `${nextClass.date} at ${nextClass.start_time} (${nextClass.title})`
-          : 'None scheduled';
-
-        // Calculate attendance
-        const studentAtt = window.db.getAttendance(batch.id).filter(a => a.username === cu.username);
-        const presentCount = studentAtt.filter(a => a.status === 'Present' || a.status === 'PRESENT' || a.status === 'LATE').length;
-        const totalAtt = studentAtt.length;
-        const attPct = totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 100;
-
-        const whatsappButton = batch.whatsappLink
-          ? `<a href="${batch.whatsappLink}" target="_blank" class="btn btn-success btn-xs" style="margin-top:8px; display:inline-flex; align-items:center; gap:6px; background:#25D366; border-color:#25D366; color:#fff;"><i class="fa-brands fa-whatsapp" style="font-size:0.9rem;"></i> Join WhatsApp Group</a>`
-          : '';
-
-        batchHtml = `
-          <div class="enrolled-batch-details" style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:10px; padding:16px; margin: 12px 0; font-size:0.83rem; text-align: left;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">
-              <span>My Batch: <strong style="color:var(--text-primary);">${batch.name}</strong></span>
-              <span class="status-badge success" style="padding:2px 8px; font-size:0.7rem;">Active</span>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-              <div><span style="color:var(--text-secondary);">Tutor:</span> <strong style="color:var(--text-primary);">${tutorNames || '—'}</strong></div>
-              <div><span style="color:var(--text-secondary);">Schedule:</span> <strong style="color:var(--text-primary);">${batch.classTime || '—'} (${(batch.classDays || []).join(', ') || '—'})</strong></div>
-              <div><span style="color:var(--text-secondary);">Start Date:</span> <strong style="color:var(--text-primary);">${batch.startDate}</strong></div>
-              <div><span style="color:var(--text-secondary);">End Date:</span> <strong style="color:var(--text-primary);">${batch.endDate}</strong></div>
-            </div>
-            <div style="margin-bottom:8px;"><span style="color:var(--text-secondary);">Attendance:</span> <strong style="color:var(--text-primary);">${totalAtt > 0 ? `${presentCount}/${totalAtt} (${attPct}%)` : 'No classes recorded yet'}</strong></div>
-            <div style="margin-bottom:8px;"><span style="color:var(--text-secondary);">Next Live Class:</span> <strong style="color:var(--brand-blue);"><i class="fa-solid fa-video"></i> ${nextClassText}</strong></div>
-            ${whatsappButton}
-          </div>
-        `;
-      } else {
-        const availableSeats = batch.maxStudents - (batch.currentEnrollment || 0);
-        batchHtml = `
-          <div class="enrolled-batch-details" style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:10px; padding:16px; margin: 12px 0; font-size:0.83rem; text-align: left; box-shadow:inset 0 1px 3px rgba(0,0,0,0.01);">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">
-              <span>My Batch: <strong style="color:var(--text-primary);">${batch.name}</strong></span>
-              <span class="status-badge warning" style="padding:2px 8px; font-size:0.7rem;">${batch.status}</span>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-              <div><span style="color:var(--text-secondary);">Enrolled:</span> <strong style="color:var(--text-primary);">${batch.currentEnrollment || 0} / ${batch.maxStudents}</strong></div>
-              <div><span style="color:var(--text-secondary);">Available Seats:</span> <strong style="color:#10B981;">${availableSeats} available</strong></div>
-            </div>
-            <div style="font-size:0.76rem; color:var(--text-secondary); background:var(--brand-blue-pale); border:1px solid var(--brand-blue-light); padding:8px 12px; border-radius:8px; display:flex; align-items:center; gap:6px;">
-              <i class="fa-solid fa-lock" style="color:#D97706;"></i>
-              <span>Tutor, schedule, Meet, and WhatsApp group will be available once the batch becomes Active.</span>
-            </div>
-          </div>
-        `;
+    let nextClassText = 'None scheduled';
+    if (batch && isBatchActive) {
+      const nextClass = window.db.getLiveClasses()
+        .filter(lc => lc.status === 'published' && lc.batch_id === batch.id && new Date(`${lc.date}T${lc.start_time}`) > new Date())
+        .sort((a, b) => new Date(`${a.date}T${a.start_time}`) - new Date(`${b.date}T${b.start_time}`))[0];
+      if (nextClass) {
+        nextClassText = `${nextClass.date} at ${nextClass.start_time} (${nextClass.title})`;
       }
     }
 
+    const whatsappUrl = (batch && (batch.whatsappLink || batch.whatsapp_link)) ? (batch.whatsappLink || batch.whatsapp_link) : '#';
+
+    const joinWhatsappBtn = isBatchActive ? `
+      <a href="${whatsappUrl}" target="_blank" class="btn btn-sm" style="background:#25D366; color:#fff; border-radius:20px; padding:3px 12px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:5px; text-decoration:none; margin-left:12px;" title="Join WhatsApp Group">
+        <i class="fa-brands fa-whatsapp" style="font-size:0.85rem;"></i> Join Now
+      </a>
+    ` : '';
+
+    const statusBadge = isBatchActive ? `
+      <span style="background:rgba(16, 185, 129, 0.12); color:#10B981; font-weight:700; padding:4px 10px; border-radius:12px; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px; flex-shrink:0;">
+        <i class="fa-solid fa-circle" style="font-size:6px;"></i> Active
+      </span>
+    ` : `
+      <span style="background:rgba(239, 68, 68, 0.1); color:#EF4444; font-weight:700; padding:4px 10px; border-radius:12px; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px; flex-shrink:0;">
+        <i class="fa-solid fa-circle" style="font-size:6px;"></i> ${batch ? batch.status : 'Enrollment Open'}
+      </span>
+    `;
+
+    const batchDetailsHtml = isBatchActive ? `
+      <div style="font-size:0.82rem; color:var(--text-secondary); line-height:1.6; margin-top:8px; margin-bottom:12px; text-align:left;">
+        <div>Tutor: <strong style="color:var(--text-primary);">${tutorsList || '—'}</strong></div>
+        <div>Schedule: <strong style="color:var(--text-primary);">${(batch && batch.classTime) ? batch.classTime : '18:00 – 20:00'} (${(batch && batch.classDays) ? batch.classDays.join(', ') : 'Mon, Wed, Fri'})</strong></div>
+        <div>Next Live Class: <strong style="color:var(--brand-blue);"><i class="fa-solid fa-video"></i> ${nextClassText}</strong></div>
+      </div>
+    ` : `
+      <div style="font-size:0.76rem; color:var(--text-secondary); background:rgba(99, 102, 241, 0.06); border:1px solid rgba(99, 102, 241, 0.15); padding:10px 14px; border-radius:10px; margin-top:8px; margin-bottom:12px; text-align:left;">
+        <div style="display:flex; align-items:flex-start; gap:8px;">
+          <i class="fa-solid fa-lock" style="color:#D97706; font-size:0.85rem; margin-top:2px;"></i>
+          <div>
+            <strong>Tutor, schedule, Meet, and WhatsApp group</strong><br>
+            will be available once the batch becomes Active. Activation will be soon
+          </div>
+        </div>
+      </div>
+    `;
+
     return `
-      <div class="enrolled-course-card">
-        <div class="enrolled-course-left">
-          <div class="enrolled-course-thumb"><img src="${c.image}" alt="${c.title}" loading="lazy"></div>
-          <div style="margin-top: 8px;">
-            <div class="progress-bar-wrapper"><div class="progress-bar" style="width:${pct}%;"></div></div>
-            <div style="font-size:0.78rem;color:var(--brand-blue);font-weight:600;margin-top:6px;margin-bottom:0;text-align:center;">${pct}% Complete</div>
+      <div class="enrolled-course-card" style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:20px; display:flex; gap:20px; align-items:flex-start; box-shadow:0 4px 20px rgba(0,0,0,0.03); margin-bottom:16px; flex-wrap:wrap;">
+        
+        <!-- Thumbnail & Progress Left Column -->
+        <div style="width:220px; flex-shrink:0;">
+          <div style="width:100%; height:125px; border-radius:12px; overflow:hidden; background:#000;">
+            <img src="${c.image}" alt="${c.title}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">
+          </div>
+          <div style="margin-top:12px;">
+            <div style="height:6px; background:var(--border-color); border-radius:4px; overflow:hidden;">
+              <div style="width:${pct}%; height:100%; background:var(--brand-blue); transition:width 0.3s ease;"></div>
+            </div>
+            <div style="font-size:0.8rem; color:var(--brand-blue); font-weight:700; margin-top:6px; text-align:center;">${pct}% Complete</div>
           </div>
         </div>
-        <div class="enrolled-course-body">
-          <div class="enrolled-course-title">${c.title}</div>
-          <div class="enrolled-course-meta">${done} of ${total} lessons completed · ${c.duration}</div>
-          ${batchHtml}
-          <div class="enrolled-course-actions">
-            ${firstLesson ? `<a href="#/lesson/${c.id}/${firstLesson.id}" class="btn btn-primary btn-sm"><i class="fa-solid fa-play"></i> Continue</a>` : `<button class="btn btn-outline-white btn-sm" disabled><i class="fa-solid fa-ban"></i> No Lessons</button>`}
-            <a href="#/quiz/${c.id}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-trophy"></i> Take Quiz</a>
-            ${p.certificateEarned ? `<a href="#/certificate/${c.id}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-certificate" style="color:var(--warning);"></i> Certificate</a>` : ''}
+
+        <!-- Course & Batch Info Right Body -->
+        <div style="flex:1; min-width:280px; display:flex; flex-direction:column; justify-content:space-between; text-align:left;">
+          
+          <div>
+            <!-- Header Row with Title and Status Badge -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:4px;">
+              <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:var(--text-primary); line-height:1.3;">${c.title}</h3>
+              ${statusBadge}
+            </div>
+
+            <!-- Subtitle -->
+            <div style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:10px;">${done} of ${total} lessons completed · ${c.duration || '28 Hours'}</div>
+
+            <!-- My Batch Row -->
+            <div style="font-size:0.85rem; color:var(--text-secondary); display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+              <span>My Batch: <strong style="color:var(--text-primary);">${batchName}</strong></span>
+              ${joinWhatsappBtn}
+            </div>
+
+            <!-- Batch Details / Lock Box -->
+            ${batchDetailsHtml}
           </div>
+
+          <!-- Bottom Action Buttons -->
+          <div style="display:flex; gap:12px; justify-content:flex-end; align-items:center; margin-top:4px;">
+            <a href="#/projects" class="btn btn-outline-white btn-sm" style="font-weight:700; border-radius:10px; padding:8px 16px; font-size:0.82rem; display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
+              <i class="fa-solid fa-list-check"></i> View Project
+            </a>
+            ${firstLesson ? `
+              <a href="#/lesson/${c.id}/${firstLesson.id}" class="btn btn-primary btn-sm" style="font-weight:700; border-radius:10px; padding:8px 20px; font-size:0.82rem; display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
+                <i class="fa-solid fa-play"></i> Continue Learning
+              </a>
+            ` : `
+              <button class="btn btn-primary btn-sm" style="font-weight:700; border-radius:10px; padding:8px 20px; font-size:0.82rem; display:inline-flex; align-items:center; gap:6px;" disabled>
+                <i class="fa-solid fa-play"></i> Continue Learning
+              </button>
+            `}
+          </div>
+
         </div>
+
       </div>
     `;
   },
