@@ -31,15 +31,20 @@ CREATE INDEX IF NOT EXISTS idx_cubaze_sessions_status ON public.cubaze_sessions(
 -- 3. Enable Row Level Security (RLS)
 ALTER TABLE public.cubaze_sessions ENABLE ROW LEVEL SECURITY;
 
--- 4. Create Policies for Public / Authenticated Access
+-- 4. Create Policies for Public Access (Idempotent)
+DROP POLICY IF EXISTS "Allow public read access on cubaze_sessions" ON public.cubaze_sessions;
 CREATE POLICY "Allow public read access on cubaze_sessions" 
 ON public.cubaze_sessions FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Allow public insert access on cubaze_sessions" ON public.cubaze_sessions;
 CREATE POLICY "Allow public insert access on cubaze_sessions" 
 ON public.cubaze_sessions FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow public update access on cubaze_sessions" ON public.cubaze_sessions;
 CREATE POLICY "Allow public update access on cubaze_sessions" 
 ON public.cubaze_sessions FOR UPDATE USING (true);
 
+DROP POLICY IF EXISTS "Allow public delete access on cubaze_sessions" ON public.cubaze_sessions;
 CREATE POLICY "Allow public delete access on cubaze_sessions" 
 ON public.cubaze_sessions FOR DELETE USING (true);
+
