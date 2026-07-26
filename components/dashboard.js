@@ -627,24 +627,24 @@ const DashboardComponent = {
     const whatsappUrl = (batch && (batch.whatsappLink || batch.whatsapp_link)) ? (batch.whatsappLink || batch.whatsapp_link) : '#';
 
     const joinWhatsappBtn = isBatchActive ? `
-      <a href="${whatsappUrl}" target="_blank" class="btn btn-sm" style="background:#25D366; color:#fff; border-radius:20px; padding:3px 12px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:5px; text-decoration:none; margin-left:auto;" title="Join WhatsApp Group">
-        <i class="fa-brands fa-whatsapp" style="font-size:0.85rem;"></i> Join Now
+      <a href="${whatsappUrl}" target="_blank" class="btn btn-sm" style="background:#25D366; color:#fff; border-radius:14px; padding:2px 8px; font-size:0.7rem; font-weight:700; display:inline-flex; align-items:center; gap:4px; text-decoration:none; margin-left:auto;" title="Join WhatsApp Group">
+        <i class="fa-brands fa-whatsapp" style="font-size:0.8rem;"></i> Join Now
       </a>
     ` : '';
 
     const statusBadge = isBatchActive ? `
-      <span style="color:#10B981; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; flex-shrink:0;">
+      <span style="color:#10B981; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
         <i class="fa-solid fa-circle" style="font-size:6px;"></i> Active
       </span>
     ` : `
-      <span style="color:#EF4444; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; flex-shrink:0;">
+      <span style="color:#EF4444; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
         <i class="fa-solid fa-circle" style="font-size:6px;"></i> ${batch ? batch.status : 'Enrollment Open'}
       </span>
     `;
 
     const batchDetailsHtml = isBatchActive ? `
-      <div style="font-size:0.82rem; color:var(--text-secondary); line-height:1.7; text-align:left;">
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+      <div style="font-size:0.78rem; color:var(--text-secondary); line-height:1.6; text-align:left;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px;">
           <span>Tutor: <strong style="color:var(--text-primary);">${tutorsList}</strong></span>
           ${joinWhatsappBtn}
         </div>
@@ -652,9 +652,9 @@ const DashboardComponent = {
         <div>Next Live Class: <strong style="color:var(--brand-blue);"><i class="fa-solid fa-video"></i> ${nextClassText}</strong></div>
       </div>
     ` : `
-      <div style="font-size:0.76rem; color:var(--text-secondary); background:rgba(99, 102, 241, 0.06); border:1px solid rgba(99, 102, 241, 0.15); padding:10px 14px; border-radius:10px; text-align:left;">
-        <div style="display:flex; align-items:flex-start; gap:8px;">
-          <i class="fa-solid fa-lock" style="color:#D97706; font-size:0.85rem; margin-top:2px;"></i>
+      <div style="font-size:0.74rem; color:var(--text-secondary); background:rgba(99, 102, 241, 0.06); border:1px solid rgba(99, 102, 241, 0.15); padding:8px 10px; border-radius:8px; text-align:left;">
+        <div style="display:flex; align-items:flex-start; gap:6px;">
+          <i class="fa-solid fa-lock" style="color:#D97706; font-size:0.8rem; margin-top:2px;"></i>
           <div>
             <strong>Tutor, schedule, Meet, and WhatsApp group</strong><br>
             will be available once the batch becomes Active. Activation will be soon
@@ -664,49 +664,49 @@ const DashboardComponent = {
     `;
 
     return `
-      <div class="my-course-card" style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:20px; padding:24px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 20px rgba(0,0,0,0.03); text-align:left; gap:16px;">
+      <div class="my-course-card" style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 16px rgba(0,0,0,0.03); text-align:left; gap:12px;">
         
         <!-- Header: Title, Subtitle, Status -->
         <div>
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:4px;">
-            <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:var(--text-primary); line-height:1.3;">${c.title}</h3>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:4px;">
+            <h3 style="margin:0; font-size:1.05rem; font-weight:800; color:var(--text-primary); line-height:1.3;">${c.title}</h3>
             ${statusBadge}
           </div>
-          <div style="font-size:0.82rem; color:var(--text-secondary);">${done} of ${total} lessons completed · ${c.duration || '28 Hours'}</div>
+          <div style="font-size:0.78rem; color:var(--text-secondary);">${done} of ${total} lessons completed · ${c.duration || '28 Hours'}</div>
         </div>
 
         <!-- Thumbnail Image -->
-        <div style="width:100%; height:180px; border-radius:14px; overflow:hidden; background:#000;">
+        <div style="width:100%; height:140px; border-radius:10px; overflow:hidden; background:#000;">
           <img src="${c.image}" alt="${c.title}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">
         </div>
 
         <!-- Progress Bar & Text -->
         <div>
-          <div style="height:6px; background:var(--border-color); border-radius:4px; overflow:hidden;">
+          <div style="height:5px; background:var(--border-color); border-radius:4px; overflow:hidden;">
             <div style="width:${pct}%; height:100%; background:var(--brand-blue); transition:width 0.3s ease;"></div>
           </div>
-          <div style="font-size:0.85rem; color:var(--brand-blue); font-weight:700; margin-top:6px; text-align:center;">${pct}% Complete</div>
+          <div style="font-size:0.8rem; color:var(--brand-blue); font-weight:700; margin-top:4px; text-align:center;">${pct}% Complete</div>
         </div>
 
         <!-- My Batch Box -->
-        <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:14px; padding:16px;">
-          <div style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:8px; font-weight:600;">
+        <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; padding:12px;">
+          <div style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">
             My Batch: <strong style="color:var(--text-primary);">${batchName}</strong>
           </div>
           ${batchDetailsHtml}
         </div>
 
         <!-- Footer Action Buttons -->
-        <div style="display:flex; gap:12px; justify-content:space-between; align-items:center; margin-top:4px;">
-          <button type="button" onclick="DashboardComponent.switchTab('projects')" class="btn btn-outline-white btn-sm" style="flex:1; font-weight:700; border-radius:10px; padding:10px 14px; font-size:0.82rem; display:inline-flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;">
+        <div style="display:flex; gap:8px; justify-content:space-between; align-items:center; margin-top:2px;">
+          <button type="button" onclick="DashboardComponent.switchTab('projects')" class="btn btn-outline-white btn-sm" style="flex:1; font-weight:700; border-radius:8px; padding:8px 10px; font-size:0.78rem; display:inline-flex; align-items:center; justify-content:center; gap:4px; cursor:pointer;">
             <i class="fa-solid fa-list-check"></i> View Project
           </button>
           ${firstLesson ? `
-            <a href="#/lesson/${c.id}/${firstLesson.id}" class="btn btn-primary btn-sm" style="flex:1.2; font-weight:700; border-radius:10px; padding:10px 14px; font-size:0.82rem; display:inline-flex; align-items:center; justify-content:center; gap:6px; text-decoration:none;">
+            <a href="#/lesson/${c.id}/${firstLesson.id}" class="btn btn-primary btn-sm" style="flex:1.2; font-weight:700; border-radius:8px; padding:8px 10px; font-size:0.78rem; display:inline-flex; align-items:center; justify-content:center; gap:4px; text-decoration:none;">
               <i class="fa-solid fa-play"></i> Continue Learning
             </a>
           ` : `
-            <button class="btn btn-primary btn-sm" style="flex:1.2; font-weight:700; border-radius:10px; padding:10px 14px; font-size:0.82rem; display:inline-flex; align-items:center; justify-content:center; gap:6px;" disabled>
+            <button class="btn btn-primary btn-sm" style="flex:1.2; font-weight:700; border-radius:8px; padding:8px 10px; font-size:0.78rem; display:inline-flex; align-items:center; justify-content:center; gap:4px;" disabled>
               <i class="fa-solid fa-play"></i> Continue Learning
             </button>
           `}
@@ -764,7 +764,7 @@ const DashboardComponent = {
             <a href="#/courses" class="btn btn-primary" style="margin-top:16px;">Browse Courses</a>
           </div>
         ` : `
-          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:24px;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;">
             ${pendingHtml}
             ${enrolledCourses.map(c => DashboardComponent._renderMyCourseCard(cu, c)).join('')}
           </div>
