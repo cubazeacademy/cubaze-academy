@@ -1,13 +1,20 @@
 // Cubaze Academy — Video Player Redesign v4.2 (components/videoplayer.js)
 const VideoPlayerComponent = {
   _activeTab: 'overview',
-  _focusMode: false,
-  _searchQuery: '',
-  _expandedModules: {},
-  _currentPlaybackTime: 0,
-  _playbackRate: 1,
   _notesSearchQuery: '',
   _pinnedNotes: {},
+  _keyPressHandler: null,
+  _expandedModules: {},
+  _isPlaying: false,
+  _isMuted: false,
+  _volume: 100,
+  _duration: 0,
+  _currentPlaybackTime: 0,
+  _speed: 1,
+  _idleTimer: null,
+  _pollTimer: null,
+  _fsHandler: null,
+  _playbackRate: 1,
 
   render: function (courseId, lessonId) {
     const cu = window.db.getCurrentUser();
@@ -35,7 +42,7 @@ const VideoPlayerComponent = {
     const batch = batchId ? window.db.getBatchById(batchId) : null;
     const isBatchActive = batch && (batch.status === 'Active' || batch.status === 'Completed');
     const tutors = window.db.getTutorsForStudent(cu.username).filter(t => t.courseId === courseId);
-    
+
     const announcements = window.db.getAnnouncementsByBatchOrCourse(courseId, batchId);
     const resources = window.db.getResourcesByBatchOrCourse(courseId, batchId);
 
@@ -129,15 +136,15 @@ const VideoPlayerComponent = {
     // Course Right Sidebar curriculum accordion HTML
     const rightCurriculumHtml = course.modules.map((mod, modIdx) => {
       const isExpanded = this._expandedModules[mod.id] !== false;
-      
+
       // Calculate module duration
       let modMinutes = 0;
       mod.lessons.forEach(les => {
         const parts = (les.duration || "10:00").split(":");
         modMinutes += parseInt(parts[0]) || 10;
       });
-      const modDurationStr = modMinutes >= 60 
-        ? `${Math.floor(modMinutes/60)}h ${modMinutes%60}m` 
+      const modDurationStr = modMinutes >= 60
+        ? `${Math.floor(modMinutes / 60)}h ${modMinutes % 60}m`
         : `${modMinutes}m`;
 
       const lessonsHtml = mod.lessons.map(les => {
@@ -158,7 +165,7 @@ const VideoPlayerComponent = {
         <div class="crs-right-module-card ${isExpanded ? 'expanded' : ''}" data-module-id="${mod.id}">
           <div class="crs-right-module-header">
             <div class="crs-r-mh-left">
-              <span class="crs-r-module-prefix">${(modIdx+1).toString().padStart(2,'0')}:</span>
+              <span class="crs-r-module-prefix">${(modIdx + 1).toString().padStart(2, '0')}:</span>
               <span class="crs-r-module-title">${mod.title}</span>
             </div>
             <div class="crs-r-mh-right">
@@ -175,10 +182,15 @@ const VideoPlayerComponent = {
 
     const fallbackVideo = course.previewVideo || "https://www.youtube.com/embed/dQw4w9WgXcQ";
     const embedUrl = this._getYouTubeEmbedUrl(currentLesson.videoUrl, fallbackVideo);
+    
+    // Parse initial duration fallback from lesson duration string (e.g. "11:39" or "02:05")
+    const initDuration = this._parseDurationStr(currentLesson.duration);
+    this._duration = initDuration;
+    this._currentPlaybackTime = 0;
 
     // Notes HTML
     const savedNotes = JSON.parse(localStorage.getItem(`cubaze_sticky_notes_${courseId}_${currentLesson.id}`)) || [];
-    const filteredNotes = savedNotes.filter(n => 
+    const filteredNotes = savedNotes.filter(n =>
       n.text.toLowerCase().includes(this._notesSearchQuery.toLowerCase())
     );
     filteredNotes.sort((a, b) => (this._pinnedNotes[b.id] ? 1 : 0) - (this._pinnedNotes[a.id] ? 1 : 0));
@@ -939,8 +951,71 @@ const VideoPlayerComponent = {
           </div>
 
           <!-- Rounded Video Frame with collapse protection -->
-          <div class="lms-player-wrapper">
-            <iframe id="youtube-iframe-player" width="100%" height="100%" src="${embedUrl}?enablejsapi=1" title="YouTube Video Class" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="border:none; display:block;"></iframe>
+          <div class="lms-player-wrapper" id="lms-player-container" style="position:relative;">
+            <iframe id="youtube-iframe-player" width="100%" height="100%" src="${embedUrl}" title="Cubaze Academy LMS Video Player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="border:none; display:block; width:100%; height:100%; pointer-events:none;"></iframe>
+
+            <!-- Security Pointer Shield covering video viewport -->
+            <div class="cubaze-player-shield" id="cubaze-player-shield" title="Click to play/pause"></div>
+
+            <!-- Big Centered Play/Pause Overlay -->
+            <div class="cubaze-play-center" id="cubaze-play-center" title="Play / Pause">
+              <i class="fa-solid fa-play"></i>
+            </div>
+
+            <!-- Glassmorphic Custom Controls Bar -->
+            <div class="cubaze-player-overlay paused" id="cubaze-player-overlay">
+              <div class="cubaze-player-controls">
+                
+                <!-- Seekbar Rail -->
+                <div class="cubaze-seekbar-container" id="cubaze-seekbar-container">
+                  <div class="cubaze-seekbar-fill" id="cubaze-seekbar-fill"></div>
+                  <div class="cubaze-seekbar-thumb" id="cubaze-seekbar-thumb"></div>
+                  <input type="range" id="cubaze-seekbar-input" class="cubaze-seekbar-input" min="0" max="100" value="0" step="0.1">
+                </div>
+
+                <!-- Control Buttons Row -->
+                <div class="cubaze-controls-row">
+                  <div class="cubaze-controls-left">
+                    <button class="cubaze-ctrl-btn" id="cubaze-btn-play" title="Play / Pause (Space)">
+                      <i class="fa-solid fa-play"></i>
+                    </button>
+                    
+                    <div class="cubaze-volume-group">
+                      <button class="cubaze-ctrl-btn" id="cubaze-btn-volume" title="Mute / Unmute (M)">
+                        <i class="fa-solid fa-volume-high"></i>
+                      </button>
+                      <div class="cubaze-volume-slider-container">
+                        <input type="range" id="cubaze-volume-slider" class="cubaze-volume-slider" min="0" max="100" value="100">
+                      </div>
+                    </div>
+
+                    <span class="cubaze-time-display" id="cubaze-time-display">${this.formatTime(0)} / ${this.formatTime(initDuration)}</span>
+                  </div>
+
+                  <div class="cubaze-controls-right">
+                    <!-- Playback Speed Menu -->
+                    <div class="cubaze-speed-menu">
+                      <button class="cubaze-ctrl-btn" id="cubaze-btn-speed" title="Playback Speed" style="font-size:0.8rem; font-weight:700; width:auto; padding:0 8px;">
+                        1x
+                      </button>
+                      <div class="cubaze-speed-dropdown" id="cubaze-speed-dropdown">
+                        <button class="cubaze-speed-opt" data-speed="0.5">0.5x</button>
+                        <button class="cubaze-speed-opt" data-speed="0.75">0.75x</button>
+                        <button class="cubaze-speed-opt active" data-speed="1">1x (Normal)</button>
+                        <button class="cubaze-speed-opt" data-speed="1.25">1.25x</button>
+                        <button class="cubaze-speed-opt" data-speed="1.5">1.5x</button>
+                        <button class="cubaze-speed-opt" data-speed="2">2x</button>
+                      </div>
+                    </div>
+
+                    <button class="cubaze-ctrl-btn" id="cubaze-btn-fullscreen" title="Toggle Fullscreen (F)">
+                      <i class="fa-solid fa-expand"></i>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </div>
 
           <!-- Video playback controls / triggers -->
@@ -953,7 +1028,7 @@ const VideoPlayerComponent = {
           <!-- Tabs Navigation under player -->
           <div>
             <div class="lms-tabs-nav">
-              ${[['overview','Overview'],['announcements',`Announcements (${announcements.length})`],['notes','Notes Editor'],['resources','Resources'],['discussion','QA Discussion']].map(([tId, tName]) => `
+              ${[['overview', 'Overview'], ['announcements', `Announcements (${announcements.length})`], ['notes', 'Notes Editor'], ['resources', 'Resources'], ['discussion', 'QA Discussion']].map(([tId, tName]) => `
                 <button class="lms-tab-btn ${this._activeTab === tId ? 'active' : ''}" data-target-tab="${tId}">${tName}</button>
               `).join('')}
             </div>
@@ -971,11 +1046,11 @@ const VideoPlayerComponent = {
                   <h3 style="margin-top:12px;">What You'll Learn</h3>
                   <div class="lms-learn-grid">
                     ${(course.requirements || [
-                      "Master essential user interface workflow techniques.",
-                      "Understand modeling, materials, and rendering pipelines.",
-                      "Complete real post-production exercises.",
-                      "Build a professional portfolio."
-                    ]).map(req => `
+        "Master essential user interface workflow techniques.",
+        "Understand modeling, materials, and rendering pipelines.",
+        "Complete real post-production exercises.",
+        "Build a professional portfolio."
+      ]).map(req => `
                       <div class="lms-learn-item">
                         <i class="fa-solid fa-circle-check"></i>
                         <span>${req}</span>
@@ -1107,7 +1182,7 @@ const VideoPlayerComponent = {
     `;
   },
 
-  _toggleFocusMode: function() {
+  _toggleFocusMode: function () {
     VideoPlayerComponent._focusMode = !VideoPlayerComponent._focusMode;
     const workspace = document.querySelector('.lms-workspace');
     if (workspace) {
@@ -1115,17 +1190,17 @@ const VideoPlayerComponent = {
         workspace.classList.add('focus-mode');
         document.querySelector('.lms-left-sidebar').style.display = 'none';
         document.querySelector('.lms-right-sidebar').style.display = 'none';
-        window.app.showToast('Focus Mode Enabled (Sidebars Hidden)','info');
+        window.app.showToast('Focus Mode Enabled (Sidebars Hidden)', 'info');
       } else {
         workspace.classList.remove('focus-mode');
         document.querySelector('.lms-left-sidebar').style.display = '';
         document.querySelector('.lms-right-sidebar').style.display = '';
-        window.app.showToast('Focus Mode Disabled','info');
+        window.app.showToast('Focus Mode Disabled', 'info');
       }
     }
   },
 
-  talkToTutor: async function(courseId, tutorUsername) {
+  talkToTutor: async function (courseId, tutorUsername) {
     const cu = window.db.getCurrentUser();
     if (!cu) return;
     try {
@@ -1162,7 +1237,7 @@ const VideoPlayerComponent = {
     if (!text) return;
 
     const savedNotes = JSON.parse(localStorage.getItem(`cubaze_sticky_notes_${courseId}_${lessonId}`)) || [];
-    
+
     const colors = ['#FFF9C4', '#E1F5FE', '#E8F5E9', '#FCE4EC', '#F3E5F5'];
     const chosenColor = colors[savedNotes.length % colors.length];
 
@@ -1176,7 +1251,7 @@ const VideoPlayerComponent = {
 
     savedNotes.unshift(newNote);
     localStorage.setItem(`cubaze_sticky_notes_${courseId}_${lessonId}`, JSON.stringify(savedNotes));
-    
+
     if (textEl) textEl.value = '';
     window.app.showToast('Sticky note saved! 📌', 'success');
     window.app.renderRoute();
@@ -1202,7 +1277,7 @@ const VideoPlayerComponent = {
     const courseId = window.location.hash.split('/')[2];
     const lessonId = window.location.hash.split('/')[3];
     const savedNotes = JSON.parse(localStorage.getItem(`cubaze_sticky_notes_${courseId}_${lessonId}`)) || [];
-    
+
     if (savedNotes.length === 0) {
       window.app.showToast('No notes to export.', 'warning');
       return;
@@ -1226,36 +1301,142 @@ const VideoPlayerComponent = {
     window.app.showToast('Notes exported successfully!', 'success');
   },
 
+  _parseDurationStr: function (str) {
+    if (!str) return 0;
+    const parts = str.toString().trim().split(':').map(p => parseInt(p, 10));
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      return parts[0] * 60 + parts[1];
+    } else if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+    return 0;
+  },
+
   formatTime: function (secs) {
-    const m = Math.floor(secs / 60), s = Math.floor(secs % 60);
-    return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    const totalSecs = Math.max(0, Math.floor(secs || 0));
+    const m = Math.floor(totalSecs / 60), s = Math.floor(totalSecs % 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  },
+
+  _sendYtCommand: function (func, args = []) {
+    const iframe = document.getElementById('youtube-iframe-player');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(JSON.stringify({
+        event: 'command',
+        func: func,
+        args: args
+      }), '*');
+    }
+  },
+
+  togglePlay: function () {
+    this._isPlaying = !this._isPlaying;
+    this._sendYtCommand(this._isPlaying ? 'playVideo' : 'pauseVideo');
+    this._updatePlayUi();
+  },
+
+  _updatePlayUi: function () {
+    const playBtn = document.getElementById('cubaze-btn-play');
+    const playCenter = document.getElementById('cubaze-play-center');
+    const overlay = document.getElementById('cubaze-player-overlay');
+    if (playBtn) playBtn.innerHTML = `<i class="fa-solid fa-${this._isPlaying ? 'pause' : 'play'}"></i>`;
+    if (playCenter) playCenter.innerHTML = `<i class="fa-solid fa-${this._isPlaying ? 'pause' : 'play'}"></i>`;
+    if (overlay) overlay.classList.toggle('paused', !this._isPlaying);
   },
 
   seekToTime: function (seconds) {
-    const iframe = document.getElementById('youtube-iframe-player');
-    if (iframe) {
-      iframe.contentWindow.postMessage(JSON.stringify({
-        event: 'command',
-        func: 'seekTo',
-        args: [seconds, true]
-      }), '*');
-      window.app.showToast(`Seeking to ${this.formatTime(seconds)}`, 'info');
+    this._currentPlaybackTime = Math.max(0, seconds);
+    this._sendYtCommand('seekTo', [this._currentPlaybackTime, true]);
+    this._updateProgress(this._currentPlaybackTime, this._duration);
+  },
+
+  setVolume: function (val) {
+    this._volume = Math.max(0, Math.min(100, val));
+    this._isMuted = this._volume === 0;
+    this._sendYtCommand('setVolume', [this._volume]);
+    if (this._isMuted) this._sendYtCommand('mute');
+    else this._sendYtCommand('unMute');
+
+    const volBtn = document.getElementById('cubaze-btn-volume');
+    const volSlider = document.getElementById('cubaze-volume-slider');
+    if (volSlider) volSlider.value = this._volume;
+    if (volBtn) {
+      let icon = 'volume-high';
+      if (this._volume === 0 || this._isMuted) icon = 'volume-xmark';
+      else if (this._volume < 50) icon = 'volume-low';
+      volBtn.innerHTML = `<i class="fa-solid fa-${icon}"></i>`;
+    }
+  },
+
+  toggleMute: function () {
+    if (this._isMuted) {
+      this.setVolume(this._volume > 0 ? this._volume : 80);
+    } else {
+      this._sendYtCommand('mute');
+      this._isMuted = true;
+      const volBtn = document.getElementById('cubaze-btn-volume');
+      if (volBtn) volBtn.innerHTML = `<i class="fa-solid fa-volume-xmark"></i>`;
+    }
+  },
+
+  setSpeed: function (speed) {
+    this._speed = speed;
+    this._sendYtCommand('setPlaybackRate', [speed]);
+    const speedBtn = document.getElementById('cubaze-btn-speed');
+    if (speedBtn) speedBtn.textContent = `${speed}x`;
+    document.querySelectorAll('.cubaze-speed-opt').forEach(opt => {
+      opt.classList.toggle('active', parseFloat(opt.getAttribute('data-speed')) === speed);
+    });
+    document.getElementById('cubaze-speed-dropdown')?.classList.remove('show');
+  },
+
+  toggleFullscreen: function () {
+    const container = document.getElementById('lms-player-container');
+    if (!container) return;
+    if (!document.fullscreenElement) {
+      if (container.requestFullscreen) container.requestFullscreen();
+      else if (container.webkitRequestFullscreen) container.webkitRequestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+    }
+  },
+
+  _updateProgress: function (currentTime, duration) {
+    const finalDur = (duration && duration > 0) ? duration : this._duration;
+    if (finalDur > 0) {
+      this._duration = finalDur;
+      this._currentPlaybackTime = Math.max(0, currentTime || 0);
+      const pct = Math.min(100, Math.max(0, (this._currentPlaybackTime / this._duration) * 100));
+      const fill = document.getElementById('cubaze-seekbar-fill');
+      const thumb = document.getElementById('cubaze-seekbar-thumb');
+      const slider = document.getElementById('cubaze-seekbar-input');
+      const timeDisplay = document.getElementById('cubaze-time-display');
+      if (fill) fill.style.width = `${pct}%`;
+      if (thumb) thumb.style.left = `${pct}%`;
+      if (slider && document.activeElement !== slider) slider.value = pct;
+      if (timeDisplay) timeDisplay.textContent = `${this.formatTime(this._currentPlaybackTime)} / ${this.formatTime(this._duration)}`;
     }
   },
 
   _getYouTubeEmbedUrl: function (url, fallback) {
-    if (!url) return fallback;
+    let target = url || fallback || "https://www.youtube.com/embed/dQw4w9WgXcQ";
     let videoId = "";
-    if (url.includes("youtube.com/embed/")) {
-      return url;
-    } else if (url.includes("youtube.com/watch")) {
-      const parts = url.split("v=");
+    if (target.includes("youtube.com/embed/")) {
+      const parts = target.split("youtube.com/embed/");
+      if (parts[1]) videoId = parts[1].split("?")[0].split("&")[0];
+    } else if (target.includes("youtube.com/watch")) {
+      const parts = target.split("v=");
       if (parts[1]) videoId = parts[1].split("&")[0];
-    } else if (url.includes("youtu.be/")) {
-      const parts = url.split("youtu.be/");
+    } else if (target.includes("youtu.be/")) {
+      const parts = target.split("youtu.be/");
       if (parts[1]) videoId = parts[1].split("?")[0];
     }
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : fallback;
+    if (!videoId) {
+      const match = target.match(/(?:embed\/|v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      if (match) videoId = match[1];
+    }
+    const params = "enablejsapi=1&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1";
+    return videoId ? `https://www.youtube.com/embed/${videoId}?${params}` : (target.includes("?") ? `${target}&${params}` : `${target}?${params}`);
   },
 
   init: function (courseId, lessonId) {
@@ -1369,40 +1550,129 @@ const VideoPlayerComponent = {
       }
     });
 
-    // Handle Youtube playback currentTime Delivery
-    window.addEventListener('message', e => {
-      if (e.origin !== "https://www.youtube") {
-        if (!e.origin.includes("youtube.com")) return;
+    // Custom Video Player Control Listeners
+    document.getElementById('cubaze-player-shield')?.addEventListener('click', () => VideoPlayerComponent.togglePlay());
+    document.getElementById('cubaze-play-center')?.addEventListener('click', () => VideoPlayerComponent.togglePlay());
+    document.getElementById('cubaze-btn-play')?.addEventListener('click', () => VideoPlayerComponent.togglePlay());
+    document.getElementById('cubaze-btn-volume')?.addEventListener('click', () => VideoPlayerComponent.toggleMute());
+    document.getElementById('cubaze-btn-fullscreen')?.addEventListener('click', () => VideoPlayerComponent.toggleFullscreen());
+
+    // Volume Slider listener
+    document.getElementById('cubaze-volume-slider')?.addEventListener('input', e => {
+      VideoPlayerComponent.setVolume(parseFloat(e.target.value));
+    });
+
+    // Seekbar Input listener
+    document.getElementById('cubaze-seekbar-input')?.addEventListener('input', e => {
+      const pct = parseFloat(e.target.value);
+      if (VideoPlayerComponent._duration > 0) {
+        const targetSecs = (pct / 100) * VideoPlayerComponent._duration;
+        VideoPlayerComponent.seekToTime(targetSecs);
       }
+    });
+
+    // Speed Menu Toggle & Selection
+    const speedBtn = document.getElementById('cubaze-btn-speed');
+    const speedMenu = document.getElementById('cubaze-speed-dropdown');
+    if (speedBtn && speedMenu) {
+      speedBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        speedMenu.classList.toggle('show');
+      });
+      document.addEventListener('click', () => speedMenu.classList.remove('show'));
+      document.querySelectorAll('.cubaze-speed-opt').forEach(opt => {
+        opt.addEventListener('click', e => {
+          e.stopPropagation();
+          const spd = parseFloat(opt.getAttribute('data-speed'));
+          VideoPlayerComponent.setSpeed(spd);
+        });
+      });
+    }
+
+    // Auto-hide control bar on mouse idle
+    const container = document.getElementById('lms-player-container');
+    const overlay = document.getElementById('cubaze-player-overlay');
+    if (container && overlay) {
+      const resetIdle = () => {
+        overlay.classList.remove('idle-hidden');
+        clearTimeout(VideoPlayerComponent._idleTimer);
+        if (VideoPlayerComponent._isPlaying) {
+          VideoPlayerComponent._idleTimer = setTimeout(() => {
+            overlay.classList.add('idle-hidden');
+          }, 3000);
+        }
+      };
+      container.addEventListener('mousemove', resetIdle);
+      container.addEventListener('click', resetIdle);
+    }
+
+    // Start active Youtube status ticker interval to query currentTime & duration
+    clearInterval(VideoPlayerComponent._pollTimer);
+    VideoPlayerComponent._pollTimer = setInterval(() => {
+      const iframe = document.getElementById('youtube-iframe-player');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getCurrentTime', args: [] }), '*');
+        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getDuration', args: [] }), '*');
+      }
+    }, 500);
+
+    // Handle Youtube playback currentTime & state Delivery
+    window.addEventListener('message', e => {
+      if (e.origin !== "https://www.youtube" && !e.origin.includes("youtube.com")) return;
       try {
-        const data = JSON.parse(e.data);
+        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        if (!data) return;
+
         if (data.event === "infoDelivery" && data.info) {
           if (data.info.currentTime !== undefined) {
-            VideoPlayerComponent._currentPlaybackTime = data.info.currentTime;
+            const dur = data.info.duration || VideoPlayerComponent._duration;
+            VideoPlayerComponent._updateProgress(data.info.currentTime, dur);
             localStorage.setItem(`cubaze_playback_${courseId}_${lessonId}`, data.info.currentTime);
           }
+          if (data.info.playerState !== undefined) {
+            const st = data.info.playerState;
+            if (st === 1) { // Playing
+              VideoPlayerComponent._isPlaying = true;
+              VideoPlayerComponent._updatePlayUi();
+            } else if (st === 2 || st === 0) { // Paused or Ended
+              VideoPlayerComponent._isPlaying = false;
+              VideoPlayerComponent._updatePlayUi();
+            }
+          }
         }
-      } catch (err) {}
+      } catch (err) { }
     });
 
     // Keyboard navigation triggers
     const keyPressHandler = e => {
       const act = document.activeElement;
       if (act && (act.tagName === 'INPUT' || act.tagName === 'TEXTAREA')) return;
-      
+
       const iframe = document.getElementById('youtube-iframe-player');
       if (!iframe) return;
 
       if (e.key === ' ') {
         e.preventDefault();
-        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: VideoPlayerComponent._isPlaying ? 'pauseVideo' : 'playVideo', args: [] }), '*');
-        VideoPlayerComponent._isPlaying = !VideoPlayerComponent._isPlaying;
+        VideoPlayerComponent.togglePlay();
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [VideoPlayerComponent._currentPlaybackTime + 5, true] }), '*');
+        VideoPlayerComponent.seekToTime(VideoPlayerComponent._currentPlaybackTime + 5);
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [VideoPlayerComponent._currentPlaybackTime - 5, true] }), '*');
+        VideoPlayerComponent.seekToTime(VideoPlayerComponent._currentPlaybackTime - 5);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        VideoPlayerComponent.setVolume(Math.min(100, VideoPlayerComponent._volume + 10));
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        VideoPlayerComponent.setVolume(Math.max(0, VideoPlayerComponent._volume - 10));
+      } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        VideoPlayerComponent.toggleMute();
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        VideoPlayerComponent.toggleFullscreen();
       }
     };
 

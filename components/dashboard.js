@@ -1166,22 +1166,39 @@ const DashboardComponent = {
   },
 
   _showRecording: function (title, url) {
+    let cleanUrl = url;
+    if (window.VideoPlayerComponent && window.VideoPlayerComponent._getYouTubeEmbedUrl) {
+      cleanUrl = window.VideoPlayerComponent._getYouTubeEmbedUrl(url, url);
+    }
     const overlay = document.createElement('div');
     overlay.className = 'tutor-modal-overlay';
     overlay.style.zIndex = '1100';
     overlay.innerHTML = `
-      <div class="tutor-modal" style="max-width: 720px; padding:24px;">
+      <div class="tutor-modal" style="max-width: 760px; padding:24px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
           <h3 style="margin:0;"><i class="fa-solid fa-play" style="color:var(--brand-blue); margin-right:8px;"></i>${title}</h3>
           <button class="btn btn-outline-white btn-sm btn-modal-close" style="width:32px; height:32px; padding:0; border-radius:50%;"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div style="position:relative; padding-bottom:56.25%; height:0; border-radius:12px; overflow:hidden; background:#000;">
-          <iframe src="${url}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allowfullscreen></iframe>
+          <iframe id="modal-youtube-iframe" src="${cleanUrl}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none; pointer-events:none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+          <div style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; background:transparent; cursor:pointer;" id="modal-player-shield" title="Click to play/pause"></div>
         </div>
       </div>
     `;
+    let isPlaying = true;
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     overlay.querySelector('.btn-modal-close').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#modal-player-shield').addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      const iframe = overlay.querySelector('#modal-youtube-iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(JSON.stringify({
+          event: 'command',
+          func: isPlaying ? 'playVideo' : 'pauseVideo',
+          args: []
+        }), '*');
+      }
+    });
     document.body.appendChild(overlay);
   },
 
