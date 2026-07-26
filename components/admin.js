@@ -177,14 +177,27 @@ const AdminComponent = {
   },
 
   _sessionSearch: '',
+  _activeSessionsPage: 1,
+
+  _changeActiveSessionsPage: function (page) {
+    AdminComponent._activeSessionsPage = page;
+    const main = document.getElementById('adm-main');
+    if (main) main.innerHTML = `<div style="display:flex; flex-direction:column; gap:28px;">${AdminComponent._renderSection('active_sessions')}</div>`;
+  },
 
   _renderActiveSessions: function () {
     const sessions = window.db.getSessions();
+    const users = window.db.getUsers();
     const search = (AdminComponent._sessionSearch || '').toLowerCase().trim();
 
     const filtered = sessions.filter(s => {
       if (!search) return true;
+      const u = users.find(user => user.username.toLowerCase() === (s.username || '').toLowerCase());
+      const name = u ? (u.name || '') : '';
+      const email = u ? (u.email || '') : '';
       return (s.username || '').toLowerCase().includes(search) ||
+             name.toLowerCase().includes(search) ||
+             email.toLowerCase().includes(search) ||
              (s.deviceName || '').toLowerCase().includes(search) ||
              (s.browser || '').toLowerCase().includes(search) ||
              (s.city || '').toLowerCase().includes(search) ||
@@ -195,9 +208,21 @@ const AdminComponent = {
     const activeCount = sessions.filter(s => s.status === 'Active').length;
     const blockedCount = sessions.filter(s => s.status === 'Blocked').length;
 
+    // Pagination calculations
+    const itemsPerPage = 10;
+    const totalResults = filtered.length;
+    const totalPages = Math.ceil(totalResults / itemsPerPage) || 1;
+    if (!AdminComponent._activeSessionsPage || AdminComponent._activeSessionsPage < 1) AdminComponent._activeSessionsPage = 1;
+    if (AdminComponent._activeSessionsPage > totalPages) AdminComponent._activeSessionsPage = totalPages;
+    const currentPage = AdminComponent._activeSessionsPage;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalResults);
+    const paginatedSessions = filtered.slice(startIndex, endIndex);
+
     setTimeout(() => {
       document.getElementById('admin-session-search-input')?.addEventListener('input', (e) => {
         AdminComponent._sessionSearch = e.target.value;
+        AdminComponent._activeSessionsPage = 1;
         const main = document.getElementById('adm-main');
         if (main) main.innerHTML = `<div style="display:flex; flex-direction:column; gap:28px;">${AdminComponent._renderSection('active_sessions')}</div>`;
       });
@@ -215,7 +240,7 @@ const AdminComponent = {
             </p>
           </div>
           <div style="display:flex; gap:12px; align-items:center;">
-            <input type="text" id="admin-session-search-input" value="${AdminComponent._sessionSearch || ''}" placeholder="Search student, city, IP..." style="padding:8px 14px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:0.85rem; width:240px;">
+            <input type="text" id="admin-session-search-input" value="${AdminComponent._sessionSearch || ''}" placeholder="Search student, email, IP..." style="padding:8px 14px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:0.85rem; width:240px;">
           </div>
         </div>
 
@@ -243,7 +268,7 @@ const AdminComponent = {
         <!-- Sessions Table Card -->
         <div class="glass-panel" style="padding:0; overflow:hidden; border:1px solid var(--border-color);">
           <div style="padding:16px 20px; background:var(--bg-secondary); border-bottom:1px solid var(--border-color); font-weight:700; font-size:0.9rem; color:var(--text-primary);">
-            Session Audit Records (${filtered.length})
+            Session Audit Records (${totalResults})
           </div>
           <div class="table-wrapper" style="overflow-x:auto;">
             <table class="table" style="width:100%; border-collapse:collapse; text-align:left; font-size:0.83rem;">
@@ -260,20 +285,25 @@ const AdminComponent = {
                 </tr>
               </thead>
               <tbody>
-                ${filtered.length === 0 ? `
+                ${paginatedSessions.length === 0 ? `
                   <tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">No matching session records found.</td></tr>
-                ` : filtered.map(s => {
+                ` : paginatedSessions.map(s => {
                   let badgeBg = 'rgba(16, 185, 129, 0.12)'; let badgeColor = '#10B981';
                   if (s.status === 'Blocked') { badgeBg = 'rgba(239, 68, 68, 0.12)'; badgeColor = '#EF4444'; }
                   else if (s.status === 'Expired') { badgeBg = 'rgba(245, 158, 11, 0.12)'; badgeColor = '#D97706'; }
                   else if (s.status === 'Logged Out') { badgeBg = 'var(--bg-secondary)'; badgeColor = 'var(--text-muted)'; }
 
                   const isLive = s.status === 'Active';
+                  const studentUser = users.find(u => u.username.toLowerCase() === (s.username || '').toLowerCase());
+                  const studentName = studentUser ? studentUser.name : s.username;
+                  const gmailAddr = studentUser ? (studentUser.email || `${s.username}@gmail.com`) : '';
 
                   return `
                     <tr style="border-bottom:1px solid var(--border-color);">
                       <td style="padding:12px 16px;">
-                        <strong style="color:var(--text-primary); display:block;">@${s.username}</strong>
+                        <strong style="color:var(--text-primary); display:block;">${studentName}</strong>
+                        <span style="font-size:0.75rem; color:var(--text-secondary);">@${s.username}</span>
+                        ${gmailAddr ? `<div style="font-size:0.75rem; color:var(--brand-blue); margin-top:2px;"><i class="fa-solid fa-envelope" style="font-size:0.7rem; margin-right:4px;"></i>${gmailAddr}</div>` : ''}
                       </td>
                       <td style="padding:12px 16px; color:var(--text-primary); font-weight:600;">
                         ${s.deviceName || 'Windows Laptop'}<br>
@@ -304,6 +334,74 @@ const AdminComponent = {
               </tbody>
             </table>
           </div>
+
+          <!-- Pagination Bar -->
+          ${totalResults > 0 ? (() => {
+            const buttons = [];
+
+            // First page
+            buttons.push(`
+              <button class="btn btn-outline-white" 
+                      style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                      ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeActiveSessionsPage(1)"`}
+                      title="First Page">
+                «
+              </button>
+            `);
+
+            // Previous page
+            buttons.push(`
+              <button class="btn btn-outline-white" 
+                      style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                      ${currentPage === 1 ? 'disabled' : `onclick="AdminComponent._changeActiveSessionsPage(${currentPage - 1})"`}
+                      title="Previous Page">
+                ‹
+              </button>
+            `);
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+              buttons.push(`
+                <button class="btn ${i === currentPage ? 'btn-primary' : 'btn-outline-white'}" 
+                        style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${i === currentPage ? 'box-shadow:0 4px 12px rgba(59, 130, 246, 0.4);' : ''}"
+                        onclick="AdminComponent._changeActiveSessionsPage(${i})">
+                  ${i}
+                </button>
+              `);
+            }
+
+            // Next page
+            buttons.push(`
+              <button class="btn btn-outline-white" 
+                      style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                      ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeActiveSessionsPage(${currentPage + 1})"`}
+                      title="Next Page">
+                ›
+              </button>
+            `);
+
+            // Last page
+            buttons.push(`
+              <button class="btn btn-outline-white" 
+                      style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; margin:0; ${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                      ${currentPage === totalPages ? 'disabled' : `onclick="AdminComponent._changeActiveSessionsPage(${totalPages})"`}
+                      title="Last Page">
+                »
+              </button>
+            `);
+
+            return `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--border-color); flex-wrap:wrap; gap:16px;">
+                <div style="font-size:0.83rem; color:var(--text-muted);">
+                  Showing <strong style="color:var(--text-primary); font-weight:700;">${totalResults === 0 ? 0 : startIndex + 1}</strong> to <strong style="color:var(--text-primary); font-weight:700;">${endIndex}</strong> of <strong style="color:var(--text-primary); font-weight:700;">${totalResults}</strong> results
+                </div>
+                <div style="display:flex; gap:6px; align-items:center;">
+                  ${buttons.join('')}
+                </div>
+              </div>
+            `;
+          })() : ''}
+
         </div>
       </div>
     `;
