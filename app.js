@@ -85,6 +85,21 @@ class CubazeApp {
         window.PhonePeComponent.initSimulator(parts[1]);
       } else if (path === '/dashboard') {
         const cu = window.db.getCurrentUser();
+        if (parts[1]) {
+          const tabMap = {
+            'mycourses': 'mycourses',
+            'my-courses': 'mycourses',
+            'liveclasses': 'liveclasses',
+            'projects': 'projects',
+            'wishlist': 'wishlist',
+            'certificates': 'certificates',
+            'orders': 'orders',
+            'profile': 'profile'
+          };
+          if (tabMap[parts[1]]) {
+            if (window.DashboardComponent) window.DashboardComponent._activeTab = tabMap[parts[1]];
+          }
+        }
         if (cu && cu.role === 'admin') {
           this.view.innerHTML = window.AdminComponent.render();
           window.AdminComponent.init();
@@ -286,10 +301,11 @@ class CubazeApp {
               <h4>${cu.name}</h4>
               <span>@${cu.username} · ${cu.role}</span>
             </div>
-            <a href="${dashLink}" class="dropdown-item"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            <a href="${dashLink}" class="dropdown-item" id="btn-dropdown-dashboard"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+            ${(cu.role === 'student' || cu.role === 'user') ? `<a href="#/dashboard/mycourses" class="dropdown-item" id="btn-dropdown-mycourses"><i class="fa-solid fa-book-open"></i> My Courses</a>` : ''}
             ${cu.role === 'admin' ? `<a href="#/admin" class="dropdown-item"><i class="fa-solid fa-gear"></i> Admin Panel</a>` : ''}
             ${cu.role === 'instructor' ? `<a href="#/tutor" class="dropdown-item"><i class="fa-solid fa-chalkboard-user"></i> Tutor Panel</a>` : ''}
-            <a href="#/courses" class="dropdown-item"><i class="fa-solid fa-book-open"></i> Browse Courses</a>
+            <a href="#/courses" class="dropdown-item"><i class="fa-solid fa-layer-group"></i> Browse Courses</a>
             <div style="border-top:1px solid var(--border-color);margin:4px 0;"></div>
             <div class="dropdown-item danger" id="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</div>
           </div>
@@ -302,6 +318,14 @@ class CubazeApp {
         document.getElementById('profile-dropdown')?.classList.toggle('show');
       });
       document.addEventListener('click', () => document.getElementById('profile-dropdown')?.classList.remove('show'));
+
+      // Dashboard & My Courses dropdown triggers
+      document.getElementById('btn-dropdown-dashboard')?.addEventListener('click', () => {
+        if (window.DashboardComponent) window.DashboardComponent._activeTab = 'overview';
+      });
+      document.getElementById('btn-dropdown-mycourses')?.addEventListener('click', () => {
+        if (window.DashboardComponent) window.DashboardComponent._activeTab = 'mycourses';
+      });
 
       // Logout
       document.getElementById('btn-logout')?.addEventListener('click', () => this.logout());
