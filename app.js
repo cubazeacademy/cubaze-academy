@@ -241,7 +241,7 @@ class CubazeApp {
     });
 
     // Register form
-    formRegister?.addEventListener('submit', e => {
+    formRegister?.addEventListener('submit', async e => {
       e.preventDefault();
       const name = document.getElementById('reg-name').value.trim();
       const username = document.getElementById('reg-username').value.trim().toLowerCase();
@@ -250,9 +250,21 @@ class CubazeApp {
       if (!name || !username || !password || !phone) { this.showToast('All fields are required.', 'danger'); return; }
       if (password.length < 6) { this.showToast('Password must be at least 6 characters.', 'danger'); return; }
       if (!/^[a-z0-9_]+$/.test(username)) { this.showToast('Username can only contain letters, numbers, and underscores.', 'danger'); return; }
-      const result = window.db.register(name, username, password, phone);
+
+      const submitBtn = formRegister.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Creating Account...`;
+      }
+
+      const result = await window.db.registerAsync(name, username, password, phone);
+
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `Create Account`;
+      }
+
       if (result.success) {
-        window.db.setCurrentUser(result.user);
         this.hideAuthModal();
         this.updateNavbarAuth();
         this.showToast(`Welcome to Cubaze Academy, ${name}! 🎓`, 'success');
@@ -530,7 +542,24 @@ class CubazeApp {
         this.logout();
         this.showToast('Your session was ended on another device or by administrator.', 'warning');
       }
-    }, 30000);
+    }, 15000);
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'cubaze_session_token' || e.key === 'cubaze_current_user' || e.key === 'cubaze_sessions') {
+        const cu = window.db.getCurrentUser();
+        const token = localStorage.getItem('cubaze_session_token');
+        if (!cu || !token) {
+          this.updateNavbarAuth();
+          this.renderRoute();
+        } else {
+          const isValid = window.db.updateSessionPulse();
+          if (!isValid) {
+            this.logout();
+            this.showToast('Your session was ended on another device or browser.', 'warning');
+          }
+        }
+      }
+    });
   }
 
   initCommonMeetingScheduler() {

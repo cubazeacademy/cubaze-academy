@@ -1439,6 +1439,34 @@ class CubazeDB {
         console.warn("Supabase project_reviews sync failed:", err);
       }
 
+      // Sync Sessions — map snake_case to camelCase
+      try {
+        const { data: sessions, error: sessErr } = await this.sb.from('cubaze_sessions').select('*');
+        if (!sessErr && sessions && sessions.length > 0) {
+          const mappedSessions = sessions.map(s => ({
+            id: s.id,
+            userId: s.user_id || s.username,
+            username: s.username,
+            sessionToken: s.session_token,
+            deviceId: s.device_id,
+            deviceName: s.device_name,
+            browser: s.browser,
+            os: s.os,
+            ipAddress: s.ip_address,
+            country: s.country,
+            state: s.state,
+            city: s.city,
+            loginTime: s.login_time,
+            lastActivity: s.last_activity,
+            logoutTime: s.logout_time,
+            status: s.status
+          }));
+          localStorage.setItem("cubaze_sessions", JSON.stringify(mappedSessions));
+        }
+      } catch (err) {
+        console.warn("Supabase sessions sync failed:", err);
+      }
+
       console.log("✅ Supabase sync completed.");
       this.supabaseStatus = 'online';
       // Trigger a view refresh if app is loaded
@@ -1814,6 +1842,28 @@ class CubazeDB {
           active: c.active !== false
         });
       });
+    } else if (key === "cubaze_sessions") {
+      const itemsToPush = specificId ? value.filter(s => s.id === specificId) : value;
+      itemsToPush.forEach(s => {
+        this.pushToSupabase("cubaze_sessions", {
+          id: s.id,
+          user_id: s.userId || s.username,
+          username: s.username,
+          session_token: s.sessionToken,
+          device_id: s.deviceId,
+          device_name: s.deviceName,
+          browser: s.browser,
+          os: s.os,
+          ip_address: s.ipAddress,
+          country: s.country,
+          state: s.state,
+          city: s.city,
+          login_time: s.loginTime,
+          last_activity: s.lastActivity,
+          logout_time: s.logoutTime,
+          status: s.status
+        });
+      });
     }
   }
 
@@ -2121,7 +2171,88 @@ class CubazeDB {
     return { success: true, user: newUser };
   }
 
+  async registerUserAsync(username, password, name, role = "student", phone = "") {
+    const users = this.getUsers();
+    if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) return { success: false, error: "Username already exists." };
+    const newUser = { username: username.trim(), password, name: name.trim(), role, registeredDate: new Date().toISOString().split('T')[0], enrolledCourses: [], wishlist: [], phone: phone.trim() };
+    users.push(newUser);
+    this.setItemAndSync("cubaze_users", users);
+
+    // Detect environment & IP location
+    const info = await this.detectDeviceInfoAndLocation();
+
+    // Enforce Single Active Session logic for student accounts upon registration
+    let newSession = null;
+    if (role === 'student' || role === 'user') {
+      const sessionToken = "token_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9);
+      newSession = {
+        id: "sess_" + Date.now(),
+        userId: newUser.username,
+        username: newUser.username,
+        sessionToken: sessionToken,
+        deviceId: info.deviceName + "_" + info.browser,
+        deviceName: info.deviceName,
+        browser: info.browser,
+        os: info.os,
+        ipAddress: info.location.ip,
+        country: info.location.country,
+        state: info.location.state,
+        city: info.location.city,
+        loginTime: new Date().toISOString(),
+        lastActivity: new Date().toISOString(),
+        logoutTime: null,
+        status: "Active"
+      };
+
+      const sessions = this.getSessions();
+      sessions.unshift(newSession);
+      this.setSessions(sessions);
+
+      localStorage.setItem("cubaze_current_user", JSON.stringify(newUser));
+      localStorage.setItem("cubaze_session_token", sessionToken);
+      this.initSupabase();
+
+      // Send email notification for successful registration / login
+      this.sendSuccessfulLoginEmail(newUser, info);
+    } else {
+      localStorage.setItem("cubaze_current_user", JSON.stringify(newUser));
+      this.initSupabase();
+    }
+
+    return { success: true, user: newUser, session: newSession };
+  }
+
   async loginUserAsync(username, password) {
+    // Refresh sessions from Supabase if connected
+    if (this.sb) {
+      try {
+        const { data: sessData } = await this.sb.from('cubaze_sessions').select('*');
+        if (sessData && sessData.length > 0) {
+          const mapped = sessData.map(s => ({
+            id: s.id,
+            userId: s.user_id || s.username,
+            username: s.username,
+            sessionToken: s.session_token,
+            deviceId: s.device_id,
+            deviceName: s.device_name,
+            browser: s.browser,
+            os: s.os,
+            ipAddress: s.ip_address,
+            country: s.country,
+            state: s.state,
+            city: s.city,
+            loginTime: s.login_time,
+            lastActivity: s.last_activity,
+            logoutTime: s.logout_time,
+            status: s.status
+          }));
+          localStorage.setItem("cubaze_sessions", JSON.stringify(mapped));
+        }
+      } catch (e) {
+        console.warn("Could not refresh sessions from Supabase during login:", e);
+      }
+    }
+
     const users = this.getUsers();
     const user = users.find(u => u.username.toLowerCase() === username.toLowerCase().trim() && u.password === password);
     if (!user) {
@@ -3055,6 +3186,7 @@ class CubazeDB {
   // --- CONVENIENCE ALIASES ---
   login(username, password) { return this.loginUser(username, password); }
   register(name, username, password, phone = "") { return this.registerUser(username, password, name, "student", phone); }
+  async registerAsync(name, username, password, phone = "") { return this.registerUserAsync(username, password, name, "student", phone); }
 
   // --- TUTORS MANAGEMENT BY ADMIN ---
   addTutor(username, password, name, bio = "", assignedCourseIds = []) {
